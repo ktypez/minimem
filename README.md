@@ -90,17 +90,20 @@ Back up by copying the file while the server is stopped, or with `sqlite3 db ".b
 
 ## Running as a service
 
-`contrib/` carries an OpenRC script and launcher for Alpine and postmarketOS:
-
 ```sh
-install -m 755 contrib/minimem.initd  /etc/init.d/minimem
-install -m 755 contrib/minimem-server /usr/local/bin/minimem-server
-install -m 600 -o "$USER" contrib/minimem.env.example /etc/minimem/minimem.env
-# edit /etc/minimem/minimem.env, then
-rc-update add minimem default && rc-service minimem start
+./contrib/install.sh                       # OpenRC or systemd, whichever is there
+./contrib/install.sh --dry-run             # print every step, change nothing
+./contrib/install.sh --auth off --host 127.0.0.1
+./contrib/install.sh --uninstall           # removes the service, keeps your data
 ```
 
-Root-owned files need a privileged copy (`sudo install …`); a plain shell redirect would keep your ownership. Stop and start rather than `restart` — supervise-daemon can hang on restart on a slow ARM box.
+The installer finds the privilege tool the box has (`root`, `sup`, `doas`, `sudo`), writes an env file to `/etc/minimem/minimem.env` with a fresh 43-character token, installs a launcher, registers the service, runs `bun install`, starts it, then polls `/health` until it answers. Running it twice is a no-op: an existing env file keeps its token and settings.
+
+Defaults are `--service minimem`, `--user $USER`, `--db-dir ~/minimem-data`, `--port 3100`, `--host 127.0.0.1`, `--auth on`. Override any of them as flags or as `MINIMEM_*` environment variables.
+
+`contrib/minimem.initd` and `contrib/minimem-server` are the raw templates the installer fills in, if you would rather place them by hand.
+
+Two details matter on slow ARM boards: root-owned files need a privileged copy (`sup install …`), because a plain shell redirect keeps your ownership; and stop-then-start beats `restart`, since supervise-daemon can leave a child holding the port.
 
 ## Agent integration
 
