@@ -1,0 +1,9 @@
+#!/bin/sh
+# minimem launcher — OpenRC supervise-daemon target (root-owned)
+# Delegates to the project's run.sh, which reads the env file.
+# Env file lives OUTSIDE the repo: /etc/minimem/minimem.env
+set -a
+. /etc/minimem/minimem.env
+set +a
+export HOME=/home/admin
+exec /bin/sh /home/admin/projects/minimem/run.sh

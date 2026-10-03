@@ -1,0 +1,14 @@
+node_modules/
+bun.lockb
+
+# data and secrets never travel with the code
+data/
+*.db
+*.db-wal
+*.db-shm
+.env
+minimem.env
+
+.bun/
+dist/
+*.log

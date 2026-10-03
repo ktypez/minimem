@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>minimem</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%2307070a'/%3E%3Ccircle cx='8' cy='8' r='3' fill='%234d6bff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ─── tokens: monochrome + one accent (electric ultramarine) ─── */
+:root{
+  --bg:#07070a; --s1:#0d0d12; --s2:#131319; --s3:#1a1a22; --s4:#23232d;
+  --line:#1e1e27; --line2:#2b2b37;
+  --tx:#e9e9f1; --tx2:#8b8b9d; --tx3:#55555f;
+  --accent:#4d6bff; --accent-hi:#7c93ff; --accent-soft:rgba(77,107,255,.14); --accent-line:rgba(77,107,255,.4);
+  --danger:#ff5d73; --danger-soft:rgba(255,93,115,.12);
+  --ok:#3ddc97;
+  --mono:'IBM Plex Mono',ui-monospace,'JetBrains Mono',SFMono-Regular,Menlo,monospace;
+  --sans:'Space Grotesk','Noto Sans Thai',ui-sans-serif,system-ui,-apple-system,Sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
+body{
+  font-family:var(--sans);background:var(--bg);color:var(--tx);
+  overflow-x:hidden;min-height:100dvh;
+}
+/* faint dot grid = the single texture, on top of flat black */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:26px 26px;
+}
+::selection{background:var(--accent-soft);color:var(--accent-hi)}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,textarea{font:inherit;color:var(--tx);background:var(--s2);border:1px solid var(--line);outline:none}
+input:focus,textarea:focus{border-color:var(--accent-line)}
+
+/* ─── layout ─── */
+.app{position:relative;z-index:1;display:flex;min-height:100dvh}
+.rail{
+  width:220px;flex:0 0 auto;border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:20px 14px;gap:26px;
+  position:sticky;top:0;height:100dvh;
+}
+.brand{font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--tx2);text-transform:uppercase}
+.brand b{color:var(--accent);font-weight:500}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{
+  display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:6px;
+  font-size:14px;color:var(--tx2);text-align:left;min-height:44px;
+  border-left:2px solid transparent;transition:color .15s,background .15s;
+}
+.nav button:hover{color:var(--tx);background:var(--s1)}
+.nav button.active{color:var(--tx);background:var(--s2);border-left-color:var(--accent)}
+.nav .count{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--tx3)}
+.nav button.active .count{color:var(--accent)}
+.rail .foot{margin-top:auto;font-family:var(--mono);font-size:10px;color:var(--tx3);line-height:1.8}
+.rail .foot .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:1px;animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  position:sticky;top:0;z-index:5;background:rgba(7,7,10,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);padding:14px 24px;display:flex;gap:12px;align-items:center;
+}
+/* the search field IS the accent rail — functional use of the single color */
+.search{flex:1;display:flex;align-items:center;gap:10px;background:var(--s2);border:1px solid var(--line2);border-radius:8px;padding:0 14px;min-height:44px;transition:border-color .15s}
+.search:focus-within{border-color:var(--accent)}
+.search svg{flex:0 0 auto;stroke:var(--tx3)}
+.search:focus-within svg{stroke:var(--accent)}
+.search input{flex:1;background:none;border:none;padding:10px 0;font-size:15px}
+.search kbd{font-family:var(--mono);font-size:10px;color:var(--tx3);border:1px solid var(--line2);border-radius:4px;padding:2px 7px}
+.btn{
+  min-height:44px;padding:0 18px;border-radius:8px;font-size:14px;
+  background:var(--accent);color:#fff;font-weight:500;transition:background .15s;
+  display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+}
+.btn:hover{background:var(--accent-hi)}
+.btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--tx2)}
+.btn.ghost:hover{border-color:var(--accent-line);color:var(--tx)}
+.btn:disabled{opacity:.4;cursor:wait}
+
+.content{padding:22px 24px calc(40px + env(safe-area-inset-bottom));max-width:880px;width:100%}
+.section-label{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--tx3);margin:0 0 12px}
+.section-label span{color:var(--accent)}
+
+/* ─── cards ─── */
+.cards{display:flex;flex-direction:column;gap:10px}
+.card{
+  background:var(--s1);border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+  transition:border-color .15s,transform .1s;animation:rise .25s ease both;
+}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.card:hover{border-color:var(--line2)}
+.card .meta{display:flex;align-items:baseline;gap:12px;margin-bottom:7px;font-family:var(--mono);font-size:10px;color:var(--tx3)}
+.card .meta .id{color:var(--accent)}
+.card .txt{font-size:14.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+/* collapsed snippet: 3-ish lines, faded tail, click anywhere on the body to expand */
+.card .txt.clip{max-height:5.1em;overflow:hidden;cursor:pointer;
+  -webkit-mask-image:linear-gradient(180deg,#000 58%,rgba(0,0,0,.25));
+  mask-image:linear-gradient(180deg,#000 58%,rgba(0,0,0,.25))}
+.card .txt:not(.clip){cursor:pointer}
+.card .expand{margin-top:6px;padding:6px 10px;color:var(--accent);border-color:transparent}
+.card .expand:hover{color:var(--accent-hi);border-color:transparent}
+.card .histbox{margin-top:10px;border-top:1px dashed var(--line2);padding-top:9px;
+  font-family:var(--mono);font-size:10.5px;line-height:1.85;color:var(--tx2);max-height:220px;overflow:auto}
+.card .histbox .hhead{color:var(--tx3);letter-spacing:.18em;font-size:9.5px;margin-bottom:5px}
+.card .histbox .hrow b{color:var(--accent);font-weight:500}
+.card .histbox .hold{color:var(--tx3)}
+.card .acts{display:flex;gap:6px;margin-top:10px;opacity:0;transition:opacity .15s}
+.card:hover .acts,.card:focus-within .acts{opacity:1}
+.ia{font-family:var(--mono);font-size:10.5px;padding:7px 12px;border-radius:5px;border:1px solid var(--line2);color:var(--tx2);min-height:32px}
+.ia:hover{color:var(--tx);border-color:var(--accent-line)}
+.ia.danger:hover{color:var(--danger);border-color:var(--danger);background:var(--danger-soft)}
+.ia.restore:hover{color:var(--ok);border-color:var(--ok);background:rgba(61,220,151,.1)}
+.empty{padding:60px 20px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--tx3);letter-spacing:.1em}
+.more{margin:16px auto 0;display:block;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--tx2);padding:12px 20px;border:1px solid var(--line);border-radius:6px;text-transform:uppercase}
+.more:hover{border-color:var(--accent-line);color:var(--accent-hi)}
+mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padding:0 1px}
+
+/* ─── tags ─── */
+.tagbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px;align-items:center}
+.tagbar .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--tx3);text-transform:uppercase;margin-right:4px}
+.chip{
+  font-family:var(--mono);font-size:10.5px;padding:5px 10px;border-radius:999px;
+  border:1px solid var(--line2);color:var(--tx2);background:var(--s1);white-space:nowrap;
+  transition:color .15s,border-color .15s,background .15s;min-height:26px;display:inline-flex;align-items:center;gap:6px;
+}
+.chip:hover{color:var(--tx);border-color:var(--accent-line)}
+.chip.on{color:var(--accent-hi);border-color:var(--accent);background:var(--accent-soft)}
+.chip .n{color:var(--tx3);font-size:9.5px}
+.chip.on .n{color:var(--accent)}
+.chip .x{color:var(--tx3);font-size:12px;line-height:1}
+.chip .x:hover{color:var(--danger)}
+.card .tags{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0 0}
+.card .tags .chip{font-size:10px;padding:3px 9px;min-height:22px;background:var(--s2)}
+.tagmore{font-family:var(--mono);font-size:10px;color:var(--tx3);padding:3px 6px}
+.tagedit{display:flex;gap:8px;align-items:center}
+.tagedit label{font-family:var(--mono);font-size:10px;color:var(--tx3);letter-spacing:.14em;text-transform:uppercase;flex:0 0 auto}
+.tagedit input{flex:1;border-radius:7px;padding:10px 12px;font-family:var(--mono);font-size:12.5px}
+
+/* ─── modal ─── */
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;padding:8vh 16px 16px}
+.scrim.open{display:flex}
+.sheet{width:100%;max-width:640px;background:var(--s1);border:1px solid var(--line2);border-radius:12px;animation:rise .2s ease both;max-height:84vh;display:flex;flex-direction:column}
+.sheet header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.sheet header h2{font-size:15px;font-weight:600}
+.sheet header .x{margin-left:auto;font-family:var(--mono);color:var(--tx3);padding:6px 10px}
+.sheet header .x:hover{color:var(--danger)}
+.sheet .tabs{display:flex;border-bottom:1px solid var(--line)}
+.sheet .tabs button{flex:1;padding:12px;font-size:12.5px;color:var(--tx3);border-bottom:2px solid transparent}
+.sheet .tabs button.active{color:var(--tx);border-bottom-color:var(--accent)}
+.sheet .pane{padding:20px;display:none;flex-direction:column;gap:14px;overflow:auto}
+.sheet .pane.active{display:flex}
+.sheet textarea{width:100%;min-height:140px;border-radius:8px;padding:14px;font-size:14px;line-height:1.6;resize:vertical}
+.sheet .hint{font-family:var(--mono);font-size:10.5px;color:var(--tx3);line-height:1.7}
+.sheet .done{padding:14px;border-radius:8px;background:var(--accent-soft);border:1px solid var(--accent-line);font-family:var(--mono);font-size:12px;color:var(--accent-hi);line-height:1.7;display:none}
+
+/* toast */
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(80px);z-index:40;font-family:var(--mono);font-size:12px;background:var(--s3);border:1px solid var(--line2);padding:12px 20px;border-radius:8px;transition:transform .25s ease;max-width:90vw}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.err{border-color:var(--danger);color:var(--danger)}
+
+/* token sheet */
+.ts-field input{width:100%;border-radius:8px;padding:13px 14px;font-family:var(--mono);font-size:13px}
+.ts-row{display:flex;gap:10px}
+.ts-row .btn{flex:1;justify-content:center}
+.gate{position:fixed;inset:0;z-index:30;background:var(--bg);display:none;align-items:center;justify-content:center;padding:24px}
+.gate.open{display:flex}
+.gate .box{width:100%;max-width:400px;background:var(--s1);border:1px solid var(--line2);border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:16px}
+.gate h1{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--tx2);text-transform:uppercase}
+.gate h1 b{color:var(--accent);font-weight:500}
+
+/* ─── mobile ─── */
+@media (max-width:760px){
+  .app{flex-direction:column}
+  .rail{width:100%;height:auto;position:static;flex-direction:row;align-items:center;padding:12px 14px;gap:14px;overflow-x:auto;border-right:none;border-bottom:1px solid var(--line)}
+  .brand{flex:0 0 auto}
+  .nav{flex-direction:row;gap:6px}
+  .nav button{border-left:none;border-bottom:2px solid transparent;border-radius:6px;padding:9px 12px;font-size:13px;white-space:nowrap}
+  .nav button.active{border-bottom-color:var(--accent)}
+  .nav .count{margin-left:6px}
+  .rail .foot{display:none}
+  .topbar{padding:12px 14px}
+  .content{padding:16px 14px calc(30px + env(safe-area-inset-bottom))}
+  .search kbd{display:none}
+  .card .acts{opacity:1}
+  .btn{padding:0 14px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><b>MEM</b>ORY·SVC</div>
+    <nav class="nav">
+      <button data-mode="recent" class="active">▤ Recent<span class="count" id="c-recent"></span></button>
+      <button data-mode="add">✚ Add</button>
+      <button data-mode="extract">✦ Extract</button>
+      <button data-mode="trash">⊘ Trash<span class="count" id="c-trash"></span></button>
+    </nav>
+    <div class="foot">
+      <span class="dot" id="hb-dot"></span><span id="hb-txt">connecting…</span><br>
+      <button class="ia" id="open-token" style="margin-top:8px">access token</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <label class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="10.5" cy="10.5" r="7"/><path d="m21 21-4.8-4.8"/></svg>
+        <input id="q" type="search" placeholder="recall — Thai & English, fuzzy…" autocomplete="off" spellcheck="false">
+        <kbd>/</kbd>
+      </label>
+      <button class="btn" id="go-add" hidden>✚ Add</button>
+    </div>
+    <section class="content">
+      <div class="section-label" id="label">LATEST <span>·</span> all memories</div>
+      <div class="tagbar" id="tagbar"></div>
+      <div class="cards" id="cards"></div>
+      <button class="more" id="more" hidden>load more</button>
+    </section>
+  </main>
+</div>
+
+<!-- add / extract modal -->
+<div class="scrim" id="scrim">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <header><h2 id="sheet-title">Capture</h2><button class="x" id="sheet-close">ESC</button></header>
+    <div class="tabs">
+      <button data-pane="add" class="active">✚ store raw</button>
+      <button data-pane="extract">✦ extract with LLM</button>
+    </div>
+    <div class="pane active" id="pane-add">
+      <div class="tagedit">
+        <label for="add-tags">tags</label>
+        <input id="add-tags" type="text" placeholder="truck, deploy, infra (คั่นด้วย ,)" autocomplete="off" spellcheck="false">
+      </div>
+      <textarea id="add-text" placeholder="one memory, one fact…" maxlength="4000"></textarea>
+      <button class="btn" id="add-save">Store it</button>
+    </div>
+    <div class="pane" id="pane-extract">
+      <textarea id="ex-text" placeholder="paste a conversation, a log, anything — the model picks what's worth remembering" maxlength="20000" style="min-height:180px"></textarea>
+      <div class="hint">LLM ผ่าน AI Gateway · gemini-2.5-flash-lite · dedupe/update/delete อัตโนมัติ · ช้าหน่อย (5–20 วิ)</div>
+      <button class="btn" id="ex-run">Extract &amp; store</button>
+      <div class="done" id="ex-done"></div>
+    </div>
+  </div>
+</div>
+
+<!-- token gate -->
+<div class="gate" id="gate">
+  <div class="box">
+    <h1><b>MINI</b>MEM — access</h1>
+    <div class="ts-row">
+      <input id="gate-user" type="text" placeholder="user" autocomplete="username" spellcheck="false" style="flex:0 0 96px" value="mem">
+      <input id="gate-tok" type="password" placeholder="code" autocomplete="current-password" spellcheck="false" style="flex:1;width:auto">
+    </div>
+    <button class="btn" id="gate-save" style="justify-content:center">Unlock</button>
+    <div class="hint">รหัสสั้น 8 ตัว (MINIMEM_LOCK) หรือ bearer token เต็ม (MINIMEM_TOKEN) · เก็บใน sessionStorage เท่านั้น ไม่ลง disk · ปิด auth ได้ด้วย AUTH_ENABLED=0</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+const API=location.origin;
+const TK='minimem_token';
+let token=sessionStorage.getItem(TK)||'';
+let AUTH_ON=true; // set from /health on boot; false = server runs open, no gate
+
+const state={mode:'recent',q:'',tagFilter:'',offset:0,limit:50,total:0,qtotal:0};
+
+/* tags: "truck, deploy , #infra" -> ['truck','deploy','infra'] */
+function parseTags(v){
+  return [...new Set(String(v||'').split(/[,\n]/).map(x=>x.replace(/^#+/,'').replace(/\s+/g,' ').trim().toLowerCase()).filter(x=>x&&x.length<=40))].slice(0,10);
+}
+
+function b64(s){return btoa(unescape(encodeURIComponent(s)));}
+// true when we should attach a credential: auth is on AND we hold a token
+function hasAuth(){return AUTH_ON && !!token;}
+function authHeader(){
+  const who=(sessionStorage.getItem('minimem_user')||'mem');
+  return 'Basic '+b64(who+':'+token);
+}
+
+async function req(path,opts={}){
+  const h={...(opts.headers||{})};
+  if(hasAuth())h['Authorization']=authHeader();
+  const r=await fetch(API+path,{...opts,headers:{...h,'Content-Type':'application/json'}});
+  if(r.status===401){showGate();throw new Error('bad token');}
+  if(!r.ok){const t=await r.text().catch(()=>'');throw new Error(`HTTP ${r.status} ${t.slice(0,120)}`);}
+  return r.json();
+}
+
+/* ── toast ── */
+let tt;
+function toast(msg,err){const el=$('#toast');el.textContent=msg;el.classList.toggle('err',!!err);el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2600);}
+
+/* ── render ── */
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function hl(txt){
+  if(!state.q)return esc(txt);
+  const words=[...new Set(state.q.toLowerCase().split(/\s+/).filter(w=>w.length>=3&&w!=='--'))];
+  let out=esc(txt);
+  for(const w of words){out=out.replace(new RegExp('('+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'),'<mark>$1</mark>');}
+  return out;
+}
+const ago=s=>{const d=(Date.now()-new Date(s.replace(' ','T')+'Z'))/1e3;
+  if(d<3600)return Math.max(1,d/60|0)+'m';if(d<86400)return(d/3600|0)+'h';if(d<2592000)return(d/86400|0)+'d';return s.slice(0,10);};
+
+function histHtml(h){
+  return `<div class="histbox"><div class="hhead">HISTORY · ${h.length}</div>`+
+    (h.length?h.map(x=>`<div class="hrow"><b>${esc(x.action)}</b> ${esc(x.at)}`+
+      (x.old_text?`<div class="hold">↩ ${esc(x.old_text.slice(0,180))}${x.old_text.length>180?'…':''}</div>`:'')+
+      `</div>`).join(''):
+      '<div class="hold">no history</div>')+`</div>`;
+}
+
+function tagChips(m,limit=6){
+  const t=m.tags||[];
+  if(!t.length)return '';
+  const show=t.slice(0,limit);
+  return `<div class="tags">`+show.map(x=>{
+    const on=state.tagFilter===x?' on':'';
+    return `<button class="chip${on}" data-tag="${esc(x)}">#${esc(x)}</button>`;
+  }).join('')+(t.length>limit?`<span class="tagmore">+${t.length-limit}</span>`:'')+`</div>`;
+}
+
+function card(m){
+  const el=document.createElement('div');el.className='card';
+  el.innerHTML=`<div class="meta"><span class="id">#${m.id}</span><span>${ago(m.updated_at)}</span><span style="margin-left:auto">${m.text.length}c</span></div>
+    <div class="txt"></div>
+    ${tagChips(m)}
+    <button class="ia expand" hidden></button>
+    <div class="acts">
+      <button class="ia" data-act="edit">edit</button>
+      <button class="ia" data-act="hist">history</button>
+      ${state.mode==='trash'
+        ?`<button class="ia restore" data-act="restore">↩ restore</button>`
+        :`<button class="ia danger" data-act="del">delete</button>`}
+    </div>`;
+  const box=el.querySelector('.txt'),exp=el.querySelector('.expand');
+  let open=false,hist=null;
+  const paint=()=>{
+    box.innerHTML=hist?esc(m.text)+histHtml(hist):hl(m.text);
+    box.classList.toggle('clip',!open);
+    exp.textContent=open?'▴ ย่อ':'▾ ดูเต็ม';
+    exp.hidden=m.text.length<=220&&!hist;
+  };
+  const toggle=()=>{open=!open;paint();};
+  box.onclick=toggle;
+  exp.onclick=toggle;
+  paint();
+  el.querySelectorAll('.tags .chip').forEach(c=>c.onclick=e=>{e.stopPropagation();setTagFilter(c.dataset.tag);});
+  el.querySelector('[data-act=edit]').onclick=()=>{
+    const t=prompt('แก้ memory:',m.text);if(!t||!t.trim())return;
+    const g=prompt('tags (คั่นด้วย ,):',(m.tags||[]).join(', '));
+    const body={text:t.trim()};if(g!==null)body.tags=parseTags(g);
+    req('/memories/'+m.id,{method:'PATCH',body:JSON.stringify(body)}).then(()=>{toast('updated');load();}).catch(e=>toast(e.message,1));
+  };
+  el.querySelector('[data-act=del]').onclick=()=>{if(confirm('ย้ายไป trash?'))req('/memories/'+m.id,{method:'DELETE'}).then(()=>{toast('trashed');load();}).catch(e=>toast(e.message,1));};
+  const rs=el.querySelector('[data-act=restore]');if(rs)rs.onclick=()=>req('/memories/'+m.id+'/restore',{method:'POST'}).then(()=>{toast('restored');load();}).catch(e=>toast(e.message,1));
+  el.querySelector('[data-act=hist]').onclick=async()=>{
+    if(hist){open=!open;paint();return;}
+    try{hist=await req('/memories/'+m.id+'/history');open=true;paint();}catch(e){toast(e.message,1);}
+  };
+  return el;
+}
+
+/* ── tag bar ── */
+function paintTagBar(tags){
+  const host=$('#tagbar');const f=state.tagFilter;
+  const chips=tags.slice(0,26).map(t=>{
+    const on=f===t.tag?' on':'';
+    return `<button class="chip${on}" data-tag="${esc(t.tag)}">#${esc(t.tag)}<span class="n">${t.n}</span></button>`;
+  }).join('');
+  const clear=f?`<button class="chip on" data-clear="1">✕ #${esc(f)}</button>`:'';
+  const more=state.qtotal>tags.length?`<span class="tagmore">+${state.qtotal-tags.length} more</span>`:'';
+  host.innerHTML=(tags.length||f)?`<span class="lbl">tags</span>${clear}${chips}${more}`:'';
+  host.querySelectorAll('button[data-tag]').forEach(b=>b.onclick=()=>setTagFilter(b.dataset.tag===f?'':b.dataset.tag));
+  const cl=host.querySelector('button[data-clear]');if(cl)cl.onclick=()=>setTagFilter('');
+}
+async function loadTags(){
+  try{const r=await req('/tags?limit=60');state.qtotal=r.total;paintTagBar(r.tags);}catch(e){}
+}
+function setTagFilter(t){state.tagFilter=t;state.mode='recent';$$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.mode==='recent'));load();}
+
+/* ── load list ── */
+async function load(reset=true){
+  if(reset){state.offset=0;$('#cards').innerHTML='';}
+  let items,total;
+  try{
+    const tf=state.tagFilter?`&tag=${encodeURIComponent(state.tagFilter)}`:'';
+    if(state.q){items=await req('/memories/search?q='+encodeURIComponent(state.q)+'&limit=50'+tf);total=items.length;}
+    else if(state.mode==='trash'){const r=await req(`/memories/deleted?limit=${state.limit}&offset=${state.offset}`);items=r.items;total=r.total;}
+    else{const r=await req(`/memories?limit=${state.limit}&offset=${state.offset}${tf}`);items=r.items;total=r.total;}
+  }catch(e){return;}
+  const host=$('#cards');const first=reset||host.children.length===0;
+  if(first)host.innerHTML='';
+  items.forEach((m,i)=>{const c=card(m);c.style.animationDelay=(i%50)*12+'ms';host.appendChild(c);});
+  $('#more').hidden=!(state.mode==='recent'&&!state.q&&items.length===state.limit&&state.offset+items.length<(total??Infinity));
+  $('#label').innerHTML=state.q?`SEARCH <span>·</span> "${esc(state.q)}"${state.tagFilter?` in <span>#${esc(state.tagFilter)}</span>`:''} — ${items.length} hits`
+    :state.mode==='trash'?`TRASH <span>·</span> ${total} recoverable`
+    :state.tagFilter?`TAG <span>·</span> #${esc(state.tagFilter)} — ${total} memories`
+    :`LATEST <span>·</span> ${state.offset+items.length}+ shown`;
+  if(!items.length&&reset)host.innerHTML=`<div class="empty">${state.q?'no recall — different words?':state.tagFilter?'no memories with this tag':'nothing here yet'}</div>`;
+  stats();loadTags();
+}
+
+async function stats(){try{const s=await req('/stats');$('#c-recent').textContent=s.live;$('#c-trash').textContent=s.deleted;}catch(e){}}
+
+/* ── nav ── */
+$$('.nav button').forEach(b=>b.onclick=()=>{
+  const mode=b.dataset.mode;
+  if(mode==='add')return openSheet('add');
+  if(mode==='extract')return openSheet('extract');
+  $$('.nav button').forEach(x=>x.classList.toggle('active',x===b));
+  state.mode=mode;state.q='';state.tagFilter='';$('#q').value='';load();
+});
+$('#more').onclick=()=>{state.offset+=state.limit;load(false);};
+
+/* ── search ── */
+let deb;
+$('#q').oninput=()=>{clearTimeout(deb);deb=setTimeout(()=>{state.q=$('#q').value.trim();load();},400);};
+addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==$('#q')&&!e.metaKey&&!e.ctrlKey&&!$('.scrim.open')&&!$('.gate.open')){e.preventDefault();$('#q').focus();}});
+
+/* ── modal ── */
+function openSheet(pane){$('#scrim').classList.add('open');switchPane(pane);}
+function closeSheet(){$('#scrim').classList.remove('open');}
+function switchPane(p){$$('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.pane===p));$$('.pane').forEach(el=>el.classList.toggle('active',el.id==='pane-'+p));setTimeout(()=>$(p==='add'?'#add-text':'#ex-text').focus(),50);}
+$$('.tabs button').forEach(b=>b.onclick=()=>switchPane(b.dataset.pane));
+$('#sheet-close').onclick=closeSheet;
+$('#scrim').onclick=e=>{if(e.target===$('#scrim'))closeSheet();};
+addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();}});
+$('#go-add').onclick=()=>openSheet('add');
+$('#add-save').onclick=async()=>{const t=$('#add-text').value.trim();if(!t)return;$('#add-save').disabled=true;
+  try{const tags=parseTags($('#add-tags').value);const r=await req('/memories',{method:'POST',body:JSON.stringify({text:t,tags})});toast('stored #'+r.id);$('#add-text').value='';$('#add-tags').value='';closeSheet();load();}
+  catch(e){toast(e.message,1);}finally{$('#add-save').disabled=false;}};
+$('#ex-run').onclick=async()=>{const t=$('#ex-text').value.trim();if(!t)return;const b=$('#ex-run');b.disabled=true;b.textContent='thinking…';$('#ex-done').style.display='none';
+  try{const r=await req('/extract',{method:'POST',body:JSON.stringify({text:t})});
+    $('#ex-done').style.display='block';
+    $('#ex-done').textContent=`[${r.model}] added ${r.added} · updated ${r.updated} · deleted ${r.deleted} · skipped ${r.skipped}`;
+    $('#ex-text').value='';toast('extraction done');load();}
+  catch(e){toast(e.message,1);}finally{b.disabled=false;b.textContent='Extract & store';}};
+
+/* ── token gate ── */
+function showGate(){$('#gate').classList.add('open');setTimeout(()=>$('#gate-tok').focus(),50);}
+$('#open-token').onclick=showGate;
+$('#gate-save').onclick=saveGate;
+$('#gate-tok').onkeydown=e=>{if(e.key==='Enter')saveGate();};
+async function saveGate(){const v=$('#gate-tok').value.trim();if(!v)return;
+  const prev=token,prevUser=sessionStorage.getItem('minimem_user')||'mem';
+  token=v;sessionStorage.setItem('minimem_user',$('#gate-user').value.trim()||'mem');
+  try{await req('/stats');sessionStorage.setItem(TK,token);$('#gate').classList.remove('open');$('#gate-tok').value='';toast('unlocked');boot();}
+  catch(e){token=prev;sessionStorage.setItem('minimem_user',prevUser);toast('รหัสผิด',1);}}
+
+/* ── boot ── */
+async function boot(){
+  try{
+    const h=await (await fetch(API+'/health')).json();
+    AUTH_ON=h.auth!==false;
+    $('#hb-txt').textContent='online · :'+location.port+(AUTH_ON?'':' · open');
+  }
+  catch(e){$('#hb-txt').textContent='offline';$('#hb-dot').style.background='var(--danger)';}
+  if(!AUTH_ON){$('#gate').classList.remove('open');$('#open-token').style.display='none';}
+  if(AUTH_ON&&!token){showGate();return;}
+  try{await stats();load();}catch(e){}
+}
+boot();
+</script>
+</body>
+</html>

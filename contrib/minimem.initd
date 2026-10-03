@@ -1,0 +1,34 @@
+#!/sbin/openrc-run
+description="minimem: self-hosted memory store for agents (:3100)"
+
+# Unique wrapper path — supervise-daemon keys identity off command=,
+# a shared interpreter (bun) collides with unrelated processes.
+command="/usr/local/bin/minimem-server"
+command_user="admin:admin"
+pidfile="/run/${RC_SVCNAME}.pid"
+output_log="/var/log/minimem.log"
+error_log="/var/log/minimem.log"
+supervisor=supervise-daemon
+respawn_delay=5
+respawn_max=0
+
+depend() {
+    need net
+}
+
+_free_port() {
+    if command -v fuser >/dev/null 2>&1 && fuser 3100/tcp >/dev/null 2>&1; then
+        fuser -k 3100/tcp >/dev/null 2>&1
+        sleep 1
+    fi
+}
+
+start_pre() {
+    checkpath -f -m 0644 -o admin:admin /var/log/minimem.log
+    # a manual bun instance from a session can still hold :3100
+    _free_port
+}
+
+stop_post() {
+    _free_port
+}
