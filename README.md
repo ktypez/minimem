@@ -53,6 +53,7 @@ Everything is an environment variable; `MINIMEM_ENV` points `run.sh` at a file, 
 - `MINIMEM_TOKEN` — long bearer token. Required when auth is on.
 - `MINIMEM_LOCK` — short 8-char code; an alternative password for the web UI.
 - `AUTH_ENABLED` — `1` (default) guards the API, `0` disables the guard entirely.
+- `MINIMEM_MCP` — `1` (default) serves the `POST /mcp` endpoint, `0` disables it (agents lose their memory tools).
 - `HOST`, `PORT` — bind address, default `127.0.0.1:3100`.
 - `EXTRACT_MODELS` — comma-separated model ids for `/extract`'s fallback chain.
 - `AI_GATEWAY_API_KEY` — only needed if you call `/extract`.
@@ -79,6 +80,20 @@ All routes speak JSON. With auth on, send `Authorization: Bearer $MINIMEM_TOKEN`
 - `GET /memories/:id/history` — every version of one memory.
 - `GET /tags?limit=` → tag cloud with counts, live memories only.
 - `POST /extract` — send free text, get validated memory operations back from an LLM.
+- `POST /mcp` — JSON-RPC 2.0 over streamable HTTP; the endpoint agents connect to. `GET /mcp` answers `405`.
+
+### Relay
+
+Agents hand work to each other with three small tables.
+
+- `POST /handoff` — `{from, to, body, topic?, refs?}`. A note one agent leaves for another.
+- `GET /handoff?agent=&all=1&limit=` — pending handoffs for an agent; `all=1` includes acked ones.
+- `POST /handoff/:id/ack` — `{agent}`. Marks it done. Only the addressed agent can ack; anyone else gets `409`.
+- `GET /leases` · `POST /leases` — `{name, holder, note?, ttl_minutes?}`. A named lock so two agents do not edit the same thing. A rival asking for a held lease gets `409` with `held_by`. Expired leases are reused; `POST` renews.
+- `DELETE /leases/:name?holder=` — release, holder must match.
+- `GET /lessons` · `POST /lessons` — durable "do it this way" rules, searchable, scoped.
+- `GET /crystals` · `POST /crystals` — merged/summarised memories, with `sources`.
+- `GET /audit?limit=` — who changed what, through REST or MCP.
 
 On `POST /memories`, `401` means the token is wrong and `400` carries the reason for a rejected body; an exact duplicate is not an error — you get the existing row back with tags merged.
 
@@ -107,7 +122,24 @@ Two details matter on slow ARM boards: root-owned files need a privileged copy (
 
 ## Agent integration
 
-Give the agent a base URL and three calls: `POST /memories` to save, `GET /memories/search?q=` to recall, `GET /memories?tag=` to list one topic. Search returns whole memories ranked by relevance, so no client-side parsing is needed.
+Two ways in. Over REST, give the agent a base URL and three calls: `POST /memories` to save,
+`GET /memories/search?q=` to recall, `GET /memories?tag=` to list one topic. Search returns whole
+memories ranked by relevance, so no client-side parsing is needed.
+
+Or point the agent at the MCP endpoint — one URL, no wrapper binary:
+
+```json
+{ "mcpServers": { "minimem": { "type": "streamable-http", "url": "http://127.0.0.1:3100/mcp",
+  "headers": { "Authorization": "Bearer $MINIMEM_TOKEN" } } } }
+```
+
+Thirteen tools come back: `memory_save`, `memory_search`, `memory_recent`, `memory_forget`,
+`lesson_save`, `lesson_list`, `handoff_write`, `handoff_read`, `handoff_ack`, `lease_acquire`,
+`lease_release`, `crystal_save`, `memory_stats`.
+
+The handoff pair is the point of running one shared store: an agent finishing a task leaves
+`handoff_write` for the next one, and the next one starts by calling `handoff_read` instead of
+rediscovering the state from scratch. `lease_acquire` keeps two agents off the same file.
 
 Tags do the work concepts would in a heavier system: `auto-capture`, a project slug, a few keywords.
 

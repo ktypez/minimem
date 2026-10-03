@@ -9,6 +9,7 @@
  *   MINIMEM_TOKEN    long bearer token   (required when AUTH_ENABLED=1)
  *   MINIMEM_LOCK     optional short code for the web UI
  *   AUTH_ENABLED     1|0 — set 0 to run open on a trusted network
+ *   MINIMEM_MCP      1|0 — set 0 to disable the POST /mcp JSON-RPC endpoint
  *   HOST / PORT      default 127.0.0.1:3100
  *   EXTRACT_MODELS   comma-separated gateway model ids, tried in order
  *
@@ -39,6 +40,10 @@ const AUTH_ENABLED = !["0", "false", "no", "off"].includes(
 );
 const PORT = Number(env("PORT") ?? 3100);
 const HOST = env("HOST") ?? "127.0.0.1";
+// MINIMEM_MCP=0 disables the POST /mcp JSON-RPC endpoint (agents lose memory tools).
+const MCP_ENABLED = !["0", "false", "no", "off"].includes(
+  (env("MINIMEM_MCP") ?? "1").trim().toLowerCase(),
+);
 const MODELS = (env("EXTRACT_MODELS") ?? "google/gemini-2.5-flash-lite")
   .split(",")
   .map((s) => s.trim())
@@ -58,6 +63,7 @@ env:
   MINIMEM_TOKEN     long bearer token                  (required when AUTH_ENABLED=1)
   MINIMEM_LOCK      short web-UI code                  (optional, shows in the token sheet)
   AUTH_ENABLED      1|0  turn the API guard on/off     (default 1)
+  MINIMEM_MCP       1|0  serve the POST /mcp endpoint    (default 1)
   HOST, PORT        bind address                       (default 127.0.0.1:3100)
   EXTRACT_MODELS    comma-separated gateway model ids  (/extract fallback chain)
   AI_GATEWAY_API_KEY  Vercel AI Gateway key            (only needed for /extract)
@@ -109,7 +115,7 @@ const auth = (raw: string | undefined): boolean => {
 };
 
 // ---------- DB ----------
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 mkdirSync(dirname(DB_PATH), { recursive: true });
 const db = new Database(DB_PATH, { create: true });
 db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;`);
@@ -138,6 +144,53 @@ CREATE TABLE IF NOT EXISTS tags (
   PRIMARY KEY (memory_id, tag)
 );
 CREATE INDEX IF NOT EXISTS tags_tag_idx ON tags(tag);
+-- ---------- v2: relay / handoff / lease / lessons / crystals / audit ----------
+-- a note one agent leaves for another (or for a future session of itself)
+CREATE TABLE IF NOT EXISTS handoffs (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_agent TEXT NOT NULL,
+  to_agent   TEXT NOT NULL,
+  topic      TEXT,
+  body       TEXT NOT NULL,
+  refs       TEXT,                    -- JSON array of memory ids / urls
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  read_at    TEXT,
+  acked_at   TEXT
+);
+CREATE INDEX IF NOT EXISTS handoffs_to_idx ON handoffs(to_agent, acked_at);
+-- named lock so two agents do not edit the same thing at once
+CREATE TABLE IF NOT EXISTS leases (
+  name        TEXT PRIMARY KEY,
+  holder      TEXT NOT NULL,
+  note        TEXT,
+  acquired_at TEXT NOT NULL DEFAULT (datetime('now')),
+  expires_at  TEXT NOT NULL
+);
+-- durable "do it this way" rules learned while working
+CREATE TABLE IF NOT EXISTS lessons (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  text       TEXT NOT NULL,
+  scope      TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  deleted_at TEXT
+);
+-- merged / summarised memories (the long-term view)
+CREATE TABLE IF NOT EXISTS crystals (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  text       TEXT NOT NULL,
+  sources    TEXT,                    -- JSON array of memory ids
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  deleted_at TEXT
+);
+-- who changed what, through REST or MCP
+CREATE TABLE IF NOT EXISTS audit (
+  id     INTEGER PRIMARY KEY AUTOINCREMENT,
+  actor  TEXT,
+  action TEXT NOT NULL,
+  target TEXT,
+  detail TEXT,
+  at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 {
   const cols = db.query("PRAGMA table_info(history)").all() as { name: string }[];
@@ -198,6 +251,43 @@ const q = {
     `SELECT COUNT(DISTINCT t.tag) AS n FROM tags t JOIN memories m ON m.id = t.memory_id
       WHERE m.deleted_at IS NULL`,
   ),
+};
+
+// ---------- v2 queries: handoffs / leases / lessons / crystals / audit ----------
+const r = {
+  hoIns: db.query(
+    "INSERT INTO handoffs(from_agent, to_agent, topic, body, refs) VALUES(?, ?, ?, ?, ?) RETURNING id, created_at",
+  ),
+  hoList: db.query(
+    `SELECT id, from_agent, to_agent, topic, body, refs, created_at, read_at, acked_at
+       FROM handoffs WHERE to_agent = ? AND (? IS NULL OR acked_at IS NULL)
+      ORDER BY id DESC LIMIT ?`,
+  ),
+  hoGet: db.query("SELECT * FROM handoffs WHERE id = ?"),
+  hoRead: db.query("UPDATE handoffs SET read_at = COALESCE(read_at, datetime('now')) WHERE id = ? AND to_agent = ?"),
+  hoAck: db.query("UPDATE handoffs SET read_at = COALESCE(read_at, datetime('now')), acked_at = datetime('now') WHERE id = ? AND to_agent = ?"),
+  hoPending: db.query("SELECT COUNT(*) AS n FROM handoffs WHERE to_agent = ? AND acked_at IS NULL"),
+  leList: db.query("SELECT name, holder, note, acquired_at, expires_at FROM leases"),
+  leGet: db.query("SELECT * FROM leases WHERE name = ?"),
+  leUp: db.query(
+    `INSERT INTO leases(name, holder, note, expires_at) VALUES(?, ?, ?, datetime('now', ?))
+     ON CONFLICT(name) DO UPDATE SET holder = excluded.holder, note = excluded.note,
+       acquired_at = datetime('now'), expires_at = excluded.expires_at
+     RETURNING name, holder, acquired_at, expires_at`,
+  ),
+  leDel: db.query("DELETE FROM leases WHERE name = ? AND holder = ?"),
+  lePurge: db.query("DELETE FROM leases WHERE expires_at < datetime('now')"),
+  lsIns: db.query("INSERT INTO lessons(text, scope) VALUES(?, ?) RETURNING id"),
+  lsList: db.query(
+    "SELECT id, text, scope, created_at FROM lessons WHERE deleted_at IS NULL AND (? IS NULL OR scope = ?) ORDER BY id DESC LIMIT ?",
+  ),
+  lsSearch: db.query(
+    "SELECT id, text, scope, created_at FROM lessons WHERE deleted_at IS NULL AND text LIKE ? ORDER BY id DESC LIMIT ?",
+  ),
+  crIns: db.query("INSERT INTO crystals(text, sources) VALUES(?, ?) RETURNING id"),
+  crList: db.query("SELECT id, text, sources, created_at FROM crystals WHERE deleted_at IS NULL ORDER BY id DESC LIMIT ?"),
+  auIns: db.query("INSERT INTO audit(actor, action, target, detail) VALUES(?, ?, ?, ?)"),
+  auList: db.query("SELECT id, actor, action, target, detail, at FROM audit ORDER BY id DESC LIMIT ?"),
 };
 
 /** normalize: trim, lowercase, collapse spaces, strip leading '#', drop empties, dedupe, cap 10 tags x 40 chars */
@@ -418,6 +508,213 @@ function restoreMem(id: number): boolean {
   return true;
 }
 
+// ---------- v2: relay / handoff / lease / lessons / crystals / audit ----------
+const audit = (actor: string, action: string, target?: string, detail?: unknown) => {
+  try {
+    r.auIns.run(actor || "unknown", action, target ?? null, detail == null ? null : JSON.stringify(detail).slice(0, 2000));
+  } catch { /* audit must never break the write it records */ }
+};
+
+const REFS = (v: unknown): string | null =>
+  Array.isArray(v) && v.length ? JSON.stringify(v.slice(0, 50)) : null;
+const parseRefs = (v: string | null): unknown[] => {
+  if (!v) return [];
+  try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; }
+};
+
+function handoffWrite(from: string, to: string, body: string, topic?: string, refs?: unknown) {
+  const row = r.hoIns.get(from, to, topic ?? null, body, REFS(refs)) as { id: number; created_at: string };
+  audit(from, "handoff_write", `handoff:${row.id}`, { to, topic });
+  return row;
+}
+
+/** unacked=false returns history too; default only pending */
+function handoffRead(agent: string, unackedOnly = true, limit = 20) {
+  const rows = r.hoList.all(agent, unackedOnly ? 1 : null, Math.min(limit, 100)) as Record<string, unknown>[];
+  return rows.map((h) => ({ ...h, refs: parseRefs(h.refs as string | null) }));
+}
+
+function handoffAck(agent: string, id: number): boolean {
+  const cur = r.hoGet.get(id) as { to_agent: string } | null;
+  if (!cur || cur.to_agent !== agent) return false;
+  r.hoAck.run(id, agent);
+  audit(agent, "handoff_ack", `handoff:${id}`);
+  return true;
+}
+
+function leaseAcquire(name: string, holder: string, note?: string, ttlMinutes = 30) {
+  const ttl = `+${Math.max(1, Math.min(Number(ttlMinutes) || 30, 1440))} minutes`;
+  const live = r.leGet.get(name) as { holder: string; expires_at: string } | null;
+  const expired = live ? Date.parse(live.expires_at.replace(" ", "T") + "Z") < Date.now() : true;
+  if (live && live.holder !== holder && !expired) {
+    return { ok: false as const, held_by: live.holder, expires_at: live.expires_at };
+  }
+  const row = r.leUp.get(name, holder, note ?? null, ttl) as Record<string, unknown>;
+  audit(holder, "lease_acquire", `lease:${name}`, { ttl_minutes: ttlMinutes });
+  return { ok: true as const, ...row };
+}
+
+function leaseRelease(name: string, holder: string): boolean {
+  const cur = r.leGet.get(name) as { holder: string } | null;
+  if (!cur || cur.holder !== holder) return false;
+  r.leDel.run(name, holder);
+  audit(holder, "lease_release", `lease:${name}`);
+  return true;
+}
+
+function lessonSave(text: string, scope?: string) {
+  const row = r.lsIns.get(text, scope ?? null) as { id: number };
+  audit(scope ?? "mcp", "lesson_save", `lesson:${row.id}`);
+  return row;
+}
+const lessonList = (scope: string | undefined, limit: number) =>
+  scope
+    ? (r.lsList.all(scope, scope, Math.min(limit, 200)) as Record<string, unknown>[])
+    : (r.lsList.all(null, null, Math.min(limit, 200)) as Record<string, unknown>[]);
+
+function crystalSave(text: string, sources?: unknown) {
+  const row = r.crIns.get(text, REFS(sources)) as { id: number };
+  audit("mcp", "crystal_save", `crystal:${row.id}`);
+  return row;
+}
+const crystalList = (limit: number) => r.crList.all(Math.min(limit, 200)) as Record<string, unknown>[];
+
+function relayStats() {
+  r.lePurge.run();
+  return {
+    handoffs: (db.query("SELECT COUNT(*) AS n FROM handoffs").get() as { n: number }).n,
+    leases: (db.query("SELECT COUNT(*) AS n FROM leases").get() as { n: number }).n,
+    lessons: (db.query("SELECT COUNT(*) AS n FROM lessons WHERE deleted_at IS NULL").get() as { n: number }).n,
+    crystals: (db.query("SELECT COUNT(*) AS n FROM crystals WHERE deleted_at IS NULL").get() as { n: number }).n,
+    audit: (db.query("SELECT COUNT(*) AS n FROM audit").get() as { n: number }).n,
+  };
+}
+
+// ---------- MCP: JSON-RPC 2.0 over streamable HTTP (POST /mcp) ----------
+type Rpc = { jsonrpc?: string; id?: unknown; method?: string; params?: Record<string, unknown> };
+
+const toolText = (v: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(v, null, 2) }] });
+const toolErr = (msg: string) => ({ content: [{ type: "text" as const, text: msg }], isError: true });
+
+const MCP_TOOLS = [
+  { name: "memory_save", description: "Store one durable fact. Dedupes identical text and returns the existing id.", inputSchema: { type: "object", properties: { text: { type: "string" }, tags: { type: "array", items: { type: "string" } }, agent: { type: "string" } }, required: ["text"] } },
+  { name: "memory_search", description: "Full-text (trigram) search over memories; works for Thai and substring queries.", inputSchema: { type: "object", properties: { query: { type: "string" }, limit: { type: "number" }, tag: { type: "string" } }, required: ["query"] } },
+  { name: "memory_recent", description: "Newest memories, optionally filtered by tag and paged.", inputSchema: { type: "object", properties: { limit: { type: "number" }, offset: { type: "number" }, tag: { type: "string" } } } },
+  { name: "memory_forget", description: "Soft-delete a memory (recoverable from /memories/deleted).", inputSchema: { type: "object", properties: { id: { type: "number" }, agent: { type: "string" } }, required: ["id"] } },
+  { name: "lesson_save", description: "Record a durable 'do it this way' rule learned while working.", inputSchema: { type: "object", properties: { text: { type: "string" }, scope: { type: "string" } }, required: ["text"] } },
+  { name: "lesson_list", description: "List lessons, optionally scoped to a project or tool.", inputSchema: { type: "object", properties: { scope: { type: "string" }, limit: { type: "number" } } } },
+  { name: "handoff_write", description: "Leave a note for another agent (or your future self).", inputSchema: { type: "object", properties: { from: { type: "string" }, to: { type: "string" }, topic: { type: "string" }, body: { type: "string" }, refs: { type: "array" } }, required: ["from", "to", "body"] } },
+  { name: "handoff_read", description: "Read handoffs addressed to you. unacked=false includes already-acked ones.", inputSchema: { type: "object", properties: { agent: { type: "string" }, unacked: { type: "boolean" }, limit: { type: "number" } }, required: ["agent"] } },
+  { name: "handoff_ack", description: "Mark a handoff as done.", inputSchema: { type: "object", properties: { agent: { type: "string" }, id: { type: "number" } }, required: ["agent", "id"] } },
+  { name: "lease_acquire", description: "Take a named lock so two agents do not edit the same thing. Returns held_by if someone else has it.", inputSchema: { type: "object", properties: { name: { type: "string" }, holder: { type: "string" }, note: { type: "string" }, ttl_minutes: { type: "number" } }, required: ["name", "holder"] } },
+  { name: "lease_release", description: "Release a lease you hold.", inputSchema: { type: "object", properties: { name: { type: "string" }, holder: { type: "string" } }, required: ["name", "holder"] } },
+  { name: "crystal_save", description: "Store a merged/summarised memory (the long-term view).", inputSchema: { type: "object", properties: { text: { type: "string" }, sources: { type: "array" } }, required: ["text"] } },
+  { name: "memory_stats", description: "Counts of memories, handoffs, leases, lessons, crystals, audit rows.", inputSchema: { type: "object", properties: {} } },
+];
+
+function mcpCall(name: string, a: Record<string, unknown>) {
+  const str = (k: string) => String(a[k] ?? "").trim();
+  const num = (k: string, d: number) => (Number.isFinite(Number(a[k])) ? Number(a[k]) : d);
+  switch (name) {
+    case "memory_save": {
+      const text = str("text");
+      if (!text) return toolErr("text is required");
+      const before = (q.count.get() as { n: number }).n;
+      const id = addMem(text.slice(0, 4000), normTags(a.tags));
+      const after = (q.count.get() as { n: number }).n;
+      if (after === before) return toolText({ id, status: "duplicate" });
+      audit(str("agent") || "mcp", "memory_save", `memory:${id}`);
+      return toolText({ id, status: "saved" });
+    }
+    case "memory_search": {
+      const qq = str("query");
+      if (!qq) return toolErr("query is required");
+      const items = search(qq, Math.min(num("limit", 10), 50), normTags([a.tag])[0]);
+      return toolText({ total: items.length, items });
+    }
+    case "memory_recent": {
+      const tag = normTags([a.tag])[0];
+      return toolText({ total: countRecent(tag), items: recent(Math.min(num("limit", 20), 200), Math.max(num("offset", 0), 0), tag) });
+    }
+    case "memory_forget": {
+      const id = num("id", 0);
+      if (!deleteMem(id)) return toolErr(`memory ${id} not found`);
+      audit(str("agent") || "mcp", "memory_forget", `memory:${id}`);
+      return toolText({ ok: true, id });
+    }
+    case "lesson_save": {
+      const text = str("text");
+      if (!text) return toolErr("text is required");
+      return toolText(lessonSave(text.slice(0, 2000), a.scope ? normTags([a.scope])[0] : undefined));
+    }
+    case "lesson_list": return toolText({ items: lessonList(a.scope ? normTags([a.scope])[0] : undefined, num("limit", 50)) });
+    case "handoff_write": {
+      const from = str("from"), to = str("to"), body = str("body");
+      if (!from || !to || !body) return toolErr("from, to and body are required");
+      return toolText(handoffWrite(from, to, body.slice(0, 8000), a.topic ? String(a.topic).slice(0, 200) : undefined, a.refs));
+    }
+    case "handoff_read": {
+      const agent = str("agent");
+      if (!agent) return toolErr("agent is required");
+      const items = handoffRead(agent, a.unacked !== false, num("limit", 20));
+      return toolText({ total: items.length, items });
+    }
+    case "handoff_ack": {
+      const agent = str("agent"), id = num("id", 0);
+      if (!handoffAck(agent, id)) return toolErr(`handoff ${id} not found for ${agent}`);
+      return toolText({ ok: true, id });
+    }
+    case "lease_acquire": {
+      const lname = str("name"), holder = str("holder");
+      if (!lname || !holder) return toolErr("name and holder are required");
+      return toolText(leaseAcquire(lname, holder, a.note ? String(a.note) : undefined, num("ttl_minutes", 30)));
+    }
+    case "lease_release": {
+      const lname = str("name"), holder = str("holder");
+      if (!leaseRelease(lname, holder)) return toolErr(`lease ${lname} is not held by ${holder}`);
+      return toolText({ ok: true, name: lname });
+    }
+    case "crystal_save": {
+      const text = str("text");
+      if (!text) return toolErr("text is required");
+      return toolText(crystalSave(text.slice(0, 4000), a.sources));
+    }
+    case "memory_stats": return toolText({ ...stats(), relay: relayStats() });
+    default: return null;
+  }
+}
+
+async function handleMcp(body: Rpc): Promise<{ status: number; body: unknown }> {
+  const id = body?.id ?? null;
+  const method = String(body?.method ?? "");
+  const params = (body?.params ?? {}) as Record<string, unknown>;
+  const ok = (result: unknown) => ({ status: 200, body: { jsonrpc: "2.0", id, result } });
+
+  // notifications carry no id and must not get a JSON-RPC response body
+  if (method.startsWith("notifications/")) return { status: 202, body: null };
+
+  switch (method) {
+    case "initialize":
+      return ok({
+        protocolVersion: String(params.protocolVersion ?? "2024-11-05"),
+        capabilities: { tools: { listChanged: false } },
+        serverInfo: { name: NAME, version: VERSION },
+        instructions: `Shared agent memory: ${(q.count.get() as { n: number }).n} memories. Save durable facts with memory_save; hand work between agents with handoff_write/handoff_read.`,
+      });
+    case "ping": return ok({});
+    case "tools/list": return ok({ tools: MCP_TOOLS });
+    case "tools/call": {
+      const name = String(params.name ?? "");
+      const args = (params.arguments ?? {}) as Record<string, unknown>;
+      const res = mcpCall(name, args);
+      if (!res) return { status: 200, body: { jsonrpc: "2.0", id, error: { code: -32602, message: `unknown tool: ${name}` } } };
+      return ok(res);
+    }
+    default:
+      return { status: 200, body: { jsonrpc: "2.0", id, error: { code: -32601, message: `method not found: ${method}` } } };
+  }
+}
+
 db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`); // marks the DB file itself
 
 const stats = () => ({
@@ -497,7 +794,7 @@ const app = new Elysia()
     return { ok: true };
   })
   .get("/memories/:id/history", ({ params }) => q.histFor.all(Number(params.id)))
-  .get("/stats", () => stats())
+  .get("/stats", () => ({ ...stats(), relay: relayStats() }))
   .patch(
     "/memories/:id",
     ({ params, body, set }) => {
@@ -532,6 +829,105 @@ const app = new Elysia()
       return { error: "extraction failed", detail: e instanceof Error ? e.message : String(e) };
     }
   }, { body: t.Object({ text: t.String({ minLength: 1, maxLength: 20000 }) }) })
+
+  // ---------- relay REST (mirrors the MCP tools) ----------
+  .post(
+    "/handoff",
+    ({ body }) => {
+      const row = handoffWrite(body.from, body.to, body.body, body.topic, body.refs);
+      return { ok: true, ...row };
+    },
+    {
+      body: t.Object({
+        from: t.String({ minLength: 1, maxLength: 64 }),
+        to: t.String({ minLength: 1, maxLength: 64 }),
+        body: t.String({ minLength: 1, maxLength: 8000 }),
+        topic: t.Optional(t.String({ maxLength: 200 })),
+        refs: t.Optional(t.Array(t.Unknown())),
+      }),
+    },
+  )
+  .get("/handoff", ({ query }) => {
+    const agent = String(query.agent ?? "").trim();
+    if (!agent) return { total: 0, items: [], error: "agent query param required" };
+    const items = handoffRead(agent, query.all !== "1", Math.min(Number(query.limit ?? 20), 100));
+    return { total: items.length, items };
+  })
+  .post("/handoff/:id/ack", ({ params, body, set }) => {
+    if (!handoffAck(body.agent, Number(params.id))) {
+      set.status = 409;
+      return { error: "handoff not found for that agent" };
+    }
+    return { ok: true };
+  }, { body: t.Object({ agent: t.String({ minLength: 1, maxLength: 64 }) }) })
+  .get("/leases", () => ({ items: r.leList.all() }))
+  .post(
+    "/leases",
+    ({ body, set }) => {
+      const res = leaseAcquire(body.name, body.holder, body.note, body.ttl_minutes);
+      if (!res.ok) set.status = 409;
+      return res;
+    },
+    {
+      body: t.Object({
+        name: t.String({ minLength: 1, maxLength: 64 }),
+        holder: t.String({ minLength: 1, maxLength: 64 }),
+        note: t.Optional(t.String({ maxLength: 500 })),
+        ttl_minutes: t.Optional(t.Number()),
+      }),
+    },
+  )
+  .delete("/leases/:name", ({ params, query, set }) => {
+    const holder = String(query.holder ?? "").trim();
+    if (!holder || !leaseRelease(params.name, holder)) {
+      set.status = 409;
+      return { error: "lease is not held by that holder" };
+    }
+    return { ok: true };
+  })
+  .get("/lessons", ({ query }) => ({
+    items: lessonList(normTags([query.scope])[0], Math.min(Number(query.limit ?? 50), 200)),
+  }))
+  .post(
+    "/lessons",
+    ({ body }) => lessonSave(body.text.trim(), body.scope ? normTags([body.scope])[0] : undefined),
+    {
+      body: t.Object({
+        text: t.String({ minLength: 1, maxLength: 2000 }),
+        scope: t.Optional(t.String({ maxLength: 40 })),
+      }),
+    },
+  )
+  .get("/crystals", ({ query }) => ({ items: crystalList(Math.min(Number(query.limit ?? 50), 200)) }))
+  .post(
+    "/crystals",
+    ({ body }) => crystalSave(body.text.trim(), body.sources),
+    {
+      body: t.Object({
+        text: t.String({ minLength: 1, maxLength: 4000 }),
+        sources: t.Optional(t.Array(t.Unknown())),
+      }),
+    },
+  )
+  .get("/audit", ({ query }) => ({ items: r.auList.all(Math.min(Number(query.limit ?? 50), 200)) }))
+
+  // ---------- MCP: JSON-RPC 2.0 over streamable HTTP ----------
+  .get("/mcp", ({ set }) => {
+    set.status = 405;
+    set.headers["Allow"] = "POST";
+    return { error: "method not allowed", hint: "POST JSON-RPC 2.0 to /mcp" };
+  })
+  .post("/mcp", async ({ body, set }) => {
+    if (!MCP_ENABLED) {
+      set.status = 503;
+      return { jsonrpc: "2.0", id: null, error: { code: -32000, message: "MCP endpoint disabled (MINIMEM_MCP=0)" } };
+    }
+    const out = await handleMcp(body as Rpc);
+    set.status = out.status as never;
+    if (out.body === null) return new Response(null, { status: out.status });
+    return out.body;
+  }, { body: t.Object({ jsonrpc: t.Optional(t.String()), id: t.Optional(t.Unknown()), method: t.String(), params: t.Optional(t.Object({}, { additionalProperties: true })) }) })
+
   .listen({ port: PORT, hostname: HOST });
 
 console.log(`${NAME} ${VERSION} on http://${HOST}:${PORT} — auth ${AUTH_ENABLED ? "on" : "off"} — db ${DB_PATH}`);
