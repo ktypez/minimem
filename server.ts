@@ -98,6 +98,63 @@ const eq = (a: string): boolean => {
   if (hit(h, okHash)) return true;
   return hit(h, uiHash);
 };
+// ---------- auth attempt throttling (per IP) ----------
+// A failed attempt is not just rejected: it burns a slot. Enough slots gone
+// means the server stops answering 401 and starts answering 429 for that IP,
+// so an online guessing attack on the short UI_CODE costs the attacker time
+// instead of running open-loop. In-memory: a restart clears the slate.
+type Bucket = { fails: number; windowEnd: number; lockedUntil: number };
+const FAIL_WINDOW_MS = 15 * 60 * 1000;
+const FAIL_CAP = 10;
+const LOCKOUT_MS = 15 * 60 * 1000;
+const failBuckets = new Map<string, Bucket>();
+
+const bucketKey = (ip: string): string => ip || "unknown";
+
+/** Drops buckets whose window elapsed and that are not locked, so the map stays small. */
+const pruneBuckets = () => {
+  const now = Date.now();
+  for (const [k, b] of failBuckets) if (b.lockedUntil <= now && b.windowEnd <= now) failBuckets.delete(k);
+};
+
+/** ms remaining on the lockout, or 0 when this IP is not locked out. */
+function lockedFor(ip: string): number {
+  const b = failBuckets.get(bucketKey(ip));
+  if (!b) return 0;
+  const left = b.lockedUntil - Date.now();
+  return left > 0 ? left : 0;
+}
+
+/** Records a failure; @returns attempts left before lockout (0 = now locked). */
+function noteFail(ip: string): number {
+  pruneBuckets();
+  const k = bucketKey(ip);
+  const now = Date.now();
+  const b = failBuckets.get(k);
+  // no bucket, or the old window elapsed and no lock is active -> start over
+  const b2: Bucket = !b || now >= b.windowEnd ? { fails: 0, windowEnd: 0, lockedUntil: 0 } : b;
+  b2.fails++;
+  b2.windowEnd = now + FAIL_WINDOW_MS;
+  if (b2.fails >= FAIL_CAP) b2.lockedUntil = now + LOCKOUT_MS;
+  failBuckets.set(k, b2);
+  return b2.lockedUntil > now ? 0 : FAIL_CAP - b2.fails;
+}
+
+/** Clears the failure counter — a correct token is not an attack. */
+function notePass(ip: string) {
+  failBuckets.delete(bucketKey(ip));
+}
+
+/** Socket peer address, or "" when the runtime does not expose one. */
+function requestIP(request: Request): string {
+  const srv = (request as unknown as { server?: { requestIP?: (r: Request) => string | null } }).server;
+  try {
+    return srv?.requestIP?.(request) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 // accepts "Bearer <token>", "Basic <b64(user:password)>" (user is cosmetic), or a bare token.
 // the short UI_CODE (MINIMEM_LOCK) is accepted in place of the long token.
 const auth = (raw: string | undefined): boolean => {
@@ -228,6 +285,11 @@ const q = {
     "SELECT id, text, created_at, updated_at, deleted_at FROM memories WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT ? OFFSET ?",
   ),
   deletedCount: db.query("SELECT COUNT(*) AS n FROM memories WHERE deleted_at IS NOT NULL"),
+  // hard delete: rows only, so a purge cannot resurrect FTS/tag ghosts.
+  trashedText: db.query("SELECT text FROM memories WHERE id = ? AND deleted_at IS NOT NULL"),
+  hardDel: db.query("DELETE FROM memories WHERE id = ? AND deleted_at IS NOT NULL RETURNING id"),
+  hardDelTags: db.query("DELETE FROM tags WHERE memory_id = ?"),
+  hardDelHist: db.query("DELETE FROM history WHERE memory_id = ?"),
   histCount: db.query("SELECT COUNT(*) AS n FROM history"),
   histFor: db.query(
     "SELECT action, old_text, old_tags, at FROM history WHERE memory_id = ? ORDER BY at DESC, id DESC LIMIT 50",
@@ -359,6 +421,25 @@ function deleteMem(id: number): boolean {
   q.del.run(id);
   q.ftsDel.run(id);
   return true;
+}
+
+/**
+ * Hard delete a trashed memory. Only rows that are already soft-deleted can be
+ * purged, so a wrong id can never destroy live data. Irreversible by design —
+ * that is the whole point of a purge. The caller is expected to have asked.
+ * @returns the purged text (handy for an audit line), or null if not trashed.
+ */
+function purgeMem(id: number): string | null {
+  // read first: hardDel returns the row it just removed
+  const before = q.trashedText.get(id) as { text: string } | null;
+  if (!before) return null;
+  const row = q.hardDel.get(id) as { id: number } | null;
+  if (!row) return null;
+  q.ftsDel.run(row.id);
+  q.hardDelTags.run(row.id);
+  q.hardDelHist.run(row.id);
+  audit("system", "purge", `memory:${id}`, { chars: before.text.length });
+  return before.text;
 }
 
 // ---------- Search ----------
@@ -742,13 +823,39 @@ const app = new Elysia()
       headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
     }),
   )
-  .onBeforeHandle(({ headers, set }) => {
-    // AUTH_ENABLED=0 -> this whole guard is a no-op (auth() returns true)
-    if (!auth(headers.authorization)) {
-      set.status = 401;
-      set.headers["WWW-Authenticate"] = `Basic realm="${NAME}", charset="UTF-8"`;
-      return { error: "unauthorized", hint: "send Authorization: Bearer <MINIMEM_TOKEN>" };
+  .onBeforeHandle(({ headers, set, request }) => {
+    // AUTH_ENABLED=0 -> the whole guard is a no-op (auth() returns true)
+    if (!AUTH_ENABLED) return;
+    // Caddy proxies in front of us, so the socket peer is always 127.0.0.1.
+    // Prefer Caddy's X-Forwarded-For (first entry = original client).
+    const xff = headers["x-forwarded-for"];
+    const ip = Array.isArray(xff) ? (xff[0] ?? "").trim() : (xff || "").split(",")[0].trim();
+    const key = ip || requestIP(request) || "unknown";
+
+    // A correct token always passes, even during a lockout. Ordering matters:
+    // locking out valid credentials turns the throttle into a denial-of-service
+    // lever (10 wrong guesses from a shared IP locks the real user out for the
+    // whole window). The throttle's job is to slow guessing, not to punish.
+    const lockLeft = lockedFor(key);
+    if (auth(headers.authorization)) {
+      // Reset the counter only when we are NOT locked out. Inside a lockout a
+      // valid token proves nothing about intent (the attacker can interleave one
+      // known-good guess), so the counter survives — otherwise the throttle is
+      // defeated by alternating one right guess with nine wrong ones.
+      if (lockLeft === 0) notePass(key);
+      return;
     }
+
+    if (lockLeft > 0) {
+      set.status = 429;
+      set.headers["Retry-After"] = String(Math.ceil(lockLeft / 1000));
+      return { error: "too many failed auth attempts", retry_after_s: Math.ceil(lockLeft / 1000) };
+    }
+    const remaining = noteFail(key);
+    set.status = 401;
+    set.headers["WWW-Authenticate"] = `Basic realm="${NAME}", charset="UTF-8"`;
+    set.headers["X-Auth-Attempts-Left"] = String(remaining);
+    return { error: "unauthorized", attempts_left: remaining, hint: "send Authorization: Bearer ***" };
   })
   // manual add
   .post(
@@ -819,6 +926,21 @@ const app = new Elysia()
       return { error: "not found" };
     }
     return { ok: true };
+  })
+  // hard delete — trashed rows only, irreversible. Requires an explicit confirm
+  // in the query string so a stray DELETE (or a retry) cannot destroy data.
+  .delete("/memories/:id/purge", ({ params, query, set }) => {
+    if (query.confirm !== "yes") {
+      set.status = 400;
+      return { error: "confirmation required", hint: "DELETE /memories/:id/purge?confirm=yes" };
+    }
+    const id = Number(params.id);
+    const text = purgeMem(id);
+    if (text === null) {
+      set.status = 404;
+      return { error: "not found or not trashed", hint: "only soft-deleted memories can be purged" };
+    }
+    return { ok: true, purged: id, chars: text.length };
   })
   // LLM extraction: send raw text or a conversation, store what's worth remembering
   .post("/extract", async ({ body, set }) => {

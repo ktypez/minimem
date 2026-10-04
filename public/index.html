@@ -373,15 +373,24 @@ function card(m){
 
 /* ── nav ── */
 async function load(reset=true){
-  if(reset){state.offset=0;$('#cards').innerHTML='';}
+  const host=$('#cards');
+  const first=reset||host.children.length===0;
+  if(reset){state.offset=0;host.innerHTML='';}
   let items,total;
   try{
     const tf=state.tagFilter?`&tag=${encodeURIComponent(state.tagFilter)}`:'';
     if(state.q){items=await req('/memories/search?q='+encodeURIComponent(state.q)+'&limit=50'+tf);total=items.length;}
     else if(state.mode==='trash'){const r=await req(`/memories/deleted?limit=${state.limit}&offset=${state.offset}`);items=r.items;total=r.total;}
     else{const r=await req(`/memories?limit=${state.limit}&offset=${state.offset}${tf}`);items=r.items;total=r.total;}
-  }catch(e){return;}
-  const host=$('#cards');const first=reset||host.children.length===0;
+  }catch(e){
+    // never swallow: a silent empty list is indistinguishable from "no data",
+    // which is how a dead server or an expired token looks like normal use
+    toast(e.message||'load failed',1);
+    if(first)host.innerHTML=`<div class="empty">could not load — ${esc(e.message||'unknown error')}</div>`;
+    $('#label').textContent='ERROR';
+    $('#more').hidden=true;
+    return;
+  }
   if(first)host.innerHTML='';
   items.forEach((m,i)=>{const c=card(m);c.style.animationDelay=(i%50)*12+'ms';host.appendChild(c);});
   $('#more').hidden=!(state.mode==='recent'&&!state.q&&items.length===state.limit&&state.offset+items.length<(total??Infinity));
