@@ -115,7 +115,7 @@ input:focus,textarea:focus{border-color:var(--accent-line)}
 .ia{font-family:var(--mono);font-size:10.5px;padding:7px 12px;border-radius:5px;border:1px solid var(--line2);color:var(--tx2);min-height:32px}
 .ia:hover{color:var(--tx);border-color:var(--accent-line)}
 .ia.danger:hover{color:var(--danger);border-color:var(--danger);background:var(--danger-soft)}
-.ia.restore:hover{color:var(--ok);border-color:var(--ok);background:rgba(61,220,151,.1)}
+.ia.restore{color:var(--ok);border-color:var(--ok);background:rgba(61,220,151,.1)}
 .empty{padding:60px 20px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--tx3);letter-spacing:.1em}
 .more{margin:16px auto 0;display:block;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--tx2);padding:12px 20px;border:1px solid var(--line);border-radius:6px;text-transform:uppercase}
 .more:hover{border-color:var(--accent-line);color:var(--accent-hi)}
@@ -343,7 +343,7 @@ function card(m){
       <button class="ia" data-act="hist">history</button>
       ${state.mode==='trash'
         ?`<button class="ia restore" data-act="restore">↩ restore</button>`
-        :`<button class="ia danger" data-act="del">delete</button>`}
+        :`<button class="ia danger" data-act="del" title="soft-delete">🗑 delete</button>`}
     </div>`;
   const box=el.querySelector('.txt'),exp=el.querySelector('.expand');
   let open=false,hist=null;
@@ -365,7 +365,8 @@ function card(m){
     req('/memories/'+m.id,{method:'PATCH',body:JSON.stringify(body)}).then(()=>{toast('updated');load();}).catch(e=>toast(e.message,1));
   };
   el.querySelector('[data-act=del]').onclick=()=>{if(confirm('ย้ายไป trash?'))req('/memories/'+m.id,{method:'DELETE'}).then(()=>{toast('trashed');load();}).catch(e=>toast(e.message,1));};
-  const rs=el.querySelector('[data-act=restore]');if(rs)rs.onclick=()=>req('/memories/'+m.id+'/restore',{method:'POST'}).then(()=>{toast('restored');load();}).catch(e=>toast(e.message,1));
+  const rs=el.querySelector('[data-act=restore]');
+  if(rs){rs.onclick=()=>req('/memories/'+m.id+'/restore',{method:'POST'}).then(()=>{toast('restored');load();}).catch(e=>toast(e.message,1));rs.style.display='inline-block';}
   el.querySelector('[data-act=hist]').onclick=async()=>{
     if(hist){open=!open;paint();return;}
     try{hist=await req('/memories/'+m.id+'/history');open=true;paint();}catch(e){toast(e.message,1);}
