@@ -143,6 +143,51 @@ rediscovering the state from scratch. `lease_acquire` keeps two agents off the s
 
 Tags do the work concepts would in a heavier system: `auto-capture`, a project slug, a few keywords.
 
+## Production deploy
+
+### Reverse proxy
+
+Bind to `127.0.0.1` and put a reverse proxy in front for TLS and external access. Caddy example:
+
+```caddy
+mem.example.com {
+    reverse_proxy 127.0.0.1:3100
+}
+```
+
+Nginx equivalent:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name mem.example.com;
+    # ssl_certificate / ssl_certificate_key managed by your setup
+    location / {
+        proxy_pass http://127.0.0.1:3100;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+### Backup
+
+Stop the service and copy the `.db` file, or use SQLite's online backup while it runs:
+
+```sh
+sqlite3 /path/to/minimem.db ".backup /backups/minimem-$(date +%F).db"
+```
+
+Keep backups off-box. The database stays under 10 MB for most users, so daily snapshots are cheap. Automate with cron or a timer unit.
+
+### Health check
+
+```sh
+curl -sf https://mem.example.com/health || echo "UNHEALTHY"
+```
+
+Wire this into Uptime Kuma, Healthchecks.io, Cronitor, or a cron job that alerts on failure. If `/health` stops answering, restart the service and investigate.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
