@@ -160,11 +160,12 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
 .sheet .done{padding:14px;border-radius:8px;background:var(--accent-soft);border:1px solid var(--accent-line);font-family:var(--mono);font-size:12px;color:var(--accent-hi);line-height:1.7;display:none}
 
 /* remember-me checkbox in the gate */
-.remember{display:flex;align-items:center;gap:9px;padding:0 20px 20px;font-size:13px;color:var(--tx2);cursor:pointer;user-select:none}
+.remember{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--tx2);cursor:pointer;user-select:none}
 .remember input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex:none}
 .remember:hover span{color:var(--tx)}
-.forget{display:block;margin:-8px 20px 20px;background:none;border:none;font-family:var(--mono);font-size:11px;color:var(--tx3);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-.forget:hover{color:var(--warn,#e8b04b)}
+.forget{font-family:var(--mono);font-size:11px;color:var(--tx3);background:none;border:none;padding:4px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.forget:hover{color:var(--tx2)}
+.forget[hidden]{display:none}
 
 /* confirm dialog — narrower + centred, so it reads as a question, not a page */
 .cfrim{align-items:center;padding:16px;z-index:30}
@@ -180,15 +181,31 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.err{border-color:var(--danger);color:var(--danger)}
 
-/* token sheet */
-.ts-field input{width:100%;border-radius:8px;padding:13px 14px;font-family:var(--mono);font-size:13px}
-.ts-row{display:flex;gap:10px}
-.ts-row .btn{flex:1;justify-content:center}
+/* token gate — the app's front door. reads as one object: mark, form, action.
+   dot-grid texture + one faint accent glow; the box lifts on open. */
 .gate{position:fixed;inset:0;z-index:30;background:var(--bg);display:none;align-items:center;justify-content:center;padding:24px}
 .gate.open{display:flex}
-.gate .box{width:100%;max-width:400px;background:var(--s1);border:1px solid var(--line2);border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:16px}
-.gate h1{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--tx2);text-transform:uppercase}
-.gate h1 b{color:var(--accent);font-weight:500}
+.gate::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(circle at center,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:22px 22px}
+.gate .box{position:relative;width:100%;max-width:400px;background:var(--s1);border:1px solid var(--line2);border-radius:14px;padding:30px 28px 24px;display:flex;flex-direction:column;gap:18px;
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 24px 60px -20px rgba(0,0,0,.85),0 0 70px -30px var(--accent);
+  animation:gateIn .34s cubic-bezier(.2,.9,.3,1)}
+@keyframes gateIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+.gate .mark{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--tx2);text-transform:uppercase}
+.gate .mark b{color:var(--accent);font-weight:500}
+.gate .mark .live{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px 1px var(--accent);flex:none}
+.gate .sub{font-size:13px;color:var(--tx2);line-height:1.6;margin-top:-8px}
+.gate input[type=password]{font-size:15px;padding:14px;border-radius:10px}
+.gate .acts{display:flex;flex-direction:column;gap:10px}
+.gate .acts .btn{justify-content:center;width:100%;padding:14px}
+.gate .err{display:none;font-family:var(--mono);font-size:11.5px;color:var(--danger);align-items:center;gap:6px;line-height:1.5}
+.gate .err.show{display:flex}
+.gate .err::before{content:"✕";font-size:10px}
+.gate.shake .box{animation:shake .4s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(3px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
+.gate .opts{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:22px}
+.gate .opts .forget{white-space:nowrap}
 
 /* ─── relay pane ─── */
 #relay{margin-top:4px}
@@ -339,17 +356,19 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
 
 <!-- token gate -->
 <div class="gate" id="gate">
-  <div class="box">
-    <h1><b>MINI</b>MEM — access</h1>
-    <div class="ts-row">
-      <input id="gate-user" type="text" placeholder="user" autocomplete="username" spellcheck="false" style="flex:0 0 96px" value="mem">
-      <input id="gate-tok" type="password" placeholder="code" autocomplete="current-password" spellcheck="false" style="flex:1;width:auto">
+  <form class="box" id="gate-form" autocomplete="on">
+    <div class="mark"><span class="live"></span><b>MINI</b>MEM</div>
+    <div class="sub">หน้านี้ถูกล็อก — ใส่รหัสเพื่อเข้า</div>
+    <input id="gate-tok" type="password" placeholder="access key" aria-label="access key" autocomplete="current-password" spellcheck="false" required>
+    <div class="err" id="gate-err" role="alert" aria-live="polite"></div>
+    <div class="acts">
+      <button class="btn" id="gate-save" type="submit">Unlock</button>
     </div>
-    <button class="btn" id="gate-save" style="justify-content:center">Unlock</button>
-    <div class="hint">รหัสสั้น 8 ตัว (MINIMEM_LOCK) หรือ bearer token เต็ม (MINIMEM_TOKEN) · ปิด auth ได้ด้วย AUTH_ENABLED=0</div>
-    <label class="remember"><input type="checkbox" id="gate-keep"><span>จำรหัสไว้ในเครื่องนี้</span></label>
-    <button class="forget" id="gate-forget" hidden>ลบรหัสที่จดไว้จากเครื่องนี้</button>
-  </div>
+    <div class="opts">
+      <label class="remember"><input type="checkbox" id="gate-keep"><span>จำรหัส</span></label>
+      <button class="forget" id="gate-forget" type="button" hidden>ลบรหัส</button>
+    </div>
+  </form>
 </div>
 
 <!-- confirm dialog: one reusable layer for destructive + irreversible actions -->
@@ -397,6 +416,13 @@ async function req(path,opts={}){
   if(hasAuth())h['Authorization']=authHeader();
   const r=await fetch(API+path,{...opts,headers:{...h,'Content-Type':'application/json'}});
   if(r.status===401){showGate();throw new Error('bad token');}
+  if(r.status===429){
+    // the throttle fired: show how long is left, not a raw JSON blob
+    const j=await r.json().catch(()=>({}));
+    const n=j.retry_after_s||Math.ceil(+r.headers.get('Retry-After')||0);
+    showGate();
+    throw new Error('ใส่รหัสผิดหลายครั้งเกินไป · รอ '+(n>=60?Math.ceil(n/60)+' นาที':n+' วินาที')+' แล้วลองใหม่');
+  }
   if(!r.ok){const t=await r.text().catch(()=>'');throw new Error(`HTTP ${r.status} ${t.slice(0,120)}`);}
   return r.json();
 }
@@ -736,42 +762,57 @@ $('#ex-run').onclick=async()=>{const t=$('#ex-text').value.trim();if(!t)return;c
   catch(e){toast(e.message,1);}finally{b.disabled=false;b.textContent='Extract & store';}};
 
 /* ── token gate ── */
-function showGate(){$('#gate').classList.add('open');$('#gate-keep').checked=tokenKept;
+const gateIn=$('#gate-tok'),gateErr=$('#gate-err'),gateBtn=$('#gate-save'),gateEl=$('#gate');
+function showGate(){
+  gateEl.classList.add('open');
+  // drop any shake left over from a previous failure, it must not replay here
+  gateEl.classList.remove('shake');
+  $('#gate-keep').checked=tokenKept;
   $('#gate-forget').hidden=!localStorage.getItem(TK);
-  setTimeout(()=>$('#gate-tok').focus(),50);}
+  gateErr.classList.remove('show');gateErr.textContent='';
+  setTimeout(()=>{gateIn.focus();gateIn.select();},60);
+}
 $('#open-token').onclick=showGate;
-$('#gate-save').onclick=saveGate;
-$('#gate-tok').onkeydown=e=>{if(e.key==='Enter')saveGate();};
+$('#gate-form').onsubmit=e=>{e.preventDefault();saveGate();};
 $('#gate-keep').onchange=()=>{$('#gate-forget').hidden=!$('#gate-keep').checked||!localStorage.getItem(TK);};
 $('#gate-forget').onclick=()=>{
   localStorage.removeItem(TK);localStorage.removeItem(UK);
   tokenKept=false;token='';$('#gate-keep').checked=false;$('#gate-forget').hidden=true;
   // token is gone from memory too, so the open gate cannot be used until re-entered
-  $('#gate').classList.add('open');
+  gateEl.classList.add('open');gateErr.classList.remove('show');gateErr.textContent='';
+  setTimeout(()=>gateIn.focus(),60);
   toast('ลบรหัสออกจากเครื่องแล้ว · ใส่รหัสใหม่เพื่อเข้า');
 };
 async function saveGate(){
-  const v=$('#gate-tok').value.trim();if(!v)return;
+  const v=gateIn.value.trim();if(!v)return;
   const keep=$('#gate-keep').checked;
   const prev=token,prevKept=tokenKept;
-  const prevUser=sessionStorage.getItem(UK)||localStorage.getItem(UK)||'mem';
-  const who=$('#gate-user').value.trim()||'mem';
+  // the user field was decorative (server ignores it), so keep whatever was there
+  const who=sessionStorage.getItem(UK)||localStorage.getItem(UK)||'mem';
   token=v;tokenKept=keep;
   // clear both stores first, then write only where the user asked
   sessionStorage.removeItem(TK);sessionStorage.removeItem(UK);
   localStorage.removeItem(TK);localStorage.removeItem(UK);
   const store=keep?localStorage:sessionStorage;
+  gateBtn.disabled=true;gateBtn.textContent='opening…';
   try{
     await req('/stats');
     store.setItem(TK,token);store.setItem(UK,who);
-    $('#gate').classList.remove('open');$('#gate-tok').value='';toast(keep?'unlocked · remembered':'unlocked');boot();
+    gateEl.classList.remove('open');gateIn.value='';
+    gateErr.classList.remove('show');gateErr.textContent='';
+    toast(keep?'unlocked · remembered':'unlocked');boot();
   }
   catch(e){
     token=prev;tokenKept=prevKept;
     (prevKept?localStorage:sessionStorage).setItem(TK,token);
-    (prevKept?localStorage:sessionStorage).setItem(UK,prevUser);
-    toast('รหัสผิด',1);
+    (prevKept?localStorage:sessionStorage).setItem(UK,who);
+    gateErr.textContent=e.message==='bad token'?'รหัสไม่ถูกต้อง':e.message;
+    gateErr.classList.add('show');
+    // re-trigger the shake on repeat failures (animation won't restart otherwise)
+    gateEl.classList.remove('shake');void gateEl.offsetWidth;gateEl.classList.add('shake');
+    gateIn.select();
   }
+  finally{gateBtn.disabled=false;gateBtn.textContent='Unlock';}
 }
 
 /* ── boot ── */

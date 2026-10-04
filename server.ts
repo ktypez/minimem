@@ -853,7 +853,11 @@ const app = new Elysia()
     }
     const remaining = noteFail(key);
     set.status = 401;
-    set.headers["WWW-Authenticate"] = `Basic realm="${NAME}", charset="UTF-8"`;
+    // NOTE: deliberately no WWW-Authenticate header. Sending one (even with the
+    // matching scheme) makes browsers treat this as an HTTP-auth challenge: they
+    // open a native username/password dialog and the fetch never settles, so the
+    // app's own gate can never show an inline "wrong token" message. Auth is a
+    // token the UI already holds and sends on every request.
     set.headers["X-Auth-Attempts-Left"] = String(remaining);
     return { error: "unauthorized", attempts_left: remaining, hint: "send Authorization: Bearer ***" };
   })
