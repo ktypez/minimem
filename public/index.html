@@ -121,9 +121,7 @@ input:focus,textarea:focus{border-color:var(--accent-line)}
 .more:hover{border-color:var(--accent-line);color:var(--accent-hi)}
 mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padding:0 1px}
 
-/* ─── tags ─── */
-.tagbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px;align-items:center}
-.tagbar .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--tx3);text-transform:uppercase;margin-right:4px}
+/* ── per-card tag chips ── */
 .chip{
   font-family:var(--mono);font-size:10.5px;padding:5px 10px;border-radius:999px;
   border:1px solid var(--line2);color:var(--tx2);background:var(--s1);white-space:nowrap;
@@ -219,7 +217,6 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
     </div>
     <section class="content">
       <div class="section-label" id="label">LATEST <span>·</span> all memories</div>
-      <div class="tagbar" id="tagbar"></div>
       <div class="cards" id="cards"></div>
       <button class="more" id="more" hidden>load more</button>
     </section>
@@ -374,23 +371,7 @@ function card(m){
   return el;
 }
 
-/* ── tag bar ── */
-function paintTagBar(tags){
-  const host=$('#tagbar');const f=state.tagFilter;
-  const chips=tags.slice(0,26).map(t=>{
-    const on=f===t.tag?' on':'';
-    return `<button class="chip${on}" data-tag="${esc(t.tag)}">#${esc(t.tag)}<span class="n">${t.n}</span></button>`;
-  }).join('');
-  const clear=f?`<button class="chip on" data-clear="1">✕ #${esc(f)}</button>`:'';
-  const more=state.qtotal>tags.length?`<span class="tagmore">+${state.qtotal-tags.length} more</span>`:'';
-  host.innerHTML=(tags.length||f)?`<span class="lbl">tags</span>${clear}${chips}${more}`:'';
-  host.querySelectorAll('button[data-tag]').forEach(b=>b.onclick=()=>setTagFilter(b.dataset.tag===f?'':b.dataset.tag));
-  const cl=host.querySelector('button[data-clear]');if(cl)cl.onclick=()=>setTagFilter('');
-}
-async function loadTags(){const bar=$('#tagbar');if(state.mode!=='recent'){bar.innerHTML='';return;}try{const r=await req('/tags?limit=60');state.qtotal=r.total;paintTagBar(r.tags);}catch(e){}}
-function setTagFilter(t){state.tagFilter=t;state.mode='recent';$$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.mode==='recent'));load();}
-
-/* ── load list ── */
+/* ── nav ── */
 async function load(reset=true){
   if(reset){state.offset=0;$('#cards').innerHTML='';}
   let items,total;
@@ -409,10 +390,11 @@ async function load(reset=true){
     :state.tagFilter?`TAG <span>·</span> #${esc(state.tagFilter)} — ${total} memories`
     :`LATEST <span>·</span> ${state.offset+items.length}+ shown`;
   if(!items.length&&reset)host.innerHTML=`<div class="empty">${state.q?'no recall — different words?':state.tagFilter?'no memories with this tag':'nothing here yet'}</div>`;
-  stats();loadTags();
+  stats();
 }
 
 async function stats(){try{const s=await req('/stats');$('#c-recent').textContent=s.live;$('#c-trash').textContent=s.deleted;}catch(e){}}
+function setTagFilter(t){state.tagFilter=t;state.mode='recent';$$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.mode==='recent'));load();}
 
 /* ── nav ── */
 $$('.nav button').forEach(b=>b.onclick=()=>{
