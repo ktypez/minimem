@@ -387,9 +387,7 @@ function paintTagBar(tags){
   host.querySelectorAll('button[data-tag]').forEach(b=>b.onclick=()=>setTagFilter(b.dataset.tag===f?'':b.dataset.tag));
   const cl=host.querySelector('button[data-clear]');if(cl)cl.onclick=()=>setTagFilter('');
 }
-async function loadTags(){
-  try{const r=await req('/tags?limit=60');state.qtotal=r.total;paintTagBar(r.tags);}catch(e){}
-}
+async function loadTags(){const bar=$('#tagbar');if(state.mode!=='recent'){bar.innerHTML='';return;}try{const r=await req('/tags?limit=60');state.qtotal=r.total;paintTagBar(r.tags);}catch(e){}}
 function setTagFilter(t){state.tagFilter=t;state.mode='recent';$$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.mode==='recent'));load();}
 
 /* ── load list ── */
