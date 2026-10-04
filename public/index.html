@@ -361,7 +361,7 @@ function card(m){
     const body={text:t.trim()};if(g!==null)body.tags=parseTags(g);
     req('/memories/'+m.id,{method:'PATCH',body:JSON.stringify(body)}).then(()=>{toast('updated');load();}).catch(e=>toast(e.message,1));
   };
-  el.querySelector('[data-act=del]').onclick=()=>{if(confirm('ย้ายไป trash?'))req('/memories/'+m.id,{method:'DELETE'}).then(()=>{toast('trashed');load();}).catch(e=>toast(e.message,1));};
+  const db=el.querySelector('[data-act=del]');if(db)db.onclick=()=>{if(confirm('ย้ายไป trash?'))req('/memories/'+m.id,{method:'DELETE'}).then(()=>{toast('trashed');load();}).catch(e=>toast(e.message,1));};
   const rs=el.querySelector('[data-act=restore]');
   if(rs){rs.onclick=()=>req('/memories/'+m.id+'/restore',{method:'POST'}).then(()=>{toast('restored');load();}).catch(e=>toast(e.message,1));rs.style.display='inline-block';}
   el.querySelector('[data-act=hist]').onclick=async()=>{
