@@ -81,6 +81,8 @@ input:focus,textarea:focus{border-color:var(--accent-line)}
 .btn:hover{background:var(--accent-hi)}
 .btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--tx2)}
 .btn.ghost:hover{border-color:var(--accent-line);color:var(--tx)}
+.btn.danger{background:var(--danger)}
+.btn.danger:hover{background:#ff8090}
 .btn:disabled{opacity:.4;cursor:wait}
 
 .content{padding:22px 24px calc(40px + env(safe-area-inset-bottom));max-width:880px;width:100%}
@@ -157,6 +159,22 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
 .sheet .hint{font-family:var(--mono);font-size:10.5px;color:var(--tx3);line-height:1.7}
 .sheet .done{padding:14px;border-radius:8px;background:var(--accent-soft);border:1px solid var(--accent-line);font-family:var(--mono);font-size:12px;color:var(--accent-hi);line-height:1.7;display:none}
 
+/* remember-me checkbox in the gate */
+.remember{display:flex;align-items:center;gap:9px;padding:0 20px 20px;font-size:13px;color:var(--tx2);cursor:pointer;user-select:none}
+.remember input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex:none}
+.remember:hover span{color:var(--tx)}
+.forget{display:block;margin:-8px 20px 20px;background:none;border:none;font-family:var(--mono);font-size:11px;color:var(--tx3);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.forget:hover{color:var(--warn,#e8b04b)}
+
+/* confirm dialog — narrower + centred, so it reads as a question, not a page */
+.cfrim{align-items:center;padding:16px;z-index:30}
+.sheet.cf{max-width:440px}
+.cf-body{padding:20px;font-size:14px;line-height:1.7;color:var(--tx2);overflow:auto}
+.cf-body b{color:var(--tx)}
+.cf-body .prev{display:block;margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--s3);border:1px solid var(--line2);font-family:var(--mono);font-size:12px;color:var(--tx3);max-height:140px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.cf-acts{display:flex;gap:10px;padding:0 20px 20px}
+.cf-acts .btn{flex:1;justify-content:center}
+
 /* toast */
 .toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(80px);z-index:40;font-family:var(--mono);font-size:12px;background:var(--s3);border:1px solid var(--line2);padding:12px 20px;border-radius:8px;transition:transform .25s ease;max-width:90vw}
 .toast.show{transform:translateX(-50%) translateY(0)}
@@ -171,6 +189,33 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
 .gate .box{width:100%;max-width:400px;background:var(--s1);border:1px solid var(--line2);border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:16px}
 .gate h1{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--tx2);text-transform:uppercase}
 .gate h1 b{color:var(--accent);font-weight:500}
+
+/* ─── relay pane ─── */
+#relay{margin-top:4px}
+.relay-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px}
+.rtab{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:lowercase;padding:6px 11px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:var(--tx3);cursor:pointer}
+.rtab:hover{border-color:var(--accent-line);color:var(--tx2)}
+.rtab.active{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-hi)}
+.rpane{display:none}
+.rpane.active{display:block}
+.rrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.rrow input{background:var(--s2);border:1px solid var(--line2);border-radius:8px;padding:8px 11px;font-family:var(--mono);font-size:12px;color:var(--tx);min-width:130px}
+.rrow input:focus{outline:none;border-color:var(--accent-line)}
+.rchk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx3);cursor:pointer;user-select:none}
+.rchk input{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;min-width:0;padding:0}
+.hint-line{font-family:var(--mono);font-size:10.5px;color:var(--tx3);line-height:1.7;margin:-4px 0 12px}
+.rcard{border:1px solid var(--line2);border-radius:10px;padding:12px 14px;margin-bottom:8px;background:var(--s2)}
+.rcard .rh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px;font-family:var(--mono);font-size:11px;color:var(--tx3)}
+.rcard .rh b{color:var(--accent-hi);font-weight:600}
+.rcard .rt{font-size:13px;line-height:1.65;color:var(--tx);white-space:pre-wrap;word-break:break-word}
+.rcard .rt .topic{color:var(--tx2);font-family:var(--mono);font-size:11.5px;display:block;margin-bottom:5px}
+.rcard .refs{font-family:var(--mono);font-size:10.5px;color:var(--tx3);margin-top:7px;display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.rcard .refs a{color:var(--accent-hi);text-decoration:none;border-bottom:1px solid var(--accent-line)}
+.rcard .refs .acked{color:var(--accent-hi)}
+.rcard .refs .pend{color:var(--warn,#e8b04b)}
+.rcard .rel{display:flex;gap:7px;margin-top:9px}
+.rcard .rel .btn{padding:0 11px;font-size:12px}
+.rnone{padding:22px 12px;text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--tx3);border:1px dashed var(--line2);border-radius:10px}
 
 /* ─── mobile ─── */
 @media (max-width:760px){
@@ -199,6 +244,7 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
       <button data-mode="add">✚ Add</button>
       <button data-mode="extract">✦ Extract</button>
       <button data-mode="trash">⊘ Trash<span class="count" id="c-trash"></span></button>
+      <button data-mode="relay">⇄ Relay</button>
     </nav>
     <div class="foot">
       <span class="dot" id="hb-dot"></span><span id="hb-txt">connecting…</span><br>
@@ -219,6 +265,49 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
       <div class="section-label" id="label">LATEST <span>·</span> all memories</div>
       <div class="cards" id="cards"></div>
       <button class="more" id="more" hidden>load more</button>
+      <!-- relay pane: the multi-agent API had no UI at all until now -->
+      <div id="relay" hidden>
+        <div class="relay-tabs">
+          <button class="rtab active" data-r="handoff">handoff</button>
+          <button class="rtab" data-r="leases">leases</button>
+          <button class="rtab" data-r="lessons">lessons</button>
+          <button class="rtab" data-r="crystals">crystals</button>
+          <button class="rtab" data-r="audit">audit</button>
+        </div>
+
+        <div class="rpane active" id="rp-handoff">
+          <div class="rrow"><input id="ho-agent" placeholder="agent (e.g. crush)" autocomplete="off" spellcheck="false">
+            <label class="rchk"><input type="checkbox" id="ho-all"><span>incl. acked</span></label>
+            <button class="btn ghost" id="ho-load">load</button></div>
+          <div class="cards" id="ho-list"></div>
+        </div>
+
+        <div class="rpane" id="rp-leases">
+          <div class="rrow"><input id="ls-name" placeholder="lease name" autocomplete="off" spellcheck="false">
+            <input id="ls-holder" placeholder="holder" autocomplete="off" spellcheck="false">
+            <input id="ls-ttl" type="number" placeholder="ttl min" value="30" min="1" max="1440">
+            <button class="btn ghost" id="ls-load">load</button></div>
+          <div class="hint-line">POST /leases 409s when someone else holds the name — that is the mutual-exclusion signal, not a bug.</div>
+          <div class="cards" id="ls-list"></div>
+        </div>
+
+        <div class="rpane" id="rp-lessons">
+          <div class="rrow"><input id="ln-scope" placeholder="scope (blank = all)" autocomplete="off" spellcheck="false">
+            <button class="btn ghost" id="ln-load">load</button></div>
+          <div class="cards" id="ln-list"></div>
+        </div>
+
+        <div class="rpane" id="rp-crystals">
+          <div class="rrow"><button class="btn ghost" id="cr-load">load</button></div>
+          <div class="cards" id="cr-list"></div>
+        </div>
+
+        <div class="rpane" id="rp-audit">
+          <div class="rrow"><button class="btn ghost" id="au-load">load</button></div>
+          <div class="hint-line">Newest first. Every purge and handoff ack lands here.</div>
+          <div class="cards" id="au-list"></div>
+        </div>
+      </div>
     </section>
   </main>
 </div>
@@ -257,7 +346,21 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
       <input id="gate-tok" type="password" placeholder="code" autocomplete="current-password" spellcheck="false" style="flex:1;width:auto">
     </div>
     <button class="btn" id="gate-save" style="justify-content:center">Unlock</button>
-    <div class="hint">รหัสสั้น 8 ตัว (MINIMEM_LOCK) หรือ bearer token เต็ม (MINIMEM_TOKEN) · เก็บใน sessionStorage เท่านั้น ไม่ลง disk · ปิด auth ได้ด้วย AUTH_ENABLED=0</div>
+    <div class="hint">รหัสสั้น 8 ตัว (MINIMEM_LOCK) หรือ bearer token เต็ม (MINIMEM_TOKEN) · ปิด auth ได้ด้วย AUTH_ENABLED=0</div>
+    <label class="remember"><input type="checkbox" id="gate-keep"><span>จำรหัสไว้ในเครื่องนี้</span></label>
+    <button class="forget" id="gate-forget" hidden>ลบรหัสที่จดไว้จากเครื่องนี้</button>
+  </div>
+</div>
+
+<!-- confirm dialog: one reusable layer for destructive + irreversible actions -->
+<div class="scrim cfrim" id="cfrim">
+  <div class="sheet cf" role="alertdialog" aria-modal="true" aria-labelledby="cf-title">
+    <header><h2 id="cf-title">confirm</h2></header>
+    <div class="cf-body" id="cf-body"></div>
+    <div class="cf-acts">
+      <button class="btn ghost" id="cf-no">cancel</button>
+      <button class="btn" id="cf-ok">OK</button>
+    </div>
   </div>
 </div>
 
@@ -267,8 +370,11 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
 const API=location.origin;
-const TK='minimem_token';
-let token=sessionStorage.getItem(TK)||'';
+const TK='minimem_token',UK='minimem_user';
+// "remember me" off by default: the token then dies with the tab. Opting in
+// writes localStorage instead — plaintext on disk, so it is the user's call.
+let token=sessionStorage.getItem(TK)||localStorage.getItem(TK)||'';
+let tokenKept=!!localStorage.getItem(TK);
 let AUTH_ON=true; // set from /health on boot; false = server runs open, no gate
 
 const state={mode:'recent',q:'',tagFilter:'',offset:0,limit:50,total:0,qtotal:0};
@@ -282,7 +388,7 @@ function b64(s){return btoa(unescape(encodeURIComponent(s)));}
 // true when we should attach a credential: auth is on AND we hold a token
 function hasAuth(){return AUTH_ON && !!token;}
 function authHeader(){
-  const who=(sessionStorage.getItem('minimem_user')||'mem');
+  const who=sessionStorage.getItem(UK)||localStorage.getItem(UK)||'mem';
   return 'Basic '+b64(who+':'+token);
 }
 
@@ -294,6 +400,33 @@ async function req(path,opts={}){
   if(!r.ok){const t=await r.text().catch(()=>'');throw new Error(`HTTP ${r.status} ${t.slice(0,120)}`);}
   return r.json();
 }
+
+/* ── confirm dialog (replaces window.confirm: styled, and reports what happened) ── */
+const CFG={resolve:null};
+function ask({title,body,ok='OK',danger=false}){
+  return new Promise(res=>{
+    const scrim=$('#cfrim');
+    $('#cf-title').textContent=title;
+    $('#cf-body').innerHTML=body;
+    const okb=$('#cf-ok');
+    okb.textContent=ok;
+    okb.className='btn'+(danger?' danger':'');
+    scrim.classList.add('open');
+    setTimeout(()=>okb.focus(),40);
+    CFG.resolve=res;
+  });
+}
+function cfClose(v){const r=CFG.resolve;CFG.resolve=null;$('#cfrim').classList.remove('open');if(r)r(v);}
+$('#cf-no').onclick=()=>cfClose(false);
+$('#cf-ok').onclick=()=>cfClose(true);
+$('#cfrim').onclick=e=>{if(e.target===$('#cfrim'))cfClose(false);};
+// one Escape handler for every layer, outermost-first, so the top dialog wins
+addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  if($('#cfrim').classList.contains('open')){cfClose(false);return;}
+  if($('#gate').classList.contains('open'))return;   // gate: no dismissal, must authenticate
+  if($('#scrim').classList.contains('open'))closeSheet();
+});
 
 /* ── toast ── */
 let tt;
@@ -339,7 +472,8 @@ function card(m){
       <button class="ia" data-act="edit">edit</button>
       <button class="ia" data-act="hist">history</button>
       ${state.mode==='trash'
-        ?`<button class="ia restore" data-act="restore">↩ restore</button>`
+        ?`<button class="ia restore" data-act="restore">↩ restore</button>
+          <button class="ia danger" data-act="purge" title="delete permanently — cannot be undone">⚡ purge</button>`
         :`<button class="ia danger" data-act="del" title="soft-delete">🗑 delete</button>`}
     </div>`;
   const box=el.querySelector('.txt'),exp=el.querySelector('.expand');
@@ -361,7 +495,21 @@ function card(m){
     const body={text:t.trim()};if(g!==null)body.tags=parseTags(g);
     req('/memories/'+m.id,{method:'PATCH',body:JSON.stringify(body)}).then(()=>{toast('updated');load();}).catch(e=>toast(e.message,1));
   };
-  const db=el.querySelector('[data-act=del]');if(db)db.onclick=()=>{if(confirm('ย้ายไป trash?'))req('/memories/'+m.id,{method:'DELETE'}).then(()=>{toast('trashed');load();}).catch(e=>toast(e.message,1));};
+  const db=el.querySelector('[data-act=del]');
+  if(db)db.onclick=async()=>{
+    if(!await ask({title:'move to trash?',body:`<b>#${m.id}</b> will be recoverable from the Trash tab.<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'move to trash',danger:true}))return;
+    try{await req('/memories/'+m.id,{method:'DELETE'});toast('trashed #'+m.id);load();}
+    catch(e){toast(e.message,1);}
+  };
+  const pg=el.querySelector('[data-act=purge]');
+  if(pg)pg.onclick=async()=>{
+    // two asks: purge is the only unrecoverable action in this UI, so it gets
+    // an explicit second gate rather than a single click-through confirm
+    if(!await ask({title:'purge permanently?',body:'This erases the row from the database. <b>There is no undo and no backup.</b>',ok:'continue',danger:true}))return;
+    if(!await ask({title:'last chance',body:`Memory <b>#${m.id}</b> and its ${(m.tags||[]).length} tag link(s) will be gone for good.<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'⚡ purge #'+m.id,danger:true}))return;
+    try{const r=await req('/memories/'+m.id+'/purge?confirm=yes',{method:'DELETE'});toast(`purged #${m.id} · ${r.chars} chars gone`);load();}
+    catch(e){toast(e.message,1);}
+  };
   const rs=el.querySelector('[data-act=restore]');
   if(rs){rs.onclick=()=>req('/memories/'+m.id+'/restore',{method:'POST'}).then(()=>{toast('restored');load();}).catch(e=>toast(e.message,1));rs.style.display='inline-block';}
   el.querySelector('[data-act=hist]').onclick=async()=>{
@@ -373,7 +521,11 @@ function card(m){
 
 /* ── nav ── */
 async function load(reset=true){
+  if(state.mode==='relay')return loadRelay();
   const host=$('#cards');
+  $('#relay').hidden=state.mode!=='relay';
+  $('#label').hidden=false;
+  $('.search').style.display='';
   const first=reset||host.children.length===0;
   if(reset){state.offset=0;host.innerHTML='';}
   let items,total;
@@ -405,13 +557,158 @@ async function load(reset=true){
 async function stats(){try{const s=await req('/stats');$('#c-recent').textContent=s.live;$('#c-trash').textContent=s.deleted;}catch(e){}}
 function setTagFilter(t){state.tagFilter=t;state.mode='recent';$$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.mode==='recent'));load();}
 
+/* ── relay pane: handoff / leases / lessons / crystals / audit ── */
+let rTab='handoff';
+const ago2=ago;
+const NONE=t=>`<div class="rnone">${t}</div>`;
+
+function rcard(head,body,refs,actions){
+  return `<div class="rcard"><div class="rh">${head}</div>`+
+    (body?`<div class="rt">${body}</div>`:'')+
+    (refs?`<div class="refs">${refs}</div>`:'')+
+    (actions?`<div class="rel">${actions}</div>`:'')+`</div>`;
+}
+// refs/sources live in sqlite as a JSON *string* ("[1,7]"), not a parsed array
+function refLinks(refs){
+  let ids=refs;
+  if(typeof refs==='string'){try{ids=JSON.parse(refs);}catch(e){ids=[];}}
+  if(!Array.isArray(ids))ids=[ids];
+  const clean=ids.map(Number).filter(n=>Number.isFinite(n));
+  if(!clean.length)return '';
+  return clean.map(id=>`<a data-goto="${id}">#${id}</a>`).join('');
+}
+
+async function relayGet(path,hostId,emptyMsg){
+  const host=$(hostId);
+  host.innerHTML=`<div class="rnone">loading…</div>`;
+  try{
+    const r=await req(path);
+    const rows=(r&&(r.items||r))||[];
+    if(!Array.isArray(rows)||!rows.length){host.innerHTML=NONE(emptyMsg);return 0;}
+    return rows;
+  }catch(e){host.innerHTML=NONE(e.message);return null;}
+}
+
+async function loadRelay(){
+  $('#cards').hidden=state.mode==='relay';
+  $('#more').hidden=true;
+  $('#label').hidden=state.mode==='relay';
+  $('.search').style.display=state.mode==='relay'?'none':'';
+  const L=$('#label');
+  $$('.rpane').forEach(el=>el.classList.toggle('active',el.id==='rp-'+rTab));
+  $$('.rtab').forEach(b=>b.classList.toggle('active',b.dataset.r===rTab));
+  stats();
+
+  if(rTab==='handoff'){
+    const agent=$('#ho-agent').value.trim();
+    L.innerHTML=`HANDOFF <span>·</span> ${agent?'for '+esc(agent):'pick an agent'}`;
+    if(!agent){$('#ho-list').innerHTML=NONE('enter an agent name — /handoff needs ?agent=');return;}
+    const all=$('#ho-all').checked?'&all=1':'';
+    const rows=await relayGet('/handoff?agent='+encodeURIComponent(agent)+all,'#ho-list','no handoff for this agent');
+    if(rows===null)return;
+    if(!rows.length&&$('#ho-list').innerHTML)return;
+    $('#ho-list').innerHTML=rows.map(h=>rcard(
+      `<b>#${h.id}</b><span>${esc(h.from_agent)} → ${esc(h.to_agent)}</span><span>${ago2(h.created_at)}</span>`,
+      (h.topic?`<span class="topic">${esc(h.topic)}</span>`:'')+esc(h.body),
+      (h.acked_at?`<span class="acked">✓ acked ${ago2(h.acked_at)}</span>`
+                :h.read_at?'<span class="pend">read, not acked</span>':'<span class="pend">unread</span>')+
+        refLinks(h.refs),
+      h.acked_at?'':`<button class="btn ghost" data-ack="${h.id}">✓ ack</button>`
+    )).join('')||NONE('no handoff for this agent');
+    $$('#ho-list [data-ack]').forEach(b=>b.onclick=async()=>{
+      b.disabled=true;
+      try{await req('/handoff/'+b.dataset.ack+'/ack',{method:'POST',body:JSON.stringify({agent})});toast('acked #'+b.dataset.ack);loadRelay();}
+      catch(e){b.disabled=false;toast(e.message,1);}
+    });
+    $$('#ho-list [data-goto]').forEach(a=>a.onclick=()=>{
+      state.mode='recent';state.q='';state.tagFilter='';$('#q').value='';
+      $$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.mode==='recent'));
+      $('#label').textContent='MEMORY #'+a.dataset.goto;
+      req('/memories/'+a.dataset.goto).then(m=>{
+        $('#cards').hidden=false;$('#relay').hidden=true;
+        $('#cards').innerHTML='';$('#cards').appendChild(card(m));
+      }).catch(e=>toast(e.message,1));
+    });
+    return;
+  }
+
+  if(rTab==='leases'){
+    L.innerHTML='LEASES <span>·</span> named locks';
+    const rows=await relayGet('/leases','#ls-list','no lease held');
+    if(rows===null)return;
+    if(rows.length)$('#ls-list').innerHTML=rows.map(l=>rcard(
+      `<b>${esc(l.name)}</b><span>held by ${esc(l.holder)}</span><span>expires ${ago2(l.expires_at)}</span>`,
+      l.note?esc(l.note):'',
+      `<span>acquired ${ago2(l.acquired_at)}</span>`,
+      `<button class="btn ghost" data-rel="${esc(l.name)}" data-holder="${esc(l.holder)}">release</button>`
+    )).join('');
+    $$('#ls-list [data-rel]').forEach(b=>b.onclick=async()=>{
+      if(!await ask({title:'release lease?',body:`<b>${esc(b.dataset.rel)}</b> — held by ${esc(b.dataset.holder)}.<br>Releasing lets another agent take it immediately.`,ok:'release',danger:true}))return;
+      try{await req('/leases/'+encodeURIComponent(b.dataset.rel)+'?holder='+encodeURIComponent(b.dataset.holder),{method:'DELETE'});toast('released');loadRelay();}
+      catch(e){toast(e.message,1);}
+    });
+    return;
+  }
+
+  if(rTab==='lessons'){
+    const scope=$('#ln-scope').value.trim();
+    L.innerHTML=`LESSONS <span>·</span> ${scope?'#'+esc(scope):'all scopes'}`;
+    const rows=await relayGet('/lessons?limit=200'+(scope?'&scope='+encodeURIComponent(scope):''),'#ln-list','no lesson recorded');
+    if(rows===null)return;
+    if(rows.length)$('#ln-list').innerHTML=rows.map(x=>rcard(
+      `<b>#${x.id}</b>${x.scope?`<span>#${esc(x.scope)}</span>`:''}<span>${ago2(x.created_at)}</span>`,
+      esc(x.text)
+    )).join('');
+    return;
+  }
+
+  if(rTab==='crystals'){
+    L.innerHTML='CRYSTALS <span>·</span> merged views';
+    const rows=await relayGet('/crystals?limit=200','#cr-list','no crystal yet');
+    if(rows===null)return;
+    if(rows.length)$('#cr-list').innerHTML=rows.map(x=>{
+      const src=refLinks(x.sources);
+      return rcard(`<b>#${x.id}</b><span>${ago2(x.created_at)}</span>`,
+        esc(x.text),src);
+    }).join('');
+    return;
+  }
+
+  if(rTab==='audit'){
+    L.innerHTML='AUDIT <span>·</span> newest first';
+    const rows=await relayGet('/audit?limit=200','#au-list','no audit entry');
+    if(rows===null)return;
+    if(rows.length)$('#au-list').innerHTML=rows.map(x=>rcard(
+      `<b>${esc(x.action)}</b><span>${esc(x.actor)}</span><span>${ago2(x.at)}</span>`,
+      '',`<span>${esc(x.target||'—')}</span>${x.detail?`<span>${esc(x.detail)}</span>`:''}`
+    )).join('');
+  }
+}
+$$('.rtab').forEach(b=>b.onclick=()=>{rTab=b.dataset.r;loadRelay();});
+$('#ho-load').onclick=loadRelay;
+$('#ho-agent').onkeydown=e=>{if(e.key==='Enter')loadRelay();};
+$('#ln-load').onclick=loadRelay;
+$('#ln-scope').onkeydown=e=>{if(e.key==='Enter')loadRelay();};
+$('#cr-load').onclick=loadRelay;
+$('#au-load').onclick=loadRelay;
+$('#ls-load').onclick=async()=>{
+  const name=$('#ls-name').value.trim(),holder=$('#ls-holder').value.trim();
+  if(!name||!holder){toast('name + holder required',1);return;}
+  try{
+    await req('/leases',{method:'POST',body:JSON.stringify({name,holder,ttl_minutes:Number($('#ls-ttl').value)||30})});
+    toast('lease held: '+name);$('#ls-name').value='';$('#ls-holder').value='';loadRelay();
+  }catch(e){toast(e.message,1);loadRelay();}
+};
+
 /* ── nav ── */
 $$('.nav button').forEach(b=>b.onclick=()=>{
   const mode=b.dataset.mode;
   if(mode==='add')return openSheet('add');
   if(mode==='extract')return openSheet('extract');
   $$('.nav button').forEach(x=>x.classList.toggle('active',x===b));
-  state.mode=mode;state.q='';state.tagFilter='';$('#q').value='';load();
+  state.mode=mode;state.q='';state.tagFilter='';$('#q').value='';
+  if(mode!=='relay')state.offset=0;
+  load();
 });
 $('#more').onclick=()=>{state.offset+=state.limit;load(false);};
 
@@ -427,7 +724,6 @@ function switchPane(p){$$('.tabs button').forEach(b=>b.classList.toggle('active'
 $$('.tabs button').forEach(b=>b.onclick=()=>switchPane(b.dataset.pane));
 $('#sheet-close').onclick=closeSheet;
 $('#scrim').onclick=e=>{if(e.target===$('#scrim'))closeSheet();};
-addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();}});
 $('#go-add').onclick=()=>openSheet('add');
 $('#add-save').onclick=async()=>{const t=$('#add-text').value.trim();if(!t)return;$('#add-save').disabled=true;
   try{const tags=parseTags($('#add-tags').value);const r=await req('/memories',{method:'POST',body:JSON.stringify({text:t,tags})});toast('stored #'+r.id);$('#add-text').value='';$('#add-tags').value='';closeSheet();load();}
@@ -440,15 +736,43 @@ $('#ex-run').onclick=async()=>{const t=$('#ex-text').value.trim();if(!t)return;c
   catch(e){toast(e.message,1);}finally{b.disabled=false;b.textContent='Extract & store';}};
 
 /* ── token gate ── */
-function showGate(){$('#gate').classList.add('open');setTimeout(()=>$('#gate-tok').focus(),50);}
+function showGate(){$('#gate').classList.add('open');$('#gate-keep').checked=tokenKept;
+  $('#gate-forget').hidden=!localStorage.getItem(TK);
+  setTimeout(()=>$('#gate-tok').focus(),50);}
 $('#open-token').onclick=showGate;
 $('#gate-save').onclick=saveGate;
 $('#gate-tok').onkeydown=e=>{if(e.key==='Enter')saveGate();};
-async function saveGate(){const v=$('#gate-tok').value.trim();if(!v)return;
-  const prev=token,prevUser=sessionStorage.getItem('minimem_user')||'mem';
-  token=v;sessionStorage.setItem('minimem_user',$('#gate-user').value.trim()||'mem');
-  try{await req('/stats');sessionStorage.setItem(TK,token);$('#gate').classList.remove('open');$('#gate-tok').value='';toast('unlocked');boot();}
-  catch(e){token=prev;sessionStorage.setItem('minimem_user',prevUser);toast('รหัสผิด',1);}}
+$('#gate-keep').onchange=()=>{$('#gate-forget').hidden=!$('#gate-keep').checked||!localStorage.getItem(TK);};
+$('#gate-forget').onclick=()=>{
+  localStorage.removeItem(TK);localStorage.removeItem(UK);
+  tokenKept=false;token='';$('#gate-keep').checked=false;$('#gate-forget').hidden=true;
+  // token is gone from memory too, so the open gate cannot be used until re-entered
+  $('#gate').classList.add('open');
+  toast('ลบรหัสออกจากเครื่องแล้ว · ใส่รหัสใหม่เพื่อเข้า');
+};
+async function saveGate(){
+  const v=$('#gate-tok').value.trim();if(!v)return;
+  const keep=$('#gate-keep').checked;
+  const prev=token,prevKept=tokenKept;
+  const prevUser=sessionStorage.getItem(UK)||localStorage.getItem(UK)||'mem';
+  const who=$('#gate-user').value.trim()||'mem';
+  token=v;tokenKept=keep;
+  // clear both stores first, then write only where the user asked
+  sessionStorage.removeItem(TK);sessionStorage.removeItem(UK);
+  localStorage.removeItem(TK);localStorage.removeItem(UK);
+  const store=keep?localStorage:sessionStorage;
+  try{
+    await req('/stats');
+    store.setItem(TK,token);store.setItem(UK,who);
+    $('#gate').classList.remove('open');$('#gate-tok').value='';toast(keep?'unlocked · remembered':'unlocked');boot();
+  }
+  catch(e){
+    token=prev;tokenKept=prevKept;
+    (prevKept?localStorage:sessionStorage).setItem(TK,token);
+    (prevKept?localStorage:sessionStorage).setItem(UK,prevUser);
+    toast('รหัสผิด',1);
+  }
+}
 
 /* ── boot ── */
 async function boot(){
