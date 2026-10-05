@@ -269,6 +269,9 @@ const q = {
   ftsDel: db.query("DELETE FROM memories_fts WHERE rowid = ?"),
   hist: db.query("INSERT INTO history(memory_id, action, old_text, old_tags) VALUES(?, ?, ?, ?)"),
   get: db.query("SELECT id, text, updated_at FROM memories WHERE id = ? AND deleted_at IS NULL"),
+  getFull: db.query(
+    "SELECT id, text, created_at, updated_at FROM memories WHERE id = ? AND deleted_at IS NULL",
+  ),
   upd: db.query("UPDATE memories SET text = ?, updated_at = datetime('now') WHERE id = ?"),
   del: db.query("UPDATE memories SET deleted_at = datetime('now') WHERE id = ?"),
   list: db.query(
@@ -869,6 +872,15 @@ const app = new Elysia()
     const offset = Math.max(Number(query.offset ?? 0), 0);
     const tag = normTags([query.tag])[0];
     return { total: countRecent(tag), items: recent(limit, offset, tag) };
+  })
+  // single memory by id — the UI's handoff-ref "goto" links need this
+  .get("/memories/:id", ({ params, set }) => {
+    const row = q.getFull.get(Number(params.id)) as Mem | null;
+    if (!row) {
+      set.status = 404;
+      return { error: "not found" };
+    }
+    return withTags([row])[0];
   })
   // recall (optional ?tag= to constrain)
   .get("/memories/search", ({ query }) =>

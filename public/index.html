@@ -234,6 +234,27 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
 .rcard .rel .btn{padding:0 11px;font-size:12px}
 .rnone{padding:22px 12px;text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--tx3);border:1px dashed var(--line2);border-radius:10px}
 
+/* ─── dashboard ─── */
+.dash{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{background:var(--s1);border:1px solid var(--line);border-radius:8px;padding:16px 18px;animation:rise .25s ease both;transition:border-color .15s}
+.tile:hover{border-color:var(--line2)}
+.tile .num{font-family:var(--mono);font-size:26px;font-weight:500;color:var(--tx)}
+.tile.hot .num{color:var(--accent-hi)}
+.tile .lab{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--tx3);margin-top:6px}
+.dash-foot{margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--tx3);line-height:1.9}
+.dash-foot b{color:var(--accent-hi);font-weight:500}
+.dash-foot .ver{color:var(--tx3);opacity:.8}
+
+/* ─── tags view ─── */
+.taglist{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.trow{display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--s1);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:border-color .15s;min-height:46px}
+.trow:hover{border-color:var(--accent-line)}
+.trow:hover .t{color:var(--accent-hi)}
+.trow .t{font-family:var(--mono);font-size:13px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34ch}
+.trow .meter{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;min-width:36px}
+.trow .meter span{display:block;height:100%;background:var(--accent);opacity:.55;border-radius:2px}
+.trow .n{font-family:var(--mono);font-size:11px;color:var(--tx3);flex:0 0 auto}
+
 /* ─── mobile ─── */
 @media (max-width:760px){
   .app{flex-direction:column}
@@ -249,6 +270,8 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
   .search kbd{display:none}
   .card .acts{opacity:1}
   .btn{padding:0 14px}
+  .dash{grid-template-columns:repeat(2,1fr)}
+  .trow .t{max-width:16ch}
 }
 </style>
 </head>
@@ -258,10 +281,12 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
     <div class="brand"><b>MEM</b>ORY·SVC</div>
     <nav class="nav">
       <button data-mode="recent" class="active">▤ Recent<span class="count" id="c-recent"></span></button>
+      <button data-mode="tags">▦ Tags<span class="count" id="c-tags"></span></button>
       <button data-mode="add">✚ Add</button>
       <button data-mode="extract">✦ Extract</button>
       <button data-mode="trash">⊘ Trash<span class="count" id="c-trash"></span></button>
       <button data-mode="relay">⇄ Relay</button>
+      <button data-mode="dash">◉ Dashboard</button>
     </nav>
     <div class="foot">
       <span class="dot" id="hb-dot"></span><span id="hb-txt">connecting…</span><br>
@@ -296,6 +321,14 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
           <div class="rrow"><input id="ho-agent" placeholder="agent (e.g. crush)" autocomplete="off" spellcheck="false">
             <label class="rchk"><input type="checkbox" id="ho-all"><span>incl. acked</span></label>
             <button class="btn ghost" id="ho-load">load</button></div>
+          <div class="rrow">
+            <input id="ho-from" placeholder="from (you)" autocomplete="off" spellcheck="false">
+            <input id="ho-to" placeholder="to (defaults to agent above)" autocomplete="off" spellcheck="false">
+            <input id="ho-topic" placeholder="topic (optional)" autocomplete="off" spellcheck="false">
+            <input id="ho-body" placeholder="body — what do they need to know?" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false">
+            <button class="btn" id="ho-send">⇄ send</button>
+          </div>
+          <div class="hint-line">send = leave a note in another agent's inbox — it shows up under their name until acked.</div>
           <div class="cards" id="ho-list"></div>
         </div>
 
@@ -311,11 +344,21 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
         <div class="rpane" id="rp-lessons">
           <div class="rrow"><input id="ln-scope" placeholder="scope (blank = all)" autocomplete="off" spellcheck="false">
             <button class="btn ghost" id="ln-load">load</button></div>
+          <div class="rrow">
+            <input id="ln-new" placeholder="new lesson — the durable 'do it this way' rule…" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false">
+            <input id="ln-new-scope" placeholder="scope (optional)" autocomplete="off" spellcheck="false">
+            <button class="btn ghost" id="ln-save">✚ save lesson</button>
+          </div>
           <div class="cards" id="ln-list"></div>
         </div>
 
         <div class="rpane" id="rp-crystals">
           <div class="rrow"><button class="btn ghost" id="cr-load">load</button></div>
+          <div class="rrow">
+            <input id="cr-new" placeholder="new crystal — the merged / summarised view…" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false">
+            <input id="cr-sources" placeholder="source ids (12,34)" autocomplete="off" spellcheck="false">
+            <button class="btn ghost" id="cr-save">✚ save crystal</button>
+          </div>
           <div class="cards" id="cr-list"></div>
         </div>
 
@@ -324,6 +367,17 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
           <div class="hint-line">Newest first. Every purge and handoff ack lands here.</div>
           <div class="cards" id="au-list"></div>
         </div>
+      </div>
+      <!-- tags pane: browse every tag with live counts (GET /tags) -->
+      <div id="tagsview" hidden>
+        <div class="rrow"><input id="tg-filter" placeholder="filter tags… (client-side)" autocomplete="off" spellcheck="false" style="max-width:320px">
+          <span class="hint-line" id="tg-note" style="margin:0"></span></div>
+        <div class="taglist" id="tg-list"></div>
+      </div>
+      <!-- dashboard pane: /stats at a glance -->
+      <div id="dash" hidden>
+        <div class="dash" id="dash-grid"></div>
+        <div class="dash-foot" id="dash-foot"></div>
       </div>
     </section>
   </main>
@@ -395,8 +449,11 @@ const TK='minimem_token',UK='minimem_user';
 let token=sessionStorage.getItem(TK)||localStorage.getItem(TK)||'';
 let tokenKept=!!localStorage.getItem(TK);
 let AUTH_ON=true; // set from /health on boot; false = server runs open, no gate
+let VER='?';      // server version, from /health
 
 const state={mode:'recent',q:'',tagFilter:'',offset:0,limit:50,total:0,qtotal:0};
+// memory being edited in the sheet (null = the sheet is in add mode)
+let editId=null;
 
 /* tags: "truck, deploy , #infra" -> ['truck','deploy','infra'] */
 function parseTags(v){
@@ -515,12 +572,7 @@ function card(m){
   exp.onclick=toggle;
   paint();
   el.querySelectorAll('.tags .chip').forEach(c=>c.onclick=e=>{e.stopPropagation();setTagFilter(c.dataset.tag);});
-  el.querySelector('[data-act=edit]').onclick=()=>{
-    const t=prompt('แก้ memory:',m.text);if(!t||!t.trim())return;
-    const g=prompt('tags (คั่นด้วย ,):',(m.tags||[]).join(', '));
-    const body={text:t.trim()};if(g!==null)body.tags=parseTags(g);
-    req('/memories/'+m.id,{method:'PATCH',body:JSON.stringify(body)}).then(()=>{toast('updated');load();}).catch(e=>toast(e.message,1));
-  };
+  el.querySelector('[data-act=edit]').onclick=()=>openEdit(m);
   const db=el.querySelector('[data-act=del]');
   if(db)db.onclick=async()=>{
     if(!await ask({title:'move to trash?',body:`<b>#${m.id}</b> will be recoverable from the Trash tab.<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'move to trash',danger:true}))return;
@@ -547,11 +599,15 @@ function card(m){
 
 /* ── nav ── */
 async function load(reset=true){
-  if(state.mode==='relay')return loadRelay();
-  const host=$('#cards');
+  // one pane at a time: memory cards, relay, tags, dashboard
+  const rel=state.mode!=='recent'&&state.mode!=='trash';
+  $('#cards').hidden=rel;$('#more').hidden=rel;$('#label').hidden=rel;
+  $('.search').style.display=rel?'none':'';
   $('#relay').hidden=state.mode!=='relay';
-  $('#label').hidden=false;
-  $('.search').style.display='';
+  $('#tagsview').hidden=state.mode!=='tags';
+  $('#dash').hidden=state.mode!=='dash';
+  if(rel)return state.mode==='relay'?loadRelay():state.mode==='tags'?loadTags():loadDash();
+  const host=$('#cards');
   const first=reset||host.children.length===0;
   if(reset){state.offset=0;host.innerHTML='';}
   let items,total;
@@ -580,8 +636,57 @@ async function load(reset=true){
   stats();
 }
 
-async function stats(){try{const s=await req('/stats');$('#c-recent').textContent=s.live;$('#c-trash').textContent=s.deleted;}catch(e){}}
+async function stats(){try{const s=await req('/stats');$('#c-recent').textContent=s.live;$('#c-trash').textContent=s.deleted;$('#c-tags').textContent=s.tags;}catch(e){}}
 function setTagFilter(t){state.tagFilter=t;state.mode='recent';$$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.mode==='recent'));load();}
+
+/* ── tags view: full tag census from GET /tags, click a row to browse it ── */
+let tagCache=[];
+async function loadTags(){
+  const list=$('#tg-list');
+  list.innerHTML='<div class="rnone">loading…</div>';
+  try{
+    const r=await req('/tags?limit=400');
+    tagCache=r.tags||[];
+    $('#tg-note').textContent=r.total>400?`showing top 400 of ${r.total} — type to narrow`:'';
+    paintTags();
+  }catch(e){list.innerHTML=`<div class="rnone">${esc(e.message)}</div>`;$('#tg-note').textContent='';}
+}
+function paintTags(){
+  const f=($('#tg-filter').value||'').trim().toLowerCase();
+  const max=tagCache.length?tagCache[0].n:1;
+  const rows=tagCache.filter(t=>!f||t.tag.includes(f));
+  $('#tg-list').innerHTML=rows.length?rows.map(t=>`
+    <div class="trow" data-tag="${esc(t.tag)}" role="button" tabindex="0" title="browse #${esc(t.tag)}">
+      <span class="t">#${esc(t.tag)}</span>
+      <span class="meter"><span style="width:${Math.max(2,Math.round(t.n/max*100))}%"></span></span>
+      <span class="n">${t.n}</span>
+    </div>`).join('')
+    :`<div class="rnone">no tags${f?` match "${esc(f)}"`:' yet'}</div>`;
+}
+$('#tg-filter').oninput=paintTags;
+$('#tg-list').onclick=e=>{const row=e.target.closest('.trow');if(row)setTagFilter(row.dataset.tag);};
+$('#tg-list').onkeydown=e=>{if(e.key==='Enter'&&e.target.classList.contains('trow'))setTagFilter(e.target.dataset.tag);};
+
+/* ── dashboard: /stats at a glance + latest audit entry ── */
+async function loadDash(){
+  const grid=$('#dash-grid'),foot=$('#dash-foot');
+  try{
+    const s=await req('/stats');
+    const tiles=[
+      ['live',s.live,1],['trashed',s.deleted],['history',s.history],['tags',s.tags],
+      ['handoffs',s.relay.handoffs],['leases',s.relay.leases],['lessons',s.relay.lessons],
+      ['crystals',s.relay.crystals],['audit',s.relay.audit],
+    ];
+    grid.innerHTML=tiles.map(([lab,num,hot],i)=>
+      `<div class="tile${hot?' hot':''}" style="animation-delay:${i*30}ms"><div class="num">${num}</div><div class="lab">${lab}</div></div>`
+    ).join('');
+    const a=await req('/audit?limit=1');
+    const e=a.items&&a.items[0];
+    foot.innerHTML=
+      `last activity · ${e?`<b>${esc(e.action)}</b> by ${esc(e.actor)} on ${esc(e.target||'—')} · ${ago(e.at)}`:'<span>—</span>'}<br>
+      <span class="ver">minimem ${esc(VER)} · sqlite · this host only</span>`;
+  }catch(err){grid.innerHTML=`<div class="rnone">${esc(err.message)}</div>`;foot.textContent='';}
+}
 
 /* ── relay pane: handoff / leases / lessons / crystals / audit ── */
 let rTab='handoff';
@@ -726,6 +831,55 @@ $('#ls-load').onclick=async()=>{
   }catch(e){toast(e.message,1);loadRelay();}
 };
 
+// write side of the relay: handoff (send a note), lessons, crystals
+$('#ho-send').onclick=async()=>{
+  const from=$('#ho-from').value.trim();
+  const to=$('#ho-to').value.trim()||$('#ho-agent').value.trim();
+  const body=$('#ho-body').value.trim();
+  if(!from||!to||!body){toast('from, to and body are required',1);return;}
+  const b=$('#ho-send');b.disabled=true;
+  try{
+    const r=await req('/handoff',{method:'POST',body:JSON.stringify({from,to,body,topic:$('#ho-topic').value.trim()||undefined})});
+    toast('handoff #'+r.id+' → '+to);
+    $('#ho-from').value='';$('#ho-topic').value='';$('#ho-body').value='';
+    if(!$('#ho-agent').value)$('#ho-agent').value=to; // show the other side's inbox
+    loadRelay();
+  }catch(e){toast(e.message,1);}
+  finally{b.disabled=false;}
+};
+['#ho-from','#ho-to','#ho-topic','#ho-body'].forEach(s=>$(s).onkeydown=e=>{if(e.key==='Enter')$('#ho-send').click();});
+
+$('#ln-save').onclick=async()=>{
+  const t=$('#ln-new').value.trim();
+  if(!t){toast('lesson text required',1);return;}
+  const scope=$('#ln-new-scope').value.trim();
+  const b=$('#ln-save');b.disabled=true;
+  try{
+    const r=await req('/lessons',{method:'POST',body:JSON.stringify({text:t,scope:scope||undefined})});
+    toast('lesson #'+r.id+' saved');
+    $('#ln-new').value='';
+    if(scope)$('#ln-scope').value=scope; // keep the visible list matching what was just saved
+    loadRelay();
+  }catch(e){toast(e.message,1);}
+  finally{b.disabled=false;}
+};
+$('#ln-new').onkeydown=e=>{if(e.key==='Enter')$('#ln-save').click();};
+
+$('#cr-save').onclick=async()=>{
+  const t=$('#cr-new').value.trim();
+  if(!t){toast('crystal text required',1);return;}
+  const src=($('#cr-sources').value||'').split(/[,\s]+/).map(Number).filter(n=>Number.isFinite(n)&&n>0);
+  const b=$('#cr-save');b.disabled=true;
+  try{
+    const r=await req('/crystals',{method:'POST',body:JSON.stringify({text:t,sources:src.length?src:undefined})});
+    toast('crystal #'+r.id+' saved');
+    $('#cr-new').value='';$('#cr-sources').value='';
+    loadRelay();
+  }catch(e){toast(e.message,1);}
+  finally{b.disabled=false;}
+};
+$('#cr-new').onkeydown=e=>{if(e.key==='Enter')$('#cr-save').click();};
+
 /* ── nav ── */
 $$('.nav button').forEach(b=>b.onclick=()=>{
   const mode=b.dataset.mode;
@@ -744,7 +898,30 @@ $('#q').oninput=()=>{clearTimeout(deb);deb=setTimeout(()=>{state.q=$('#q').value
 addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==$('#q')&&!e.metaKey&&!e.ctrlKey&&!$('.scrim.open')&&!$('.gate.open')){e.preventDefault();$('#q').focus();}});
 
 /* ── modal ── */
-function openSheet(pane){$('#scrim').classList.add('open');switchPane(pane);}
+// the sheet has two faces: "Capture" (add + extract tabs) and edit mode
+// (extract tab hidden, save button PATCHes the target memory)
+function resetSheet(){
+  editId=null;
+  $('#sheet-title').textContent='Capture';
+  $$('.tabs button').forEach(b=>b.style.display='');
+  $('#add-save').textContent='Store it';
+}
+function openSheet(pane){
+  if(editId!==null){$('#add-text').value='';$('#add-tags').value='';} // stale edit draft
+  resetSheet();
+  $('#scrim').classList.add('open');switchPane(pane);
+}
+function openEdit(m){
+  editId=m.id;
+  $('#sheet-title').textContent='Edit #'+m.id;
+  $$('.tabs button').forEach(b=>b.style.display=b.dataset.pane==='add'?'':'none');
+  $('#add-save').textContent='Save changes';
+  $('#add-text').value=m.text;
+  $('#add-tags').value=(m.tags||[]).join(', ');
+  $('#ex-done').style.display='none';
+  $('#scrim').classList.add('open');
+  switchPane('add');
+}
 function closeSheet(){$('#scrim').classList.remove('open');}
 function switchPane(p){$$('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.pane===p));$$('.pane').forEach(el=>el.classList.toggle('active',el.id==='pane-'+p));setTimeout(()=>$(p==='add'?'#add-text':'#ex-text').focus(),50);}
 $$('.tabs button').forEach(b=>b.onclick=()=>switchPane(b.dataset.pane));
@@ -752,7 +929,17 @@ $('#sheet-close').onclick=closeSheet;
 $('#scrim').onclick=e=>{if(e.target===$('#scrim'))closeSheet();};
 $('#go-add').onclick=()=>openSheet('add');
 $('#add-save').onclick=async()=>{const t=$('#add-text').value.trim();if(!t)return;$('#add-save').disabled=true;
-  try{const tags=parseTags($('#add-tags').value);const r=await req('/memories',{method:'POST',body:JSON.stringify({text:t,tags})});toast('stored #'+r.id);$('#add-text').value='';$('#add-tags').value='';closeSheet();load();}
+  const tags=parseTags($('#add-tags').value),wasEdit=editId!==null;
+  try{
+    if(wasEdit){
+      await req('/memories/'+editId,{method:'PATCH',body:JSON.stringify({text:t,tags})});
+      toast('updated #'+editId);
+    }else{
+      const r=await req('/memories',{method:'POST',body:JSON.stringify({text:t,tags})});
+      toast('stored #'+r.id);
+    }
+    $('#add-text').value='';$('#add-tags').value='';closeSheet();load();
+  }
   catch(e){toast(e.message,1);}finally{$('#add-save').disabled=false;}};
 $('#ex-run').onclick=async()=>{const t=$('#ex-text').value.trim();if(!t)return;const b=$('#ex-run');b.disabled=true;b.textContent='thinking…';$('#ex-done').style.display='none';
   try{const r=await req('/extract',{method:'POST',body:JSON.stringify({text:t})});
@@ -819,7 +1006,7 @@ async function saveGate(){
 async function boot(){
   try{
     const h=await (await fetch(API+'/health')).json();
-    AUTH_ON=h.auth!==false;
+    AUTH_ON=h.auth!==false;VER=h.version;
     $('#hb-txt').textContent='online · :'+location.port+(AUTH_ON?'':' · open');
   }
   catch(e){$('#hb-txt').textContent='offline';$('#hb-dot').style.background='var(--danger)';}
