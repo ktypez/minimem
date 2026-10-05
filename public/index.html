@@ -21,6 +21,10 @@
   --sans:'Space Grotesk','Noto Sans Thai',ui-sans-serif,system-ui,-apple-system,Sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* pane switching relies on the hidden attribute, but .cards{display:flex} and
+   friends out-specify the UA [hidden] rule — without this the previous pane's
+   cards stay on screen (seen on Dashboard and Tags) */
+[hidden]{display:none!important}
 html{scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
 body{
