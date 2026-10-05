@@ -27,6 +27,7 @@ import { dirname, isAbsolute } from "node:path";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { generateObject } from "ai";
 import { z } from "zod";
+import { keywords, matchExpr } from "./search_kw.ts";
 
 const env = (k: string) => process.env[k];
 const DB_PATH = env("MINIMEM_DB_PATH") ?? env("DB_PATH") ?? "./data/minimem.db";
@@ -443,23 +444,13 @@ function purgeMem(id: number): string | null {
 }
 
 // ---------- Search ----------
-const seg = new Intl.Segmenter("th", { granularity: "word" });
-
-function keywords(input: string, max = 8): string[] {
-  const out = new Set<string>();
-  for (const s of seg.segment(input)) {
-    if (!s.isWordLike) continue;
-    const w = s.segment.replace(/"/g, "");
-    if ([...w].length >= 3) out.add(w); // trigram needs >= 3 chars
-    if (out.size >= max) break;
-  }
-  return [...out];
-}
+// keyword extraction lives in ./search_kw.ts so it can be unit-tested without
+// booting the server (this file calls .listen() at import time).
 
 function search(query: string, limit = 10, tag?: string): Mem[] {
   const terms = keywords(query);
   if (!terms.length) return [];
-  const match = terms.map((w) => `"${w}"`).join(" OR ");
+  const match = matchExpr(terms);
   let rows = q.search.all(match, tag ? 500 : limit) as Mem[];
   if (tag) rows = rows.filter((m) => tagsOf(m.id).includes(tag)).slice(0, limit);
   return withTags(rows);
