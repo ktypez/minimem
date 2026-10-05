@@ -442,7 +442,11 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
 <script>
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
-const API=location.origin;
+// API base = origin + current path prefix, so the same file works both direct
+// (http://host:3100/, pathname "/") and behind a reverse proxy with a path
+// prefix (https://lan.mcky.space/artifact/minimem/) — handle_path strips the
+// prefix before proxying, so prefix+route lands on the right server route.
+const API=location.origin+location.pathname.replace(/\/+$/,'');
 const TK='minimem_token',UK='minimem_user';
 // "remember me" off by default: the token then dies with the tab. Opting in
 // writes localStorage instead — plaintext on disk, so it is the user's call.
