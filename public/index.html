@@ -284,13 +284,13 @@ mark{background:var(--accent-soft);color:var(--accent-hi);border-radius:2px;padd
   <aside class="rail">
     <div class="brand"><b>MEM</b>ORY·SVC</div>
     <nav class="nav">
-      <button data-mode="recent" class="active">▤ Recent<span class="count" id="c-recent"></span></button>
+      <button data-mode="dash" class="active">◉ Dashboard</button>
+      <button data-mode="recent">▤ Recent<span class="count" id="c-recent"></span></button>
       <button data-mode="tags">▦ Tags<span class="count" id="c-tags"></span></button>
       <button data-mode="add">✚ Add</button>
       <button data-mode="extract">✦ Extract</button>
       <button data-mode="trash">⊘ Trash<span class="count" id="c-trash"></span></button>
       <button data-mode="relay">⇄ Relay</button>
-      <button data-mode="dash">◉ Dashboard</button>
     </nav>
     <div class="foot">
       <span class="dot" id="hb-dot"></span><span id="hb-txt">connecting…</span><br>
@@ -459,7 +459,7 @@ let tokenKept=!!localStorage.getItem(TK);
 let AUTH_ON=true; // set from /health on boot; false = server runs open, no gate
 let VER='?';      // server version, from /health
 
-const state={mode:'recent',q:'',tagFilter:'',offset:0,limit:50,total:0,qtotal:0};
+const state={mode:'dash',q:'',tagFilter:'',offset:0,limit:50,total:0,qtotal:0};
 // memory being edited in the sheet (null = the sheet is in add mode)
 let editId=null;
 
