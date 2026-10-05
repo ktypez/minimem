@@ -800,6 +800,8 @@ const stats = () => ({
 });
 
 const INDEX_HTML = new URL("./public/index.html", import.meta.url).pathname;
+const PUBLIC_DIR = new URL("./public/", import.meta.url).pathname;
+// icons are served explicitly below (same no-auth treatment as the UI itself)
 
 if (argv.includes("--check")) {
   console.log(
@@ -817,6 +819,30 @@ const app = new Elysia()
       headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
     }),
   )
+  .get("/favicon.ico", ({ set }) => {
+    set.headers["Cache-Control"] = "public, max-age=86400";
+    return new Response(Bun.file(PUBLIC_DIR + "favicon.ico"), {
+      headers: { "Content-Type": "image/x-icon" },
+    });
+  })
+  .get("/apple-touch-icon.png", ({ set }) => {
+    set.headers["Cache-Control"] = "public, max-age=86400";
+    return new Response(Bun.file(PUBLIC_DIR + "apple-touch-icon.png"), {
+      headers: { "Content-Type": "image/png" },
+    });
+  })
+  .get("/icon-192.png", ({ set }) => {
+    set.headers["Cache-Control"] = "public, max-age=86400";
+    return new Response(Bun.file(PUBLIC_DIR + "icon-192.png"), {
+      headers: { "Content-Type": "image/png" },
+    });
+  })
+  .get("/icon-512.png", ({ set }) => {
+    set.headers["Cache-Control"] = "public, max-age=86400";
+    return new Response(Bun.file(PUBLIC_DIR + "icon-512.png"), {
+      headers: { "Content-Type": "image/png" },
+    });
+  })
   .onBeforeHandle(({ headers, set, request }) => {
     // AUTH_ENABLED=0 -> the whole guard is a no-op (auth() returns true)
     if (!AUTH_ENABLED) return;
