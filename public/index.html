@@ -8,6 +8,8 @@
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <meta name="theme-color" content="#0b0b10">
+<script>/* set theme before first paint to avoid a flash of the wrong mode */
+try{document.documentElement.dataset.theme=localStorage.getItem('minimem_theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,6 +24,19 @@
   --ok:#2fd08c;
   --mono:'IBM Plex Mono',ui-monospace,'JetBrains Mono',SFMono-Regular,Menlo,monospace;
   --sans:'Archivo','Noto Sans Thai',ui-sans-serif,system-ui,-apple-system,Sans-serif;
+  --topbar-bg:rgba(10,10,10,.88);
+}
+/* light: same Swiss system, ink on paper. accent darkened for AA contrast on white. */
+html[data-theme="light"]{
+  --bg:#ffffff; --s1:#f7f7f7; --s2:#efefef; --s3:#e6e6e6; --s4:#dcdcdc;
+  --line:#e4e4e4; --line2:#d2d2d2; --line3:#bcbcbc;
+  --tx:#0b0b0b; --tx2:#5c5c5c; --tx3:#949494;
+  --accent:#2b3fd4; --accent-hi:#2b3fd4; --accent-soft:rgba(43,63,212,.09); --accent-line:rgba(43,63,212,.5);
+  --danger:#d92b3d; --danger-soft:rgba(217,43,61,.08);
+  --ok:#0f9d63;
+  --topbar-bg:rgba(255,255,255,.88);
+  --scrim-bg:rgba(0,0,0,.4);
+  color-scheme:light;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 /* pane switching relies on the hidden attribute, but .cards{display:flex} and
@@ -68,7 +83,7 @@ input:focus,textarea:focus{border-color:var(--accent)}
 
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .topbar{
-  position:sticky;top:0;z-index:5;background:rgba(10,10,10,.88);backdrop-filter:blur(10px);
+  position:sticky;top:0;z-index:5;background:var(--topbar-bg);backdrop-filter:blur(10px);
   border-bottom:1px solid var(--line);padding:12px 28px;display:flex;gap:12px;align-items:center;
 }
 /* the search field IS the accent rail — functional use of the single color */
@@ -83,11 +98,11 @@ input:focus,textarea:focus{border-color:var(--accent)}
   background:var(--accent);color:#fff;font-weight:600;transition:background .12s;
   display:inline-flex;align-items:center;gap:8px;white-space:nowrap;border-radius:0;
 }
-.btn:hover{background:var(--accent-hi);color:#0a0a0a}
+.btn:hover{background:var(--accent-hi);color:var(--bg)}
 .btn.ghost{background:transparent;border:1px solid var(--line3);color:var(--tx2)}
 .btn.ghost:hover{border-color:var(--tx);color:var(--tx)}
 .btn.danger{background:var(--danger)}
-.btn.danger:hover{background:#ff8090;color:#0a0a0a}
+.btn.danger:hover{background:#ff8090;color:var(--bg)}
 .btn:disabled{opacity:.4;cursor:wait}
 
 .content{padding:24px 28px calc(48px + env(safe-area-inset-bottom));max-width:920px;width:100%}
@@ -148,7 +163,7 @@ mark{background:var(--accent-soft);color:var(--accent-hi);padding:0 1px}
 .tagedit input{flex:1;padding:10px 12px;font-family:var(--mono);font-size:12.5px}
 
 /* ─── modal ─── */
-.scrim{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.72);display:none;align-items:flex-start;justify-content:center;padding:8vh 16px 16px}
+.scrim{position:fixed;inset:0;z-index:20;background:var(--scrim-bg,rgba(0,0,0,.72));display:none;align-items:flex-start;justify-content:center;padding:8vh 16px 16px}
 .scrim.open{display:flex}
 .sheet{width:100%;max-width:640px;background:var(--s1);border:1px solid var(--line2);border-radius:0;animation:rise .18s ease both;max-height:84vh;display:flex;flex-direction:column}
 .sheet header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
@@ -299,6 +314,7 @@ mark{background:var(--accent-soft);color:var(--accent-hi);padding:0 1px}
     <div class="foot">
       <span class="dot" id="hb-dot"></span><span id="hb-txt">connecting…</span><br>
       <button class="ia" id="open-token" style="margin-top:8px">access token</button>
+      <button class="ia" id="theme-toggle" style="margin-top:8px" title="toggle light / dark">◐ theme</button>
     </div>
   </aside>
 
@@ -964,6 +980,21 @@ $('#ex-run').onclick=async()=>{const t=$('#ex-text').value.trim();if(!t)return;c
     $('#ex-done').textContent=`[${r.model}] added ${r.added} · updated ${r.updated} · deleted ${r.deleted} · skipped ${r.skipped}`;
     $('#ex-text').value='';toast('extraction done');load();}
   catch(e){toast(e.message,1);}finally{b.disabled=false;b.textContent='Extract & store';}};
+
+/* ── theme toggle (dark <-> light) ── */
+const THK='minimem_theme';
+function paintThemeBtn(){
+  const light=document.documentElement.dataset.theme==='light';
+  $('#theme-toggle').textContent=light?'◑ light':'◐ dark';
+  document.querySelector('meta[name=theme-color]').content=light?'#ffffff':'#0a0a0a';
+}
+$('#theme-toggle').onclick=()=>{
+  const next=document.documentElement.dataset.theme==='light'?'dark':'light';
+  document.documentElement.dataset.theme=next;
+  try{localStorage.setItem(THK,next);}catch(e){}
+  paintThemeBtn();
+};
+paintThemeBtn();
 
 /* ── token gate ── */
 const gateIn=$('#gate-tok'),gateErr=$('#gate-err'),gateBtn=$('#gate-save'),gateEl=$('#gate');
