@@ -38,6 +38,8 @@ bun test search.test.ts                      # search regression tests
 - Service: OpenRC `minimem` (init `/etc/init.d/minimem`, env `/etc/minimem/minimem.env`)
 - Data dir: `/home/admin/minimem-data/`
 - Hermes plugin: `~/.hermes/plugins/minimem/` (plugin.yaml + __init__.py, MCP tools `minimem_*`)
+- Web UI: `public/index.html` — one hand-written file, **no build step / no bundler**; served
+  `no-store` via `Bun.file`, so editing it is live without a restart. Themes: `data-theme="day|night"`.
 - Copied legacy: `~/projects/memory-service/` — the ORIGINAL minimem (same schema); **stopped/legacy, do not run it**.
 
 ## API essentials

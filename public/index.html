@@ -1,436 +1,735 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="th" data-theme="day">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#8fd6ff">
 <title>minimem</title>
 <link rel="icon" href="./favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
-<meta name="theme-color" content="#0b0b10">
-<script>/* set theme before first paint to avoid a flash of the wrong mode */
-try{document.documentElement.dataset.theme=localStorage.getItem('minimem_theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');}catch(e){}</script>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 8C48 8 58 22 58 38 58 52 48 58 32 58 16 58 6 52 6 38 6 22 16 8 32 8Z' fill='%236fdcff' stroke='%232b2358' stroke-width='4'/%3E%3Ccircle cx='22' cy='36' r='4' fill='%232b2358'/%3E%3Ccircle cx='42' cy='36' r='4' fill='%232b2358'/%3E%3C/svg%3E">
+<script>/* set theme before first paint; fall back to the OS preference, not to a flash */
+try{var t=localStorage.getItem('minimem_theme');
+if(t!=='day'&&t!=='night')t=matchMedia('(prefers-color-scheme: dark)').matches?'night':'day';
+document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@600;700&family=Mochiy+Pop+One&family=Noto+Sans+Thai+Looped:wght@400;500;700&family=Pixelify+Sans:wght@400;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-/* ─── tokens: Swiss monochrome — ink-on-paper, one signal color ─── */
-:root{
-  --bg:#0a0a0a; --s1:#101010; --s2:#161616; --s3:#1e1e1e; --s4:#262626;
-  --line:#1d1d1d; --line2:#2e2e2e; --line3:#3a3a3a;
-  --tx:#f2f2f2; --tx2:#999999; --tx3:#5c5c5c;
-  --accent:#3d5bff; --accent-hi:#7c93ff; --accent-soft:rgba(61,91,255,.13); --accent-line:rgba(61,91,255,.45);
-  --danger:#ff4d5e; --danger-soft:rgba(255,77,94,.1);
-  --ok:#2fd08c;
-  --mono:'IBM Plex Mono',ui-monospace,'JetBrains Mono',SFMono-Regular,Menlo,monospace;
-  --sans:'Archivo','Noto Sans Thai',ui-sans-serif,system-ui,-apple-system,Sans-serif;
-  --topbar-bg:rgba(10,10,10,.88);
-}
-/* light: same Swiss system, ink on paper. accent darkened for AA contrast on white. */
-html[data-theme="light"]{
-  --bg:#ffffff; --s1:#f7f7f7; --s2:#efefef; --s3:#e6e6e6; --s4:#dcdcdc;
-  --line:#e4e4e4; --line2:#d2d2d2; --line3:#bcbcbc;
-  --tx:#0b0b0b; --tx2:#5c5c5c; --tx3:#949494;
-  --accent:#2b3fd4; --accent-hi:#2b3fd4; --accent-soft:rgba(43,63,212,.09); --accent-line:rgba(43,63,212,.5);
-  --danger:#d92b3d; --danger-soft:rgba(217,43,61,.08);
-  --ok:#0f9d63;
-  --topbar-bg:rgba(255,255,255,.88);
-  --scrim-bg:rgba(0,0,0,.4);
+/* ═══════════════════════════════════════════════════════════════════
+   minimem — "Mimi's Guild Hall"
+   A cheerful JRPG guild hall for a memory service. Sticker-style UI
+   (thick outline, hard offset shadow), RPG-class colours, a jelly-slime
+   mascot (Mimi) who reacts to everything you do.
+   day = sunny meadow · night = starlight
+   ═══════════════════════════════════════════════════════════════════ */
+:root,[data-theme=day]{
+  --sky0:#8fd6ff; --sky1:#c4efff; --sky2:#e4fbe6;
+  --paper:#ffffff; --paper2:#f2eeff; --field:#ffffff;
+  --line:#2b2358; --shade:#2b2358;
+  --tx:#2b2358; --tx2:#5a5291; --tx3:#6b64a0;
+  --p0:#ffd23f; --p1:#ff7aa8; --p2:#47dba5; --p3:#59bdff; --p4:#a98cff; --p5:#ffa35c; --p6:#52e0d9;
+  --on-p:#2b2358; --ink:#2b2358;
+  --danger:#e8366d; --ok:#0f9a68; --hl:rgba(255,210,63,.6);
+  --veil:rgba(206,239,255,.86);
+  --hill1:#86e3ac; --hill2:#52cf95; --cloud:#ffffff; --star:rgba(255,255,255,0);
   color-scheme:light;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-/* pane switching relies on the hidden attribute, but .cards{display:flex} and
-   friends out-specify the UA [hidden] rule — without this the previous pane's
-   cards stay on screen (seen on Dashboard and Tags) */
-[hidden]{display:none!important}
-html{scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
-::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--line2)}
-body{
-  font-family:var(--sans);background:var(--bg);color:var(--tx);
-  overflow-x:hidden;min-height:100dvh;
-  -webkit-font-smoothing:antialiased;
+[data-theme=night]{
+  --sky0:#171244; --sky1:#2f1d78; --sky2:#57308f;
+  --paper:#2a2378; --paper2:#352d8e; --field:#1b1552;
+  --line:#e9e1ff; --shade:#0b0628;
+  --tx:#f4efff; --tx2:#cdc4f6; --tx3:#aba1e2;
+  --danger:#ff6f96; --ok:#6ff0c0; --hl:rgba(255,210,63,.45);
+  --veil:rgba(28,20,74,.86);
+  --hill1:#3a2a88; --hill2:#2a1f6e; --cloud:#9a8cf0; --star:rgba(255,255,255,.95);
+  color-scheme:dark;
 }
-::selection{background:var(--accent);color:#fff}
+:root{
+  --display:'Mochiy Pop One','Mali','Noto Sans Thai Looped',sans-serif;
+  --sans:'Zen Maru Gothic','Noto Sans Thai Looped',ui-sans-serif,system-ui,sans-serif;
+  --pixel:'Pixelify Sans','Zen Maru Gothic','Noto Sans Thai Looped',ui-monospace,monospace;
+  --boing:cubic-bezier(.34,1.56,.64,1);
+  --r:22px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scrollbar-width:thin;scrollbar-color:var(--p4) transparent;scrollbar-gutter:stable}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--p4);border-radius:6px;border:2px solid var(--line)}
+body{font-family:var(--sans);font-size:15.5px;color:var(--tx);min-height:100dvh;overflow-x:hidden;-webkit-text-size-adjust:100%;
+  background:linear-gradient(180deg,var(--sky0) 0%,var(--sky1) 58%,var(--sky2) 100%) fixed}
+/* a dialog owns the screen: the page behind it must not scroll on touch.
+   <html> is the scrolling element, so body alone does not stop a drag. */
+html.lock,body.lock{overflow:hidden}
+::selection{background:var(--p0);color:#2b2358}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
-input,textarea{font:inherit;color:var(--tx);background:var(--s2);border:1px solid var(--line2);outline:none;border-radius:0}
-input:focus,textarea:focus{border-color:var(--accent)}
+/* no 300ms tap delay, no grey flash — the press states are the feedback here */
+button,input,textarea,label,summary{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input,textarea{font:inherit;color:var(--tx);background:var(--field);border:3px solid var(--line);border-radius:16px;outline:none}
+input::placeholder,textarea::placeholder{color:var(--tx3)}
+input:focus,textarea:focus{box-shadow:0 0 0 4px var(--p3)}
+:focus-visible{outline:3px solid var(--p4);outline-offset:3px}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.c0{--c:var(--p0)}.c1{--c:var(--p1)}.c2{--c:var(--p2)}.c3{--c:var(--p3)}.c4{--c:var(--p4)}.c5{--c:var(--p5)}.c6{--c:var(--p6)}
+
+/* ─── the world: sky, clouds, sun/moon, hills ─── */
+.world{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.world::before{content:"";position:absolute;inset:0;
+  background-image:radial-gradient(1.6px 1.6px at 12% 14%,var(--star),transparent),radial-gradient(1.2px 1.2px at 30% 40%,var(--star),transparent),
+    radial-gradient(2px 2px at 46% 10%,var(--star),transparent),radial-gradient(1.2px 1.2px at 64% 34%,var(--star),transparent),
+    radial-gradient(1.6px 1.6px at 80% 18%,var(--star),transparent),radial-gradient(1.2px 1.2px at 92% 46%,var(--star),transparent),
+    radial-gradient(1.4px 1.4px at 8% 58%,var(--star),transparent),radial-gradient(1.8px 1.8px at 56% 62%,var(--star),transparent);
+  background-size:560px 560px;animation:twinkle 4s ease-in-out infinite alternate}
+@keyframes twinkle{from{opacity:.4}to{opacity:1}}
+.orb{position:absolute;right:14%;bottom:13vh;width:84px;height:84px;border-radius:50%;background:var(--p0);border:4px solid var(--line);box-shadow:0 0 0 12px rgba(255,210,63,.28),4px 5px 0 var(--shade);animation:floaty 6s ease-in-out infinite}
+[data-theme=night] .orb{background:#fff3b8;box-shadow:0 0 38px 8px rgba(255,243,184,.4),4px 5px 0 var(--shade)}
+[data-theme=night] .orb::after{content:"";position:absolute;width:68px;height:68px;border-radius:50%;background:var(--sky2);right:-16px;top:-12px;border:0}
+.cloud{position:absolute;left:-220px;height:44px;width:130px;background:var(--cloud);border-radius:44px;border:3px solid var(--line);opacity:.62;
+  transform:translateX(0) scale(var(--sc,1));animation:drift linear infinite will-change:transform}
+[data-theme=night] .cloud{opacity:.22}
+[data-theme=night] .cloud{border-color:transparent}
+.cloud::before,.cloud::after{content:"";position:absolute;background:var(--cloud);border:3px solid var(--line);border-bottom:0;border-radius:50% 50% 0 0}
+.cloud::before{width:56px;height:40px;left:18px;top:-26px}
+.cloud::after{width:44px;height:30px;left:62px;top:-18px}
+[data-theme=night] .cloud::before,[data-theme=night] .cloud::after{border-color:transparent}
+.cloud.a{top:6%;animation-duration:110s;animation-delay:-30s}
+.cloud.b{top:30%;--sc:.7;animation-duration:150s;animation-delay:-90s}
+.cloud.c{top:52%;--sc:1.2;animation-duration:190s;animation-delay:-10s}
+/* transform-only drift: animating `left` relayouts the world every frame, which
+   is exactly the kind of thing that stutters on a phone */
+@keyframes drift{from{transform:translateX(0) scale(var(--sc,1))}to{transform:translateX(calc(100vw + 320px)) scale(var(--sc,1))}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.hills{position:absolute;left:0;right:0;bottom:0;width:100%;height:24vh;min-height:150px}
+.hills .h1{fill:var(--hill1);stroke:var(--line);stroke-width:3}
+.hills .h2{fill:var(--hill2);stroke:var(--line);stroke-width:3}
+[data-theme=night] .hills path{stroke:none}
+#fx,#fx0{position:fixed;inset:0;width:100%;height:100%;z-index:60;pointer-events:none}
+#fx0{z-index:0}
+
+/* ─── sticker: thick outline + hard shadow. every panel is one ─── */
+.st{background:var(--paper);border:3px solid var(--line);border-radius:var(--r);box-shadow:4px 5px 0 var(--shade)}
+
+/* ─── buttons: chunky, squish when pressed ─── */
+.btn{position:relative;min-height:48px;padding:0 26px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-family:var(--sans);font-weight:700;font-size:15px;white-space:nowrap;color:var(--on-p);
+  background:var(--p0);border:3px solid var(--line);border-radius:999px;box-shadow:0 5px 0 var(--shade);
+  transition:transform .16s var(--boing),box-shadow .16s,filter .15s}
+.btn:hover{transform:translateY(-2px) rotate(-1deg);box-shadow:0 7px 0 var(--shade)}
+.btn:active{transform:translateY(5px);box-shadow:0 0 0 var(--shade)}
+.btn.ghost{background:var(--paper);color:var(--tx)}
+.btn.pink,.btn.danger{background:var(--p1);color:#2b2358}
+.btn:disabled{opacity:.55;cursor:wait;filter:grayscale(.5)}
+.ia{min-height:34px;padding:0 15px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;
+  background:var(--paper2);color:var(--tx);border:2.5px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade);
+  transition:transform .15s var(--boing),box-shadow .15s}
+.ia.c{background:var(--c);color:var(--on-p)}
+.ia:hover{transform:translateY(-2px) rotate(-2deg);box-shadow:0 5px 0 var(--shade)}
+.ia:active{transform:translateY(3px);box-shadow:0 0 0 var(--shade)}
+.ia .ic{width:15px;height:15px}
+
+/* ─── Mimi, the jelly guild mascot ─── */
+.mimi{display:block;width:100%;height:auto;overflow:visible}
+.mimi .m-sh{fill:rgba(43,35,88,.2)}
+.mimi .m-b{fill:url(#mimi-g);stroke:#2b2358;stroke-width:3.5;stroke-linejoin:round}
+.mimi .m-hl{fill:#fff;opacity:.75}
+.mimi .m-gem{fill:#ffd23f;stroke:#2b2358;stroke-width:3;stroke-linejoin:round}
+.mimi .m-gemhl{fill:#fff;opacity:.8}
+.mimi .m-bl{fill:#ff8fb3;opacity:.75}
+.mimi .e,.mimi .mo{display:none}
+.mimi .e ellipse{fill:#2b2358}.mimi .e .w{fill:#fff}
+.mimi .e path{fill:none;stroke:#2b2358;stroke-width:3.8;stroke-linecap:round;stroke-linejoin:round}
+.mimi .mo{fill:none;stroke:#2b2358;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+.mimi .mo-happy{fill:#2b2358}.mimi .mo-wow{fill:#2b2358}
+.mimi .mo.tg{fill:#ff8fb3;stroke:none}
+.mimi .tear{fill:#59bdff;stroke:#2b2358;stroke-width:2}
+.mimi[data-mood=idle] .e-idle,.mimi[data-mood=idle] .mo-idle,
+.mimi[data-mood=happy] .e-happy,.mimi[data-mood=happy] .mo-happy,
+.mimi[data-mood=sad] .e-sad,.mimi[data-mood=sad] .mo-sad,
+.mimi[data-mood=sleep] .e-sleep,.mimi[data-mood=sleep] .mo-sleep,
+.mimi[data-mood=wow] .e-wow,.mimi[data-mood=wow] .mo-wow{display:inline}
+.mimi .e-idle{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+.mimi .m-body{transform-box:fill-box;transform-origin:50% 100%;animation:squish 3.2s ease-in-out infinite}
+.mimi.hop{animation:hop .62s var(--boing)}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
+@keyframes squish{0%,100%{transform:scale(1,1)}50%{transform:scale(1.04,.95)}}
+@keyframes hop{0%{transform:translateY(0) scale(1,1)}25%{transform:translateY(4px) scale(1.12,.84)}60%{transform:translateY(-30px) scale(.92,1.1)}100%{transform:translateY(0) scale(1,1)}}
+
+/* speech bubble */
+.bubble{position:relative;padding:14px 18px;font-weight:500;line-height:1.6;background:var(--paper);border:3px solid var(--line);border-radius:22px;box-shadow:4px 5px 0 var(--shade)}
+.bubble::before,.bubble::after{content:"";position:absolute;left:-15px;bottom:22px;border:9px solid transparent;border-right-color:var(--line);border-left:0}
+.bubble::after{left:-9px;bottom:22px;border-right-color:var(--paper);transform:translateX(1px)}
+.bubble b{font-weight:700}
+.bubble.pop{animation:pop .5s var(--boing)}
 
 /* ─── layout ─── */
-.app{position:relative;z-index:1;display:flex;min-height:100dvh}
-.rail{
-  width:232px;flex:0 0 auto;border-right:1px solid var(--line);
-  display:flex;flex-direction:column;padding:22px 16px;gap:28px;
-  position:sticky;top:0;height:100dvh;
-}
-/* Swiss mark: bold grotesk wordmark + live square, no letter-spaced whisper */
-.brand{display:flex;align-items:center;gap:9px;font-weight:900;font-size:16px;letter-spacing:-.01em;color:var(--tx);text-transform:lowercase}
-.brand::before{content:"";width:9px;height:9px;background:var(--accent);flex:none}
-.nav{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line)}
-.nav button{
-  display:flex;align-items:center;gap:10px;padding:11px 4px;
-  font-size:13.5px;font-weight:500;color:var(--tx2);text-align:left;min-height:42px;
-  border-bottom:1px solid var(--line);position:relative;transition:color .12s,background .12s;
-}
-.nav button:hover{color:var(--tx);background:var(--s1)}
-.nav button.active{color:var(--tx);font-weight:700}
-/* active = solid signal square on the rule — no pill, no radius */
-.nav button.active::before{content:"";position:absolute;left:-16px;top:0;bottom:0;width:3px;background:var(--accent)}
-.nav .count{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--tx3)}
-.nav button.active .count{color:var(--accent)}
-.rail .foot{margin-top:auto;font-family:var(--mono);font-size:10px;color:var(--tx3);line-height:1.8}
-.rail .foot .dot{display:inline-block;width:6px;height:6px;background:var(--ok);margin-right:6px;vertical-align:1px;animation:pulse 2.4s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.app{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:0 20px calc(150px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;gap:14px;padding:18px 0 10px}
+.logo{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.logo .lm{width:54px;flex:none}
+.wm{display:flex;font-family:var(--display);font-size:36px;line-height:1}
+.wm span{display:inline-block;color:var(--c);-webkit-text-stroke:4px var(--line);paint-order:stroke fill;text-shadow:0 4px 0 var(--shade);margin-right:2px}
+.logo:hover .wm span,.wm.go span{animation:wave .7s var(--boing) both;animation-delay:calc(var(--i)*60ms)}
+@keyframes wave{0%{transform:translateY(0)}40%{transform:translateY(-12px) rotate(-6deg)}100%{transform:translateY(0)}}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.chip-st{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 14px;font-family:var(--pixel);font-size:14px;background:var(--paper);border:2.5px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade)}
+.chip-st .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);border:2px solid var(--line);animation:pulse 2.2s infinite}
+.chip-st .dot.off{background:var(--danger);animation:none}
+@keyframes pulse{50%{transform:scale(.7);opacity:.6}}
 
-.main{flex:1;min-width:0;display:flex;flex-direction:column}
-.topbar{
-  position:sticky;top:0;z-index:5;background:var(--topbar-bg);backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--line);padding:12px 28px;display:flex;gap:12px;align-items:center;
-}
-/* the search field IS the accent rail — functional use of the single color */
-.search{flex:1;display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--line2);padding:0 14px;min-height:42px;transition:border-color .12s}
-.search:focus-within{border-color:var(--accent)}
-.search svg{flex:0 0 auto;stroke:var(--tx3)}
-.search:focus-within svg{stroke:var(--accent)}
-.search input{flex:1;background:none;border:none;padding:10px 0;font-size:14px}
-.search kbd{font-family:var(--mono);font-size:10px;color:var(--tx3);border:1px solid var(--line2);padding:2px 7px}
-.btn{
-  min-height:42px;padding:0 18px;font-size:13px;letter-spacing:.02em;
-  background:var(--accent);color:#fff;font-weight:600;transition:background .12s;
-  display:inline-flex;align-items:center;gap:8px;white-space:nowrap;border-radius:0;
-}
-.btn:hover{background:var(--accent-hi);color:var(--bg)}
-.btn.ghost{background:transparent;border:1px solid var(--line3);color:var(--tx2)}
-.btn.ghost:hover{border-color:var(--tx);color:var(--tx)}
-.btn.danger{background:var(--danger)}
-.btn.danger:hover{background:#ff8090;color:var(--bg)}
-.btn:disabled{opacity:.4;cursor:wait}
+.navbar{position:sticky;top:8px;z-index:8;margin:6px -6px 14px;padding:8px 6px 10px;overflow-x:auto;scrollbar-width:none}
+.navbar::-webkit-scrollbar{display:none}
+.nav{display:flex;gap:10px;width:max-content;min-width:100%}
+.nav button{position:relative;display:inline-flex;align-items:center;gap:9px;min-height:50px;padding:0 18px 0 12px;font-weight:700;font-size:15px;color:var(--tx);
+  background:var(--paper);border:3px solid var(--line);border-radius:999px;box-shadow:0 4px 0 var(--shade);white-space:nowrap;
+  transition:transform .18s var(--boing),box-shadow .18s,background .15s}
+.nav button .ib{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:var(--on-p);border:2.5px solid var(--line)}
+.nav button .ib .ic{width:17px;height:17px}
+.nav button:hover{transform:translateY(-3px) rotate(-1.5deg);box-shadow:0 7px 0 var(--shade)}
+.nav button:active{transform:translateY(4px);box-shadow:0 0 0 var(--shade)}
+.nav button.active{background:var(--c);color:var(--on-p);transform:translateY(-3px);box-shadow:0 7px 0 var(--shade)}
+.nav button.active .ib{background:var(--paper);color:var(--tx)}
+.nav button.active::after{content:"✦";position:absolute;right:-6px;top:-12px;font-size:20px;color:var(--p0);-webkit-text-stroke:2px var(--line);animation:spinstar 2.4s linear infinite}
+@keyframes spinstar{to{transform:rotate(360deg) scale(1.1)}}
+.nav .count{font-family:var(--pixel);font-size:13px;padding:0 8px;min-width:26px;text-align:center;background:var(--paper2);color:var(--tx);border:2px solid var(--line);border-radius:999px;line-height:20px}
+.nav .count:empty{display:none}
+.nav button.active .count{background:var(--paper)}
 
-.content{padding:24px 28px calc(48px + env(safe-area-inset-bottom));max-width:920px;width:100%}
-.section-label{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--tx3);margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
-.section-label span{color:var(--accent)}
+.searchrow{display:flex;gap:12px;align-items:center;margin-bottom:26px}
+.search{flex:1;display:flex;align-items:center;gap:12px;min-height:58px;padding:0 20px;border-radius:999px;cursor:text;transition:box-shadow .2s,transform .2s var(--boing)}
+.search:focus-within{transform:translateY(-2px);box-shadow:4px 7px 0 var(--shade),0 0 0 5px var(--p3)}
+.search .ic{stroke:var(--tx2)}
+.search input{flex:1;min-width:0;background:none;border:none;box-shadow:none!important;border-radius:0;padding:14px 0;font-size:16px;font-weight:500;text-overflow:ellipsis}
+.search kbd{font-family:var(--pixel);font-size:14px;color:var(--tx2);border:2px solid var(--line);border-radius:8px;padding:0 9px;background:var(--paper2)}
 
-/* ─── cards ─── */
-.cards{display:flex;flex-direction:column;gap:0}
-.card{
-  background:transparent;border-bottom:1px solid var(--line);padding:15px 2px;
-  transition:background .12s;animation:rise .22s ease both;
-}
-@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.card:hover{background:var(--s1)}
-.card .meta{display:flex;align-items:baseline;gap:12px;margin-bottom:7px;font-family:var(--mono);font-size:10px;color:var(--tx3)}
-.card .meta .id{color:var(--accent);font-weight:600}
-.card .txt{font-size:14.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
-/* collapsed snippet: 3-ish lines, faded tail, click anywhere on the body to expand */
-.card .txt.clip{max-height:5.1em;overflow:hidden;cursor:pointer;
-  -webkit-mask-image:linear-gradient(180deg,#000 58%,rgba(0,0,0,.25));
-  mask-image:linear-gradient(180deg,#000 58%,rgba(0,0,0,.25))}
+.view{animation:pop .5s var(--boing)}
+@keyframes pop{0%{opacity:0;transform:translateY(22px) scale(.94)}100%{opacity:1;transform:none}}
+
+/* section heading */
+.head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 24px}
+.head h1{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.2;
+  background:linear-gradient(transparent 64%,var(--hl) 64% 92%,transparent 92%);padding:0 6px}
+.head .sub{font-family:var(--pixel);font-size:15px;padding:2px 14px;background:var(--paper);border:2.5px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade)}
+.head .sub:empty{display:none}
+
+/* ─── memory cards: collectible name-tag cards ─── */
+.cards{display:flex;flex-direction:column;gap:26px}
+.card{--rot:0deg;position:relative;padding:26px 22px 16px;transform:rotate(var(--rot));animation:cardIn .6s var(--boing) backwards;
+  transition:transform .22s var(--boing),box-shadow .22s}
+.card:nth-child(odd){--rot:-.35deg}.card:nth-child(even){--rot:.3deg}
+.card:hover{transform:translate(-2px,-4px) rotate(0);box-shadow:6px 9px 0 var(--shade)}
+.card .no{position:absolute;top:-15px;left:18px;padding:2px 14px;font-family:var(--pixel);font-weight:700;font-size:16px;color:var(--on-p);
+  background:var(--c);border:3px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade);transform:rotate(-3deg);transition:transform .25s var(--boing)}
+.card:hover .no{transform:rotate(2deg) scale(1.08)}
+@keyframes cardIn{0%{opacity:0;transform:translateY(34px) scale(.8) rotate(calc(var(--rot)*10 + 4deg))}100%{opacity:1;transform:rotate(var(--rot))}}
+.card.vanish{animation:vanish .36s ease-in forwards}
+@keyframes vanish{to{opacity:0;transform:translateY(-18px) scale(.7) rotate(8deg)}}
+.card .meta{display:flex;gap:12px;margin-bottom:6px;font-family:var(--pixel);font-size:14px;color:var(--tx3)}
+.card .meta .len{margin-left:auto}
+.card .txt{font-size:15.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+.card .txt.clip{max-height:5.4em;overflow:hidden;cursor:pointer;-webkit-mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,.15));mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,.15))}
 .card .txt:not(.clip){cursor:pointer}
-.card .expand{margin-top:6px;padding:6px 10px;color:var(--accent);border-color:transparent}
-.card .expand:hover{color:var(--accent-hi);border-color:transparent}
-.card .histbox{margin-top:10px;border-top:1px dashed var(--line2);padding-top:9px;
-  font-family:var(--mono);font-size:10.5px;line-height:1.85;color:var(--tx2);max-height:220px;overflow:auto}
-.card .histbox .hhead{color:var(--tx3);letter-spacing:.18em;font-size:9.5px;margin-bottom:5px}
-.card .histbox .hrow b{color:var(--accent);font-weight:500}
+.card .histbox{margin-top:12px;padding:10px 14px;background:var(--paper2);border:2.5px dashed var(--line);border-radius:14px;font-family:var(--pixel);font-size:14px;line-height:1.8;color:var(--tx2);max-height:220px;overflow:auto}
+.card .histbox .hhead{color:var(--tx);font-weight:700;margin-bottom:4px}
+.card .histbox .hrow b{color:var(--danger);font-weight:700}
 .card .histbox .hold{color:var(--tx3)}
-.card .acts{display:flex;gap:6px;margin-top:10px;opacity:0;transition:opacity .12s}
-.card:hover .acts,.card:focus-within .acts{opacity:1}
-.ia{font-family:var(--mono);font-size:10.5px;padding:7px 12px;border:1px solid var(--line2);color:var(--tx2);min-height:32px;border-radius:0}
-.ia:hover{color:var(--tx);border-color:var(--accent-line)}
-.ia.danger:hover{color:var(--danger);border-color:var(--danger);background:var(--danger-soft)}
-.ia.restore{color:var(--ok);border-color:var(--ok);background:rgba(47,208,140,.08)}
-.empty{padding:64px 20px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--tx3);letter-spacing:.1em;border-bottom:1px solid var(--line)}
-.more{margin:18px auto 0;display:block;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--tx2);padding:12px 20px;border:1px solid var(--line2);text-transform:uppercase;border-radius:0}
-.more:hover{border-color:var(--accent);color:var(--accent-hi)}
-mark{background:var(--accent-soft);color:var(--accent-hi);padding:0 1px}
+.card .row2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+.card .acts{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;opacity:0;transform:translateY(6px);transition:opacity .15s,transform .2s var(--boing)}
+.card:hover .acts,.card:focus-within .acts{opacity:1;transform:none}
+@media (hover:none){.card .acts{opacity:1;transform:none}}
+mark{background:var(--p0);color:#2b2358;border-radius:6px;padding:0 4px}
+.more{margin:30px auto 0;display:flex}
 
-/* ── per-card tag chips ── */
-.chip{
-  font-family:var(--mono);font-size:10.5px;padding:5px 10px;
-  border:1px solid var(--line2);color:var(--tx2);background:transparent;white-space:nowrap;
-  transition:color .12s,border-color .12s,background .12s;min-height:26px;display:inline-flex;align-items:center;gap:6px;border-radius:0;
-}
-.chip:hover{color:var(--tx);border-color:var(--accent-line)}
-.chip.on{color:var(--accent-hi);border-color:var(--accent);background:var(--accent-soft)}
-.chip .n{color:var(--tx3);font-size:9.5px}
-.chip.on .n{color:var(--accent)}
-.chip .x{color:var(--tx3);font-size:12px;line-height:1}
-.chip .x:hover{color:var(--danger)}
-.card .tags{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0 0}
-.card .tags .chip{font-size:10px;padding:3px 9px;min-height:22px;background:var(--s1)}
-.tagmore{font-family:var(--mono);font-size:10px;color:var(--tx3);padding:3px 6px}
-.tagedit{display:flex;gap:8px;align-items:center}
-.tagedit label{font-family:var(--mono);font-size:10px;color:var(--tx3);letter-spacing:.14em;text-transform:uppercase;flex:0 0 auto}
-.tagedit input{flex:1;padding:10px 12px;font-family:var(--mono);font-size:12.5px}
+/* tag pills: colour by tag */
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 13px;font-size:13px;font-weight:700;color:var(--on-p);background:var(--c);
+  border:2.5px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade);white-space:nowrap;transition:transform .15s var(--boing),box-shadow .15s}
+.chip:hover{transform:translateY(-2px) rotate(-2deg);box-shadow:0 5px 0 var(--shade)}
+.chip:active{transform:translateY(3px);box-shadow:none}
+.chip.on{background:var(--p0);outline:3px solid var(--p1);outline-offset:1px}
+.card .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.tagemore{font-family:var(--pixel);font-size:14px;color:var(--tx3);padding:3px 4px}
+.tagedit{display:flex;gap:10px;align-items:center}
+.tagedit label{font-weight:700;flex:0 0 auto}
+.tagedit input{flex:1;padding:11px 14px;font-size:15px}
 
-/* ─── modal ─── */
-.scrim{position:fixed;inset:0;z-index:20;background:var(--scrim-bg,rgba(0,0,0,.72));display:none;align-items:flex-start;justify-content:center;padding:8vh 16px 16px}
+.empty{padding:34px 20px 20px;text-align:center;color:var(--tx2);font-size:16px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:14px}
+.empty .emimi{width:118px}
+
+/* ─── dashboard: the guild board ─── */
+.hero{display:flex;align-items:flex-end;gap:18px;margin:0 0 34px}
+.hero .hm{width:190px;flex:none;cursor:pointer}
+.hero .talk{flex:1;min-width:0;padding-bottom:16px}
+.hero .bubble{font-size:19px}
+.hero .meta-pill{display:inline-flex;margin-top:16px;font-family:var(--pixel);font-size:15px;padding:3px 14px;background:var(--paper);border:2.5px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade)}
+.group-title{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:400;font-size:19px;margin:0 0 18px}
+.group-title::before{content:"✦";color:var(--p0);-webkit-text-stroke:2px var(--line);font-size:22px}
+.stats{display:grid;gap:16px;margin-bottom:34px}
+#stats-mem{grid-template-columns:repeat(4,1fr)}
+#stats-relay{grid-template-columns:repeat(5,1fr)}
+.stat{--rot:0deg;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:16px 16px 14px;text-align:left;color:var(--on-p);background:var(--c);
+  border:3px solid var(--line);border-radius:24px;box-shadow:4px 5px 0 var(--shade);transform:rotate(var(--rot));animation:cardIn .6s var(--boing) backwards;
+  transition:transform .22s var(--boing),box-shadow .22s}
+.stat:nth-child(odd){--rot:-1deg}.stat:nth-child(even){--rot:.8deg}
+button.stat:hover{transform:translate(-2px,-5px) rotate(2deg) scale(1.03);box-shadow:6px 10px 0 var(--shade)}
+button.stat:active{transform:translateY(3px) scale(.98);box-shadow:1px 1px 0 var(--shade)}
+.stat .ib{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#2b2358;border:2.5px solid #2b2358;margin-bottom:6px}
+.stat .n{font-family:var(--pixel);font-weight:700;font-size:42px;line-height:1;font-variant-numeric:tabular-nums}
+.stat .k{font-size:14px;font-weight:700}
+.last{display:flex;align-items:flex-end;gap:12px}
+.last .lm{width:54px;flex:none}
+.last .bubble{flex:1;font-size:14.5px;padding:12px 16px}
+.last .bubble .pix{font-family:var(--pixel);font-weight:700;background:var(--hl);padding:0 7px;border-radius:6px}
+
+/* tags view: floating bubbles sized by use */
+.tagfilter{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 18px;margin-bottom:22px;max-width:400px;border-radius:999px}
+.tagfilter .ic{stroke:var(--tx2)}
+.tagfilter input{flex:1;min-width:0;background:none;border:none;box-shadow:none!important;border-radius:0;padding:10px 0;font-size:15px;font-weight:500}
+.tagnote{margin:-10px 0 18px;font-family:var(--pixel);font-size:14px;color:var(--tx3)}
+.tagnote:empty{display:none}
+.tagfield{display:flex;flex-wrap:wrap;gap:14px 10px;align-items:center}
+.gem{display:inline-flex;align-items:center;gap:8px;padding:0 18px;font-weight:700;color:var(--on-p);background:var(--c);border:3px solid var(--line);border-radius:999px;box-shadow:0 4px 0 var(--shade);
+  animation:gemIn .55s var(--boing) backwards;transition:transform .18s var(--boing),box-shadow .18s}
+.gem b{font-family:var(--pixel);font-size:.85em;background:var(--paper);color:var(--tx);padding:0 8px;border-radius:999px;border:2px solid var(--line)}
+.gem:hover{transform:translateY(-4px) rotate(-3deg) scale(1.08);box-shadow:0 8px 0 var(--shade)}
+.gem:active{transform:translateY(3px);box-shadow:none}
+@keyframes gemIn{0%{opacity:0;transform:scale(.2) rotate(-25deg)}100%{opacity:1;transform:none}}
+
+/* ─── sheet / dialogs ─── */
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(43,35,88,.5);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:14vh 16px 16px}
 .scrim.open{display:flex}
-.sheet{width:100%;max-width:640px;background:var(--s1);border:1px solid var(--line2);border-radius:0;animation:rise .18s ease both;max-height:84vh;display:flex;flex-direction:column}
-.sheet header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
-.sheet header h2{font-size:15px;font-weight:700;letter-spacing:-.01em}
-.sheet header .x{margin-left:auto;font-family:var(--mono);color:var(--tx3);padding:6px 10px}
-.sheet header .x:hover{color:var(--danger)}
-.sheet .tabs{display:flex;border-bottom:1px solid var(--line)}
-.sheet .tabs button{flex:1;padding:12px;font-size:12.5px;color:var(--tx3);border-bottom:2px solid transparent}
-.sheet .tabs button.active{color:var(--tx);border-bottom-color:var(--accent);font-weight:600}
-.sheet .pane{padding:20px;display:none;flex-direction:column;gap:14px;overflow:auto}
+.sheet{position:relative;width:100%;max-width:640px;max-height:80vh;display:flex;flex-direction:column;animation:sheetIn .5s var(--boing) both}
+@keyframes sheetIn{0%{opacity:0;transform:translateY(40px) scale(.85) rotate(-2deg)}100%{opacity:1;transform:none}}
+.sheet .peek{position:absolute;right:26px;top:-80px;width:88px;pointer-events:none}
+.sheet header{padding:18px 24px 14px;display:flex;align-items:center;gap:12px}
+.sheet header h2{font-family:var(--display);font-weight:400;font-size:22px}
+.sheet header .x{margin-left:auto}
+.sheet .tabs{display:flex;gap:10px;padding:0 24px 6px}
+.sheet .tabs button{flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:14px;background:var(--paper2);border:3px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade);transition:transform .15s var(--boing),background .15s}
+.sheet .tabs button.active{background:var(--c);color:var(--on-p);transform:translateY(-2px)}
+.sheet .tabs button:active{transform:translateY(3px);box-shadow:none}
+.sheet .pane{padding:16px 24px 24px;display:none;flex-direction:column;gap:14px;overflow:auto}
 .sheet .pane.active{display:flex}
-.sheet textarea{width:100%;min-height:140px;padding:14px;font-size:14px;line-height:1.6;resize:vertical}
-.sheet .hint{font-family:var(--mono);font-size:10.5px;color:var(--tx3);line-height:1.7}
-.sheet .done{padding:14px;background:var(--accent-soft);border:1px solid var(--accent-line);font-family:var(--mono);font-size:12px;color:var(--accent-hi);line-height:1.7;display:none}
+.sheet textarea{width:100%;min-height:150px;padding:14px 16px;font-size:16px;line-height:1.65;resize:vertical}
+.sheet .hint{font-size:13px;color:var(--tx3);line-height:1.7}
+.sheet .done{padding:12px 16px;background:var(--hl);border:2.5px dashed var(--line);border-radius:14px;font-family:var(--pixel);font-size:15px;line-height:1.7;display:none}
+.sheet .pane .btn{align-self:flex-start}
 
-/* remember-me checkbox in the gate */
-.remember{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--tx2);cursor:pointer;user-select:none}
-.remember input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex:none}
-.remember:hover span{color:var(--tx)}
-.forget{font-family:var(--mono);font-size:11px;color:var(--tx3);background:none;border:none;padding:4px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.forget:hover{color:var(--tx2)}
-.forget[hidden]{display:none}
+.remember{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;cursor:pointer;user-select:none}
+.remember input{width:20px;height:20px;accent-color:var(--p1);cursor:pointer;flex:none;border-radius:6px;padding:0}
+.forget{font-size:13px;color:var(--tx3);padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+.forget:hover{color:var(--tx)}
 
-/* confirm dialog — narrower + centred, so it reads as a question, not a page */
 .cfrim{align-items:center;padding:16px;z-index:30}
 .sheet.cf{max-width:440px}
-.cf-body{padding:20px;font-size:14px;line-height:1.7;color:var(--tx2);overflow:auto}
+.sheet.cf.danger header h2{color:var(--danger)}
+.cf-body{padding:4px 24px 18px;font-size:15px;line-height:1.7;color:var(--tx2);overflow:auto}
 .cf-body b{color:var(--tx)}
-.cf-body .prev{display:block;margin-top:12px;padding:10px 12px;background:var(--s2);border:1px solid var(--line2);font-family:var(--mono);font-size:12px;color:var(--tx3);max-height:140px;overflow:auto;white-space:pre-wrap;word-break:break-word}
-.cf-acts{display:flex;gap:10px;padding:0 20px 20px}
-.cf-acts .btn{flex:1;justify-content:center}
+.cf-body .prev{display:block;margin-top:12px;padding:10px 14px;background:var(--paper2);border:2.5px dashed var(--line);border-radius:14px;font-size:13.5px;color:var(--tx3);max-height:140px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.cf-acts{display:flex;gap:12px;padding:0 24px 26px}
+.cf-acts .btn{flex:1}
 
-/* toast */
-.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(80px);z-index:40;font-family:var(--mono);font-size:12px;background:var(--s3);border:1px solid var(--line3);padding:12px 20px;border-radius:0;transition:transform .22s ease;max-width:90vw}
-.toast.show{transform:translateX(-50%) translateY(0)}
-.toast.err{border-color:var(--danger);color:var(--danger)}
+/* ─── toast: Mimi talks ─── */
+.toast{position:fixed;left:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:70;display:flex;align-items:flex-end;gap:8px;max-width:min(94vw,560px);
+  transform:translateY(160%);transition:transform .5s var(--boing);pointer-events:none}
+.toast.show{transform:none}
+.toast .tm{width:66px;flex:none}
+.toast .bubble{font-size:15px;padding:12px 18px;margin-bottom:14px}
+.toast.err .bubble{background:var(--p1);color:#2b2358}
+.toast.err .bubble::after{border-right-color:var(--p1)}
 
-/* token gate — the app's front door. reads as one object: mark, form, action. */
-.gate{position:fixed;inset:0;z-index:30;background:var(--bg);display:none;align-items:center;justify-content:center;padding:24px}
+/* ─── gate: the guild door ─── */
+.gate{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow:auto;
+  background:linear-gradient(180deg,var(--sky0) 0%,var(--sky1) 58%,var(--sky2) 100%)}
 .gate.open{display:flex}
-.gate .box{position:relative;width:100%;max-width:400px;background:var(--s1);border:1px solid var(--line2);border-top:3px solid var(--accent);border-radius:0;padding:30px 28px 24px;display:flex;flex-direction:column;gap:18px;
-  animation:gateIn .3s cubic-bezier(.2,.9,.3,1)}
-@keyframes gateIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.gate .mark{display:flex;align-items:center;gap:9px;font-weight:900;font-size:15px;letter-spacing:-.01em;color:var(--tx);text-transform:lowercase}
-.gate .mark .live{width:9px;height:9px;background:var(--accent);flex:none}
-.gate .sub{font-size:13px;color:var(--tx2);line-height:1.6;margin-top:-8px}
-.gate input[type=password]{font-size:15px;padding:14px}
-.gate .acts{display:flex;flex-direction:column;gap:10px}
-.gate .acts .btn{justify-content:center;width:100%;padding:14px}
-.gate .err{display:none;font-family:var(--mono);font-size:11.5px;color:var(--danger);align-items:center;gap:6px;line-height:1.5}
+.gate .gm{width:150px;margin-bottom:-28px;position:relative;z-index:2}
+.gate .box{position:relative;width:100%;max-width:400px;padding:44px 28px 24px;display:flex;flex-direction:column;gap:14px;animation:pop .6s var(--boing) both}
+.gate .mark{text-align:center;font-family:var(--display);font-size:26px}
+.gate .sub{text-align:center;font-size:14.5px;color:var(--tx2);line-height:1.6;margin-top:-6px}
+.gate input[type=password]{font-size:17px;padding:14px 16px;text-align:center;letter-spacing:.14em}
+.gate .acts{display:flex;flex-direction:column}
+.gate .acts .btn{width:100%;min-height:52px}
+.gate .err{display:none;font-size:14px;font-weight:700;color:var(--danger);align-items:center;gap:6px;line-height:1.5;justify-content:center;text-align:center}
 .gate .err.show{display:flex}
-.gate .err::before{content:"✕";font-size:10px}
-.gate.shake .box{animation:shake .4s cubic-bezier(.36,.07,.19,.97)}
-@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(3px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
-.gate .opts{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:22px}
-.gate .opts .forget{white-space:nowrap}
+.gate.shake .box{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-3px)}20%,80%{transform:translateX(5px)}30%,50%,70%{transform:translateX(-9px)}40%,60%{transform:translateX(9px)}}
+.gate .opts{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:24px}
+.gate.unlock .box{animation:pop .4s reverse forwards}
 
-/* ─── relay pane ─── */
+/* ─── relay ─── */
 #relay{margin-top:4px}
-.relay-tabs{display:flex;gap:0;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid var(--line)}
-.rtab{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:lowercase;padding:9px 13px;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--tx3);cursor:pointer;margin-bottom:-1px}
-.rtab:hover{color:var(--tx2)}
-.rtab.active{color:var(--accent-hi);border-color:var(--line);border-bottom:1px solid var(--bg);background:var(--s1)}
+.relay-tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.rtab{min-height:40px;padding:0 20px;font-weight:700;font-size:14px;background:var(--paper);border:3px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade);transition:transform .15s var(--boing)}
+.rtab:hover{transform:translateY(-2px) rotate(-1.5deg)}
+.rtab.active{background:var(--c);color:var(--on-p);transform:translateY(-2px);box-shadow:0 5px 0 var(--shade)}
 .rpane{display:none}
 .rpane.active{display:block}
-.rrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
-.rrow input{background:var(--s1);border:1px solid var(--line2);padding:8px 11px;font-family:var(--mono);font-size:12px;color:var(--tx);min-width:130px}
-.rrow input:focus{outline:none;border-color:var(--accent)}
-.rchk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx3);cursor:pointer;user-select:none}
-.rchk input{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;min-width:0;padding:0}
-.hint-line{font-family:var(--mono);font-size:10.5px;color:var(--tx3);line-height:1.7;margin:-4px 0 12px}
-.rcard{border:1px solid var(--line);border-left:3px solid var(--line3);padding:12px 14px;margin-bottom:8px;background:var(--s1)}
-.rcard .rh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px;font-family:var(--mono);font-size:11px;color:var(--tx3)}
-.rcard .rh b{color:var(--accent-hi);font-weight:600}
-.rcard .rt{font-size:13px;line-height:1.65;color:var(--tx);white-space:pre-wrap;word-break:break-word}
-.rcard .rt .topic{color:var(--tx2);font-family:var(--mono);font-size:11.5px;display:block;margin-bottom:5px}
-.rcard .refs{font-family:var(--mono);font-size:10.5px;color:var(--tx3);margin-top:7px;display:flex;gap:7px;flex-wrap:wrap;align-items:center}
-.rcard .refs a{color:var(--accent-hi);text-decoration:none;border-bottom:1px solid var(--accent-line);cursor:pointer}
-.rcard .refs .acked{color:var(--ok)}
-.rcard .refs .pend{color:var(--warn,#e8b04b)}
-.rcard .rel{display:flex;gap:7px;margin-top:9px}
-.rcard .rel .btn{padding:0 11px;font-size:12px;min-height:34px}
-.rnone{padding:22px 12px;text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--tx3);border:1px dashed var(--line2)}
+.rrow{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.rrow input{padding:10px 14px;font-size:15px;min-width:140px}
+.rrow .btn{min-height:44px;padding:0 22px}
+.rchk{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:pointer;user-select:none}
+.rchk input{width:18px;height:18px;accent-color:var(--p1);cursor:pointer;min-width:0;padding:0}
+.hint-line{font-size:13.5px;color:var(--tx3);line-height:1.7;margin:-4px 0 16px}
+.rcard{padding:14px 20px;margin-bottom:16px;border-radius:20px;animation:cardIn .55s var(--boing) backwards}
+.rcard .rh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px;font-family:var(--pixel);font-size:14.5px;color:var(--tx3)}
+.rcard .rh b{color:var(--tx);font-weight:700;font-size:16px;background:var(--hl);padding:0 8px;border-radius:6px}
+.rcard .rt{font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.rcard .rt .topic{font-weight:700;display:block;margin-bottom:4px}
+.rcard .refs{font-family:var(--pixel);font-size:14.5px;color:var(--tx3);margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.rcard .refs a{color:var(--tx);background:var(--p3);color:#2b2358;padding:0 10px;border:2px solid var(--line);border-radius:999px;cursor:pointer;font-weight:700}
+.rcard .refs .acked{color:var(--ok);font-weight:700}
+.rcard .refs .pend{color:var(--danger);font-weight:700}
+.rcard .rel{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.rcard .rel .btn{min-height:38px;padding:0 18px;font-size:14px}
+.rnone{padding:24px 14px;text-align:center;font-size:14.5px;font-weight:500;color:var(--tx2);border:3px dashed var(--line);border-radius:20px}
 
-/* ─── dashboard: Swiss masthead + index-numbered stat grid ─── */
-.dash-head{display:flex;align-items:baseline;gap:18px;border-bottom:2px solid var(--tx);padding-bottom:14px;margin-bottom:22px;flex-wrap:wrap}
-.dash-head h1{font-size:clamp(40px,6vw,58px);font-weight:900;letter-spacing:-.035em;line-height:.95;text-transform:lowercase}
-.dash-head .dh-sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--tx3);margin-left:auto;text-align:right;line-height:1.9}
-.dash-head .dh-sub b{color:var(--accent);font-weight:500}
-.dash{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
-.tile{background:var(--bg);padding:18px 20px 16px;animation:rise .22s ease both;transition:background .12s;position:relative}
-.tile:hover{background:var(--s1)}
-.tile .idx{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--tx3);display:block;margin-bottom:10px}
-.tile.hot .idx{color:var(--accent)}
-.tile .num{font-family:var(--sans);font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--tx);font-variant-numeric:tabular-nums}
-.tile.hot .num{color:var(--accent-hi)}
-.tile .lab{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--tx3);margin-top:8px}
-.dash-foot{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--tx3);line-height:1.9}
-.dash-foot b{color:var(--accent-hi);font-weight:500}
-.dash-foot .ver{color:var(--tx3);opacity:.8}
+/* write forms inside relay panes: a folded note you open when you need it */
+.newbox{margin-bottom:18px;padding:12px 16px;border-radius:20px}
+.newbox>summary{cursor:pointer;font-weight:700;font-size:14.5px;list-style:none;display:flex;align-items:center;gap:9px;min-height:34px}
+.newbox>summary::-webkit-details-marker{display:none}
+.newbox>summary::before{content:"✚";display:grid;place-items:center;width:24px;height:24px;font-size:13px;background:var(--c,var(--p4));color:var(--on-p);
+  border:2.5px solid var(--line);border-radius:50%;box-shadow:0 2px 0 var(--shade);transition:transform .2s var(--boing)}
+.newbox[open]>summary::before{content:"▾";transform:rotate(0)}
+.newbox>summary:focus-visible{outline:3px solid var(--p4);outline-offset:4px;border-radius:12px}
+.newbox .nb{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.nb-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.nb-row input{flex:1;min-width:140px;padding:11px 14px;font-size:15px}
+.newbox textarea{width:100%;min-height:96px;padding:12px 14px;font-size:15px;line-height:1.65;resize:vertical}
+.newbox .btn{align-self:flex-start}
+.newbox .hint-line{margin:0}
 
-/* ─── tags view ─── */
-.taglist{display:flex;flex-direction:column;gap:0;margin-top:12px;border-top:1px solid var(--line)}
-.trow{display:flex;align-items:center;gap:14px;padding:11px 2px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .12s;min-height:46px}
-.trow:hover{background:var(--s1)}
-.trow:hover .t{color:var(--accent-hi)}
-.trow .t{font-family:var(--mono);font-size:13px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34ch}
-.trow .meter{flex:1;height:3px;background:var(--s3);overflow:hidden;min-width:36px}
-.trow .meter span{display:block;height:100%;background:var(--accent);opacity:.6}
-.trow .n{font-family:var(--mono);font-size:11px;color:var(--tx3);flex:0 0 auto;font-variant-numeric:tabular-nums}
+/* ─── intro: title screen + iris wipe ─── */
+@property --iris{syntax:'<length-percentage>';inherits:false;initial-value:0%}
+.intro{position:fixed;inset:0;z-index:100;display:grid;place-items:center;cursor:pointer;background:linear-gradient(180deg,#8fd6ff,#c4efff 60%,#e4fbe6);
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,transparent var(--iris),#000 calc(var(--iris) + 2px));mask-image:radial-gradient(circle at 50% 50%,transparent var(--iris),#000 calc(var(--iris) + 2px))}
+.intro.out{animation:iris .85s cubic-bezier(.6,0,.3,1) forwards}
+@keyframes iris{from{--iris:0%}to{--iris:80%}}
+.intro.gone{display:none}
+.intro .core{display:flex;flex-direction:column;align-items:center;gap:14px;color:#2b2358}
+.intro .im{width:170px;animation:introHop 1s var(--boing) both}
+.intro .wm{font-size:clamp(46px,13vw,82px)}
+.intro .wm span{animation:introLetter .7s var(--boing) both;animation-delay:calc(.35s + var(--i)*70ms);-webkit-text-stroke:7px #2b2358;text-shadow:0 6px 0 #2b2358}
+.intro .go{font-family:var(--pixel);font-weight:700;font-size:18px;color:#2b2358;animation:blinkTxt 1s steps(2) infinite 1s;opacity:0;animation-fill-mode:forwards}
+@keyframes introHop{0%{transform:translateY(-120vh) scale(.8)}100%{transform:none}}
+@keyframes introLetter{0%{opacity:0;transform:translateY(-60px) scale(1.5) rotate(-20deg)}100%{opacity:1;transform:none}}
+@keyframes blinkTxt{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}
 
-/* ─── mobile ─── */
+/* ─── adaptive: tablet + mobile ─── */
+@media (min-width:761px){.navbar{position:static;overflow:visible;margin:6px 0 16px;padding:0 0 8px}.nav{flex-wrap:wrap;width:auto}}
 @media (max-width:760px){
-  .app{flex-direction:column}
-  .rail{width:100%;height:auto;position:static;flex-direction:row;align-items:center;padding:12px 14px;gap:14px;overflow-x:auto;border-right:none;border-bottom:1px solid var(--line)}
-  .brand{flex:0 0 auto}
-  .nav{flex-direction:row;gap:0;border-top:none}
-  .nav button{border-bottom:2px solid transparent;padding:9px 12px;font-size:13px;white-space:nowrap}
-  .nav button.active::before{display:none}
-  .nav button.active{border-bottom-color:var(--accent)}
-  .nav .count{margin-left:6px}
-  .rail .foot{display:none}
-  .topbar{padding:12px 14px}
-  .content{padding:16px 14px calc(30px + env(safe-area-inset-bottom))}
+  /* `background-attachment:fixed` is janky on iOS (and repaints on scroll);
+     the world layer is already fixed, so it paints the sky instead. */
+  body{background:var(--sky2)}
+  .world{background:linear-gradient(180deg,var(--sky0) 0%,var(--sky1) 58%,var(--sky2) 100%)}
+  .app{padding:env(safe-area-inset-top) 14px calc(130px + env(safe-area-inset-bottom))}
+  .top{padding:14px 0 6px}
+  .wm{font-size:30px}.logo .lm{width:46px}
+  /* the status text stays in the accessibility tree, it is only hidden from sight */
+  .chip-st span:last-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  /* one scrolling pill row that stays readable while content slides under it */
+  .navbar{top:max(4px,env(safe-area-inset-top));margin:4px -14px 12px;padding:8px 14px 12px;
+    background:linear-gradient(180deg,var(--veil) 0%,var(--veil) 72%,transparent 100%);backdrop-filter:blur(6px)}
+  .searchrow{margin-bottom:22px}
+  .search{min-height:54px;padding:0 16px}
   .search kbd{display:none}
-  .card .acts{opacity:1}
-  .btn{padding:0 14px}
-  .dash{grid-template-columns:repeat(2,1fr)}
-  .tile .num{font-size:30px}
-  .dash-head h1{font-size:38px}
-  .trow .t{max-width:16ch}
+  .head h1{font-size:23px}
+  .card{padding:24px 16px 14px}
+  /* 16px is the floor for a field on iOS — anything smaller and the page zooms
+     when the keyboard opens. Not gated on `pointer` alone: emulators and some
+     browsers get that media feature wrong, and a phone is a phone. */
+  input,textarea,.tagedit input,.rrow input,.nb-row input,.tagfilter input,.search input{font-size:16px}
+  .card .tags .chip{min-height:38px;padding:0 15px}
+  .head .sub{min-height:32px;display:inline-flex;align-items:center}
+  .hero{flex-direction:column;align-items:center;text-align:left;gap:0;margin-bottom:28px}
+  .hero .hm{width:150px;margin-bottom:-6px}
+  .hero .talk{padding-bottom:0;width:100%}
+  .hero .bubble::before,.hero .bubble::after{left:50%;bottom:auto;top:-12px;margin-left:-9px;border:9px solid transparent;border-bottom-color:var(--line);border-top:0}
+  .hero .bubble::after{top:-8px;border-bottom-color:var(--paper);transform:none}
+  .hero .bubble{font-size:17px}
+  .hero .meta-pill{font-size:13px;border-radius:18px;line-height:1.5;padding:3px 14px}
+  #stats-mem,#stats-relay{grid-template-columns:repeat(2,1fr)}
+  #stats-relay .stat:last-child{grid-column:span 2}
+  .stat .n{font-size:38px}
+  .orb{width:54px;height:54px;right:6%}
+  .tagfilter{max-width:none}
+  /* dialogs dock to the bottom edge: thumb reach, and the drag bar says so */
+  .scrim{align-items:flex-end;padding:0;padding-top:calc(16px + env(safe-area-inset-top))}
+  .scrim.cfrim{align-items:center;padding:16px}
+  #scrim .sheet{max-width:none;max-height:86dvh;border-radius:26px 26px 0 0;animation:sheetUp .45s var(--boing) both}
+  #scrim .sheet>header{position:relative;padding-top:22px}
+  #scrim .sheet>header::before{content:"";position:absolute;left:50%;top:9px;width:52px;height:5px;border-radius:99px;background:var(--line);opacity:.3;transform:translateX(-50%)}
+  #scrim .sheet .pane{padding-bottom:calc(24px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+  .sheet .peek{width:74px;top:-68px}
+  .nb-row input{min-width:0}
+  .toast{left:8px;right:8px;max-width:none}
+}
+@keyframes sheetUp{0%{opacity:0;transform:translateY(60px)}100%{opacity:1;transform:none}}
+/* narrow phones: one column, tighter everything, tap targets stay ≥44px */
+@media (max-width:430px){
+  .app{padding:env(safe-area-inset-top) 12px calc(120px + env(safe-area-inset-bottom))}
+  .top{gap:10px;flex-wrap:wrap}
+  /* three controls cannot share a row with the wordmark at this width, and an
+     overflowed button is an invisible button — the second row is a control
+     cluster pinned to the right, so the status chip reads as part of it */
+  .top-r{margin-left:0;width:100%;justify-content:flex-end}
+  .wm{font-size:26px}.logo .lm{width:40px}
+  .top-r{gap:8px}
+  .ia{min-height:44px;padding:0 14px}
+  .nav button{min-height:48px;padding:0 15px 0 10px;font-size:14px}
+  .nav button .ib{width:26px;height:26px}
+  #stats-mem,#stats-relay{grid-template-columns:1fr;gap:14px}
+  #stats-relay .stat:last-child{grid-column:auto}
+  .stat{flex-direction:row;align-items:center;gap:12px;padding:12px 14px}
+  .stat .ib{margin-bottom:0;flex:none}
+  .stat .n{font-size:32px;margin-left:auto}
+  .stat .k{font-size:13.5px}
+  .hero .hm{width:126px}
+  .hero .bubble{font-size:16px;padding:12px 14px}
+  .head h1{font-size:21px}
+  .head .sub{font-size:13px}
+  .chip-st{font-size:13px;padding:0 11px}
+  .rtab{min-height:44px;padding:0 16px}
+  #scrim .sheet header,#scrim .sheet .tabs,#scrim .sheet .pane{padding-left:16px;padding-right:16px}
+  .sheet .peek{right:16px}
+  .cf-body,.cf-acts{padding-left:16px;padding-right:16px}
+  .toast .tm{width:54px}
+  .toast .bubble{font-size:14px;padding:11px 14px}
+  .gate .gm{width:120px;margin-bottom:-22px}
+  .gate .box{padding:36px 20px 20px}
+  .intro .im{width:132px}
+}
+/* short viewports (landscape phones): the primary action must stay reachable */
+@media (max-height:640px){
+  .gate{justify-content:flex-start;padding-top:6vh}
+  .hero{margin-bottom:24px}
+}
+@media (max-height:640px) and (max-width:760px){#scrim .sheet{max-height:92dvh}.scrim{padding-top:6vh}}
+@media (max-height:640px) and (min-width:761px){.scrim{padding:8vh 16px 16px}.sheet{max-height:88vh}}
+/* ─── touch: 44px minimum targets, 16px fields (iOS zooms below that) ─── */
+@media (pointer:coarse){
+  /* these override the bare `input` selector by specificity, so list them */
+  input,textarea,.tagedit input,.rrow input,.nb-row input,.tagfilter input,.search input{font-size:16px}
+  .gate input[type=password]{font-size:17px}
+  .ia{min-height:44px;padding:0 16px}
+  /* tag pills wrap, so they set the row height — a thumb still needs 44px */
+  .chip,.card .tags .chip{min-height:44px;padding:0 15px}
+  .nav button{min-height:52px}
+  .rchk,.remember{min-height:44px}
+  .rchk input,.remember input{width:22px;height:22px}
+  .forget{padding:12px 0}
+  .rcard .rel .btn{min-height:44px}
+  .nb .btn,.sheet .pane .btn{min-height:52px}
+  .sheet .pane .btn{align-self:stretch}
+  .card .acts .ia{font-size:14px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .intro{display:none}
 }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="mimi-g" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#c6f7ff"/><stop offset=".55" stop-color="#74dcff"/><stop offset="1" stop-color="#5ec0f5"/></linearGradient>
+    <symbol id="i-dash" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9H4Z"/><path d="M10 20v-5h4v5"/></symbol>
+    <symbol id="i-recent" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3Z"/><path d="M9 9h6M9 13h6"/></symbol>
+    <symbol id="i-tags" viewBox="0 0 24 24"><path d="M3 12 12 3h8v8l-9 9Z"/><circle cx="15.5" cy="8.5" r="1"/></symbol>
+    <symbol id="i-add" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-extract" viewBox="0 0 24 24"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/><path d="m18 16 .8 2.2L21 19l-2.2.8L18 22l-.8-2.2L15 19l2.2-.8Z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/></symbol>
+    <symbol id="i-relay" viewBox="0 0 24 24"><path d="M4 8h14l-3-3M20 16H6l3 3"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m21 21-5.2-5.2"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v9H5Z"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M15 12v2"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-gem" viewBox="0 0 24 24"><path d="M12 2.5 19 9.5 12 21.5 5 9.5Z"/><path d="M5 9.5h14M9.5 9.5 12 2.5l2.5 7M9.5 9.5 12 21.5l2.5-12"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></symbol>
+  </defs>
+</svg>
+
+<div class="world" aria-hidden="true">
+  <div class="orb"></div>
+  <div class="cloud a"></div><div class="cloud b"></div><div class="cloud c"></div>
+  <svg class="hills" viewBox="0 0 1000 200" preserveAspectRatio="none">
+    <path class="h1" d="M0 120C120 60 240 70 360 110S600 150 720 95 900 50 1000 90V200H0Z"/>
+    <path class="h2" d="M0 160C140 120 280 130 420 160S700 190 820 145 940 120 1000 140V200H0Z"/>
+  </svg>
+</div>
+<canvas id="fx0" aria-hidden="true"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+
 <div class="app">
-  <aside class="rail">
-    <div class="brand">minimem</div>
-    <nav class="nav">
-      <button data-mode="dash" class="active">◉ Dashboard</button>
-      <button data-mode="recent">▤ Recent<span class="count" id="c-recent"></span></button>
-      <button data-mode="tags">▦ Tags<span class="count" id="c-tags"></span></button>
-      <button data-mode="add">✚ Add</button>
-      <button data-mode="extract">✦ Extract</button>
-      <button data-mode="trash">⊘ Trash<span class="count" id="c-trash"></span></button>
-      <button data-mode="relay">⇄ Relay</button>
-    </nav>
-    <div class="foot">
-      <span class="dot" id="hb-dot"></span><span id="hb-txt">connecting…</span><br>
-      <button class="ia" id="open-token" style="margin-top:8px">access token</button>
-      <button class="ia" id="theme-toggle" style="margin-top:8px" title="toggle light / dark">◐ theme</button>
+  <header class="top">
+    <div class="logo" id="logo" title="minimem">
+      <div class="lm" data-mimi="idle"></div>
+      <div class="wm" id="wm" aria-label="minimem"><span class="c1" style="--i:0">m</span><span class="c0" style="--i:1">i</span><span class="c2" style="--i:2">n</span><span class="c3" style="--i:3">i</span><span class="c4" style="--i:4">m</span><span class="c5" style="--i:5">e</span><span class="c1" style="--i:6">m</span></div>
     </div>
-  </aside>
+    <div class="top-r">
+      <span class="chip-st"><span class="dot" id="hb-dot"></span><span id="hb-txt">connecting…</span></span>
+      <button class="ia" id="open-token"><svg class="ic"><use href="#i-key"/></svg>access token</button>
+      <button class="ia" id="theme" aria-label="Switch theme"><svg class="ic"><use href="#i-sun"/></svg><span>day</span></button>
+    </div>
+  </header>
 
-  <main class="main">
-    <div class="topbar">
-      <label class="search">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="10.5" cy="10.5" r="7"/><path d="m21 21-4.8-4.8"/></svg>
-        <input id="q" type="search" placeholder="recall — Thai & English, fuzzy…" autocomplete="off" spellcheck="false">
-        <kbd>/</kbd>
-      </label>
-      <button class="btn" id="go-add" hidden>✚ Add</button>
+  <div class="navbar"><nav class="nav" aria-label="Main">
+    <button data-mode="dashboard" class="c0 active"><span class="ib"><svg class="ic"><use href="#i-dash"/></svg></span>Dashboard</button>
+    <button data-mode="recent" class="c3"><span class="ib"><svg class="ic"><use href="#i-recent"/></svg></span>Recent<span class="count" id="c-recent"></span></button>
+    <button data-mode="tags" class="c4"><span class="ib"><svg class="ic"><use href="#i-tags"/></svg></span>Tags<span class="count" id="c-tags"></span></button>
+    <button data-mode="add" class="c2"><span class="ib"><svg class="ic"><use href="#i-add"/></svg></span>Add</button>
+    <button data-mode="extract" class="c1"><span class="ib"><svg class="ic"><use href="#i-extract"/></svg></span>Extract</button>
+    <button data-mode="trash" class="c5"><span class="ib"><svg class="ic"><use href="#i-trash"/></svg></span>Trash<span class="count" id="c-trash"></span></button>
+    <button data-mode="relay" class="c6"><span class="ib"><svg class="ic"><use href="#i-relay"/></svg></span>Relay</button>
+  </nav></div>
+
+  <div class="searchrow">
+    <label class="search st">
+      <svg class="ic"><use href="#i-search"/></svg>
+      <input id="q" type="search" placeholder="recall — ไทย & English พิมพ์เพี้ยนนิดหน่อยก็เจอ…" autocomplete="off" spellcheck="false" aria-label="Recall memories">
+      <kbd>/</kbd>
+    </label>
+    <button class="btn" id="go-add" hidden>Add</button>
+  </div>
+
+  <main class="content">
+    <header class="head" id="head" hidden>
+      <h1 id="h-title">Recent</h1><span class="sub" id="h-sub"></span>
+      <button class="ia c c1" id="h-clear" hidden>clear tag ✕</button>
+    </header>
+
+    <!-- dashboard -->
+    <div class="view" id="v-dash" hidden>
+      <div class="hero">
+        <div class="hm" id="hero-mimi" data-mimi="idle" title="จิ้มดูสิ"></div>
+        <div class="talk">
+          <div class="bubble" id="hero-say">…</div>
+          <span class="meta-pill" id="ver"></span>
+        </div>
+      </div>
+      <h2 class="group-title">Memory store</h2>
+      <div class="stats" id="stats-mem"></div>
+      <h2 class="group-title">Agent relay</h2>
+      <div class="stats" id="stats-relay"></div>
+      <div class="last"><div class="lm" data-mimi="idle"></div><div class="bubble" id="last"></div></div>
     </div>
-    <section class="content">
-      <div class="section-label" id="label">LATEST <span>·</span> all memories</div>
+
+    <!-- tags -->
+    <div class="view" id="v-tags" hidden>
+      <label class="tagfilter st"><svg class="ic"><use href="#i-search"/></svg><input id="tag-q" type="search" placeholder="filter tags…" autocomplete="off" spellcheck="false" aria-label="Filter tags"></label>
+      <div class="tagnote" id="tag-note"></div>
+      <div class="tagfield" id="tagfield"></div>
+    </div>
+
+    <!-- recent / trash / search -->
+    <div class="view" id="v-list" hidden>
       <div class="cards" id="cards"></div>
-      <button class="more" id="more" hidden>load more</button>
-      <!-- relay pane: the multi-agent API had no UI at all until now -->
-      <div id="relay" hidden>
-        <div class="relay-tabs">
-          <button class="rtab active" data-r="handoff">handoff</button>
-          <button class="rtab" data-r="leases">leases</button>
-          <button class="rtab" data-r="lessons">lessons</button>
-          <button class="rtab" data-r="crystals">crystals</button>
-          <button class="rtab" data-r="audit">audit</button>
-        </div>
+      <button class="btn ghost more" id="more" hidden>Load more</button>
+    </div>
 
-        <div class="rpane active" id="rp-handoff">
-          <div class="rrow"><input id="ho-agent" placeholder="agent (e.g. crush)" autocomplete="off" spellcheck="false">
-            <label class="rchk"><input type="checkbox" id="ho-all"><span>incl. acked</span></label>
-            <button class="btn ghost" id="ho-load">load</button></div>
-          <div class="rrow">
-            <input id="ho-from" placeholder="from (you)" autocomplete="off" spellcheck="false">
-            <input id="ho-to" placeholder="to (defaults to agent above)" autocomplete="off" spellcheck="false">
-            <input id="ho-topic" placeholder="topic (optional)" autocomplete="off" spellcheck="false">
-            <input id="ho-body" placeholder="body — what do they need to know?" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false">
-            <button class="btn" id="ho-send">⇄ send</button>
-          </div>
-          <div class="hint-line">send = leave a note in another agent's inbox — it shows up under their name until acked.</div>
-          <div class="cards" id="ho-list"></div>
-        </div>
-
-        <div class="rpane" id="rp-leases">
-          <div class="rrow"><input id="ls-name" placeholder="lease name" autocomplete="off" spellcheck="false">
-            <input id="ls-holder" placeholder="holder" autocomplete="off" spellcheck="false">
-            <input id="ls-ttl" type="number" placeholder="ttl min" value="30" min="1" max="1440">
-            <button class="btn ghost" id="ls-load">load</button></div>
-          <div class="hint-line">POST /leases 409s when someone else holds the name — that is the mutual-exclusion signal, not a bug.</div>
-          <div class="cards" id="ls-list"></div>
-        </div>
-
-        <div class="rpane" id="rp-lessons">
-          <div class="rrow"><input id="ln-scope" placeholder="scope (blank = all)" autocomplete="off" spellcheck="false">
-            <button class="btn ghost" id="ln-load">load</button></div>
-          <div class="rrow">
-            <input id="ln-new" placeholder="new lesson — the durable 'do it this way' rule…" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false">
-            <input id="ln-new-scope" placeholder="scope (optional)" autocomplete="off" spellcheck="false">
-            <button class="btn ghost" id="ln-save">✚ save lesson</button>
-          </div>
-          <div class="cards" id="ln-list"></div>
-        </div>
-
-        <div class="rpane" id="rp-crystals">
-          <div class="rrow"><button class="btn ghost" id="cr-load">load</button></div>
-          <div class="rrow">
-            <input id="cr-new" placeholder="new crystal — the merged / summarised view…" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false">
-            <input id="cr-sources" placeholder="source ids (12,34)" autocomplete="off" spellcheck="false">
-            <button class="btn ghost" id="cr-save">✚ save crystal</button>
-          </div>
-          <div class="cards" id="cr-list"></div>
-        </div>
-
-        <div class="rpane" id="rp-audit">
-          <div class="rrow"><button class="btn ghost" id="au-load">load</button></div>
-          <div class="hint-line">Newest first. Every purge and handoff ack lands here.</div>
-          <div class="cards" id="au-list"></div>
-        </div>
+    <!-- relay -->
+    <div class="view" id="relay" hidden>
+      <div class="relay-tabs">
+        <button class="rtab c3 active" data-r="handoff">handoff</button>
+        <button class="rtab c4" data-r="leases">leases</button>
+        <button class="rtab c2" data-r="lessons">lessons</button>
+        <button class="rtab c1" data-r="crystals">crystals</button>
+        <button class="rtab c5" data-r="audit">audit</button>
       </div>
-      <!-- tags pane: browse every tag with live counts (GET /tags) -->
-      <div id="tagsview" hidden>
-        <div class="rrow"><input id="tg-filter" placeholder="filter tags… (client-side)" autocomplete="off" spellcheck="false" style="max-width:320px">
-          <span class="hint-line" id="tg-note" style="margin:0"></span></div>
-        <div class="taglist" id="tg-list"></div>
+
+      <div class="rpane active" id="rp-handoff">
+        <details class="newbox st c3">
+          <summary>เขียน handoff ใหม่ — ส่งงานต่อให้ agent อื่น</summary>
+          <div class="nb">
+            <div class="nb-row">
+              <input id="ho-from" placeholder="from (agent)" autocomplete="off" spellcheck="false" aria-label="From agent">
+              <input id="ho-to" placeholder="to (agent)" autocomplete="off" spellcheck="false" aria-label="To agent">
+              <input id="ho-topic" placeholder="topic (optional)" autocomplete="off" spellcheck="false" aria-label="Topic">
+            </div>
+            <textarea id="ho-body" placeholder="งานที่ต้องส่งต่อ — สั้น ชัด อ่านแล้วทำต่อได้เลย…" maxlength="8000" aria-label="Handoff body"></textarea>
+            <div class="nb-row">
+              <button class="btn" id="ho-send">ส่งต่อ</button>
+              <span class="hint-line">POST /handoff — คนรับจะเห็นใน Relay &gt; handoff จนกว่าจะ ack</span>
+            </div>
+          </div>
+        </details>
+        <div class="rrow"><input id="ho-agent" placeholder="agent (e.g. crush)" autocomplete="off" spellcheck="false" aria-label="Agent name">
+          <label class="rchk"><input type="checkbox" id="ho-all"><span>incl. acked</span></label>
+          <button class="btn" id="ho-load">Load</button></div>
+        <div class="cards" id="ho-list"></div>
       </div>
-      <!-- dashboard pane: Swiss masthead + /stats grid -->
-      <div id="dash" hidden>
-        <div class="dash-head">
-          <h1>minimem</h1>
-          <div class="dh-sub" id="dash-sub"></div>
-        </div>
-        <div class="dash" id="dash-grid"></div>
-        <div class="dash-foot" id="dash-foot"></div>
+
+      <div class="rpane" id="rp-leases">
+        <div class="rrow"><input id="ls-name" placeholder="lease name" autocomplete="off" spellcheck="false" aria-label="Lease name">
+          <input id="ls-holder" placeholder="holder" autocomplete="off" spellcheck="false" aria-label="Holder">
+          <input id="ls-ttl" type="number" placeholder="ttl min" value="30" min="1" max="1440" aria-label="TTL in minutes">
+          <button class="btn" id="ls-load">Load</button></div>
+        <div class="hint-line">POST /leases 409s when someone else holds the name — that is the mutual-exclusion signal, not a bug.</div>
+        <div class="cards" id="ls-list"></div>
       </div>
-    </section>
+
+      <div class="rpane" id="rp-lessons">
+        <details class="newbox st c2">
+          <summary>จด lesson ใหม่ — กฎ “ทำแบบนี้สิ” ที่อยากให้จำ</summary>
+          <div class="nb">
+            <div class="nb-row">
+              <input id="ln-new" placeholder="lesson — เจอบั๊กนี้แล้วแก้แบบนี้…" autocomplete="off" spellcheck="false" aria-label="New lesson">
+              <input id="ln-new-scope" placeholder="scope (optional)" autocomplete="off" spellcheck="false" aria-label="Lesson scope">
+            </div>
+            <button class="btn" id="ln-save">จด lesson</button>
+          </div>
+        </details>
+        <div class="rrow"><input id="ln-scope" placeholder="scope (blank = all)" autocomplete="off" spellcheck="false" aria-label="Scope">
+          <button class="btn" id="ln-load">Load</button></div>
+        <div class="cards" id="ln-list"></div>
+      </div>
+
+      <div class="rpane" id="rp-crystals">
+        <details class="newbox st c1">
+          <summary>เกาะ crystals — รวมความจำหลายอันเป็นภาพเดียว</summary>
+          <div class="nb">
+            <textarea id="cr-new" placeholder="crystal — the merged / summarised view…" maxlength="4000" aria-label="New crystal"></textarea>
+            <div class="nb-row">
+              <input id="cr-sources" placeholder="source ids (12,34)" autocomplete="off" spellcheck="false" aria-label="Source memory ids">
+              <button class="btn" id="cr-save">✚ save crystal</button>
+            </div>
+          </div>
+        </details>
+        <div class="rrow"><button class="btn" id="cr-load">Load</button></div>
+        <div class="cards" id="cr-list"></div>
+      </div>
+
+      <div class="rpane" id="rp-audit">
+        <div class="rrow"><button class="btn" id="au-load">Load</button></div>
+        <div class="hint-line">Newest first. Every purge and handoff ack lands here.</div>
+        <div class="cards" id="au-list"></div>
+      </div>
+    </div>
   </main>
 </div>
 
 <!-- add / extract modal -->
 <div class="scrim" id="scrim">
-  <div class="sheet" role="dialog" aria-modal="true">
-    <header><h2 id="sheet-title">Capture</h2><button class="x" id="sheet-close">ESC</button></header>
+  <div class="sheet st" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="peek" data-mimi="happy"></div>
+    <header><h2 id="sheet-title">Capture</h2><button class="ia" id="sheet-close">ESC</button></header>
     <div class="tabs">
-      <button data-pane="add" class="active">✚ store raw</button>
-      <button data-pane="extract">✦ extract with LLM</button>
+      <button data-pane="add" class="c2 active"><svg class="ic"><use href="#i-add"/></svg>Store raw</button>
+      <button data-pane="extract" class="c1"><svg class="ic"><use href="#i-extract"/></svg>Extract with LLM</button>
     </div>
     <div class="pane active" id="pane-add">
       <div class="tagedit">
         <label for="add-tags">tags</label>
         <input id="add-tags" type="text" placeholder="truck, deploy, infra (คั่นด้วย ,)" autocomplete="off" spellcheck="false">
       </div>
-      <textarea id="add-text" placeholder="one memory, one fact…" maxlength="4000"></textarea>
+      <textarea id="add-text" placeholder="หนึ่งความจำ หนึ่งเรื่อง — เดี๋ยว Mimi จำให้เอง…" maxlength="4000" aria-label="Memory text"></textarea>
       <button class="btn" id="add-save">Store it</button>
     </div>
     <div class="pane" id="pane-extract">
-      <textarea id="ex-text" placeholder="paste a conversation, a log, anything — the model picks what's worth remembering" maxlength="20000" style="min-height:180px"></textarea>
-      <div class="hint">LLM ผ่าน AI Gateway · gemini-2.5-flash-lite · dedupe/update/delete อัตโนมัติ · ช้าหน่อย (5–20 วิ)</div>
-      <button class="btn" id="ex-run">Extract &amp; store</button>
+      <textarea id="ex-text" placeholder="แปะบทสนทนา log หรืออะไรก็ได้ — โมเดลจะเลือกเรื่องที่ควรจำให้" maxlength="20000" style="min-height:180px" aria-label="Text to extract from"></textarea>
+      <div class="hint">LLM ผ่าน AI Gateway · gemini-2.5-flash-lite · dedupe/update/delete อัตโนมัติ · ช้าหน่อย (5–20 วิ) ใจเย็นๆ Mimi กำลังคิด</div>
+      <button class="btn pink" id="ex-run">Extract &amp; store</button>
       <div class="done" id="ex-done"></div>
     </div>
   </div>
@@ -438,9 +737,10 @@ mark{background:var(--accent-soft);color:var(--accent-hi);padding:0 1px}
 
 <!-- token gate -->
 <div class="gate" id="gate">
-  <form class="box" id="gate-form" autocomplete="on">
-    <div class="mark"><span class="live"></span>minimem</div>
-    <div class="sub">หน้านี้ถูกล็อก — ใส่รหัสเพื่อเข้า</div>
+  <div class="gm" id="gate-mimi" data-mimi="idle"></div>
+  <form class="box st" id="gate-form" autocomplete="on">
+    <div class="mark">minimem</div>
+    <div class="sub">หน้านี้ถูกล็อก — ใส่รหัสลับเพื่อเข้ากิลด์</div>
     <input id="gate-tok" type="password" placeholder="access key" aria-label="access key" autocomplete="current-password" spellcheck="false" required>
     <div class="err" id="gate-err" role="alert" aria-live="polite"></div>
     <div class="acts">
@@ -455,42 +755,52 @@ mark{background:var(--accent-soft);color:var(--accent-hi);padding:0 1px}
 
 <!-- confirm dialog: one reusable layer for destructive + irreversible actions -->
 <div class="scrim cfrim" id="cfrim">
-  <div class="sheet cf" role="alertdialog" aria-modal="true" aria-labelledby="cf-title">
+  <div class="sheet cf st" role="alertdialog" aria-modal="true" aria-labelledby="cf-title">
+    <div class="peek" id="cf-mimi" data-mimi="wow"></div>
     <header><h2 id="cf-title">confirm</h2></header>
     <div class="cf-body" id="cf-body"></div>
     <div class="cf-acts">
-      <button class="btn ghost" id="cf-no">cancel</button>
+      <button class="btn ghost" id="cf-no">Cancel</button>
       <button class="btn" id="cf-ok">OK</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"><div class="tm" data-mimi="happy"></div><div class="bubble"><span class="sr"></span><span class="tt" aria-hidden="true"></span></div></div>
+
+<!-- title screen, once per 6 hours -->
+<div class="intro" id="intro" hidden aria-hidden="true">
+  <div class="core">
+    <div class="im" data-mimi="happy"></div>
+    <div class="wm"><span class="c1" style="--i:0">m</span><span class="c0" style="--i:1">i</span><span class="c2" style="--i:2">n</span><span class="c3" style="--i:3">i</span><span class="c4" style="--i:4">m</span><span class="c5" style="--i:5">e</span><span class="c1" style="--i:6">m</span></div>
+    <div class="go">▶ แตะเพื่อเริ่มผจญภัย</div>
+  </div>
+</div>
 
 <script>
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
-// API base = origin + current path prefix, so the same file works both direct
-// (http://host:3100/, pathname "/") and behind a reverse proxy with a path
-// prefix (https://lan.mcky.space/artifact/minimem/) — handle_path strips the
-// prefix before proxying, so prefix+route lands on the right server route.
-const API=location.origin+location.pathname.replace(/\/+$/,'');
+const API=location.origin;
 const TK='minimem_token',UK='minimem_user';
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const RM=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pick=a=>a[Math.random()*a.length|0];
 // "remember me" off by default: the token then dies with the tab. Opting in
 // writes localStorage instead — plaintext on disk, so it is the user's call.
 let token=sessionStorage.getItem(TK)||localStorage.getItem(TK)||'';
 let tokenKept=!!localStorage.getItem(TK);
 let AUTH_ON=true; // set from /health on boot; false = server runs open, no gate
-let VER='?';      // server version, from /health
+let META={version:''};
+let STATS=null;
 
-const state={mode:'dash',q:'',tagFilter:'',offset:0,limit:50,total:0,qtotal:0};
-// memory being edited in the sheet (null = the sheet is in add mode)
-let editId=null;
+const state={mode:'dashboard',q:'',tagFilter:'',offset:0,limit:50,total:0,qtotal:0};
 
 /* tags: "truck, deploy , #infra" -> ['truck','deploy','infra'] */
 function parseTags(v){
   return [...new Set(String(v||'').split(/[,\n]/).map(x=>x.replace(/^#+/,'').replace(/\s+/g,' ').trim().toLowerCase()).filter(x=>x&&x.length<=40))].slice(0,10);
 }
+// a tag always gets the same colour
+const hcol=s=>{let h=7;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))>>>0;return h%6;};
 
 function b64(s){return btoa(unescape(encodeURIComponent(s)));}
 // true when we should attach a credential: auth is on AND we hold a token
@@ -516,22 +826,132 @@ async function req(path,opts={}){
   return r.json();
 }
 
+/* ══ Mimi: one inline SVG, five moods ══ */
+const MIMI=(mood='idle')=>`<svg class="mimi" data-mood="${mood}" viewBox="0 -14 120 126" aria-hidden="true">
+<ellipse class="m-sh" cx="60" cy="106" rx="38" ry="6"/>
+<g class="m-body">
+<path class="m-b" d="M60 14C88 14 108 38 108 68C108 92 88 102 60 102C32 102 12 92 12 68C12 38 32 14 60 14Z"/>
+<path class="m-hl" d="M28 46C32 35 43 28 55 27C46 32 40 39 38 50Z"/>
+<path class="m-gem" d="M60-10 71 5 60 21 49 5Z"/><path class="m-gemhl" d="M60-6 54 5 60 9Z"/>
+<ellipse class="m-bl" cx="32" cy="77" rx="8.5" ry="5"/><ellipse class="m-bl" cx="88" cy="77" rx="8.5" ry="5"/>
+<g class="e e-idle"><ellipse cx="44" cy="62" rx="6.5" ry="8.5"/><ellipse cx="76" cy="62" rx="6.5" ry="8.5"/><circle class="w" cx="46.5" cy="58.5" r="2.5"/><circle class="w" cx="78.5" cy="58.5" r="2.5"/></g>
+<g class="e e-happy"><path d="M37 66Q44 53 51 66M69 66Q76 53 83 66"/></g>
+<g class="e e-sad"><ellipse cx="44" cy="64" rx="6" ry="8"/><ellipse cx="76" cy="64" rx="6" ry="8"/><circle class="w" cx="46" cy="61" r="2.3"/><circle class="w" cx="78" cy="61" r="2.3"/><path d="M36 57L52 52M84 57L68 52"/><path class="tear" d="M86 70Q91 78 86 82Q81 78 86 70Z"/></g>
+<g class="e e-sleep"><path d="M37 62Q44 69 51 62M69 62Q76 69 83 62"/></g>
+<g class="e e-wow"><ellipse cx="44" cy="61" rx="7.5" ry="10"/><ellipse cx="76" cy="61" rx="7.5" ry="10"/><circle class="w" cx="47" cy="57" r="3"/><circle class="w" cx="79" cy="57" r="3"/></g>
+<path class="mo mo-idle" d="M52 77Q60 85 68 77"/>
+<path class="mo mo-happy" d="M48 74Q60 96 72 74Z"/><path class="mo mo-happy tg" d="M54 87Q60 79 66 87Q60 92 54 87Z"/>
+<path class="mo mo-sad" d="M52 86Q60 76 68 86"/>
+<ellipse class="mo mo-wow" cx="60" cy="83" rx="5" ry="7"/>
+<path class="mo mo-sleep" d="M55 82H65"/>
+</g></svg>`;
+function mountMimi(root=document){root.querySelectorAll('[data-mimi]:not([data-mounted])').forEach(el=>{el.innerHTML=MIMI(el.dataset.mimi);el.dataset.mounted='1';});}
+function mood(host,m,ms=0){
+  const el=typeof host==='string'?$(host):host;const s=el&&el.querySelector('.mimi');if(!s)return;
+  s.dataset.mood=m;clearTimeout(s._t);if(ms)s._t=setTimeout(()=>{s.dataset.mood='idle';},ms);
+}
+function hop(host){const el=typeof host==='string'?$(host):host;const s=el&&el.querySelector('.mimi');if(!s||RM())return;s.classList.remove('hop');void s.getBoundingClientRect();s.classList.add('hop');}
+
+/* ══ fx: floating hearts / stars behind, confetti on top ══
+   one canvas, ~30fps, paused when the tab is hidden. reduced-motion: off. */
+const fx=(()=>{
+  const cv=$('#fx'),ctx=cv.getContext('2d'),cv0=$('#fx0'),ctx0=cv0.getContext('2d');
+  let W=0,H=0,parts=[],bursts=[],raf=0,last=0,pal=['#ffd23f','#ff7aa8','#47dba5','#59bdff','#a98cff','#ffa35c'];
+  function size(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;for(const [c,x] of [[cv,ctx],[cv0,ctx0]]){c.width=W*d;c.height=H*d;x.setTransform(d,0,0,d,0,0);}}
+  function colors(){const s=getComputedStyle(document.documentElement);pal=[0,1,2,3,4,5].map(i=>s.getPropertyValue('--p'+i).trim()||'#fff');}
+  function shape(k,x,y,r,rot,ctx){
+    ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.beginPath();
+    if(k==='star'){ctx.moveTo(0,-r);ctx.quadraticCurveTo(0,0,r,0);ctx.quadraticCurveTo(0,0,0,r);ctx.quadraticCurveTo(0,0,-r,0);ctx.quadraticCurveTo(0,0,0,-r);}
+    else if(k==='heart'){const s=r/10;ctx.moveTo(0,4*s);ctx.bezierCurveTo(-12*s,-4*s,-5*s,-12*s,0,-5*s);ctx.bezierCurveTo(5*s,-12*s,12*s,-4*s,0,4*s);}
+    else if(k==='rect'){ctx.rect(-r*.5,-r*.25,r,r*.5);}
+    else ctx.arc(0,0,r*.55,0,6.283);
+    ctx.fill();ctx.restore();
+  }
+  function mk(init){
+    return {k:Math.random()<.5?'heart':'star',x:Math.random()*W,y:init?Math.random()*H:H+20,vx:(Math.random()-.5)*.25,vy:-(.15+Math.random()*.35),
+      r:4+Math.random()*5,rot:Math.random()*6.28,vr:(Math.random()-.5)*.03,ph:Math.random()*6.28,sp:.6+Math.random()*1.4,c:pal[Math.random()*6|0]};
+  }
+  function frame(t){
+    raf=requestAnimationFrame(frame);
+    if(t-last<32)return;const dt=Math.min((t-last)/16.7,3);last=t;
+    ctx.clearRect(0,0,W,H);ctx0.clearRect(0,0,W,H);
+    for(const p of parts){
+      p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;
+      if(p.y<-24){Object.assign(p,mk(false));}
+      ctx0.fillStyle=p.c;ctx0.globalAlpha=.35+.35*Math.abs(Math.sin(t/1000*p.sp+p.ph));shape(p.k,p.x,p.y,p.r,p.rot,ctx0);
+    }
+    for(let i=bursts.length-1;i>=0;i--){
+      const b=bursts[i];b.life-=dt;
+      if(b.life<=0){bursts.splice(i,1);continue;}
+      b.x+=b.vx*dt;b.y+=b.vy*dt;b.vy+=.16*dt;b.vx*=.985;b.rot+=b.vr*dt;
+      ctx.globalAlpha=Math.min(1,b.life/20);ctx.fillStyle=b.c;shape(b.k,b.x,b.y,b.r,b.rot,ctx);
+    }
+    ctx.globalAlpha=1;
+  }
+  function start(){
+    cancelAnimationFrame(raf);raf=0;
+    if(RM()||document.hidden){ctx.clearRect(0,0,W,H);ctx0.clearRect(0,0,W,H);return;}
+    if(!parts.length){const n=innerWidth<760?9:16;for(let i=0;i<n;i++)parts.push(mk(true));}
+    last=0;raf=requestAnimationFrame(frame);
+  }
+  function burst(x,y,n=22){
+    if(RM())return;
+    const ks=['star','heart','rect','dot'];
+    for(let i=0;i<n;i++){const a=Math.random()*6.283,s=2+Math.random()*5;
+      bursts.push({k:ks[i%4],x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-3.4,r:5+Math.random()*7,rot:Math.random()*6.28,vr:(Math.random()-.5)*.3,life:44+Math.random()*30,c:pal[Math.random()*6|0]});}
+    if(!raf)start();
+  }
+  function burstAt(el,n){const r=el.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,n);}
+  addEventListener('resize',size);
+  document.addEventListener('visibilitychange',start);
+  matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change',start);
+  size();colors();start();
+  return {burst,burstAt,colors,start};
+})();
+
+/* ── theme: day / night ── */
+function paintTheme(){
+  const day=document.documentElement.dataset.theme!=='night';
+  $('#theme span').textContent=day?'day':'night';
+  $('#theme use').setAttribute('href',day?'#i-sun':'#i-moon');
+  $('#theme').setAttribute('aria-label',day?'Switch to night theme':'Switch to day theme');
+  document.querySelector('meta[name=theme-color]').content=day?'#8fd6ff':'#171244';
+  fx.colors();
+}
+$('#theme').onclick=()=>{
+  const night=document.documentElement.dataset.theme!=='night';
+  document.documentElement.dataset.theme=night?'night':'day';
+  try{localStorage.setItem('minimem_theme',night?'night':'day');}catch(e){}
+  paintTheme();fx.burstAt($('#theme'),14);
+};
+$('#logo').onclick=()=>{const w=$('#wm');w.classList.remove('go');void w.offsetWidth;w.classList.add('go');hop('#logo .lm');};
+
 /* ── confirm dialog (replaces window.confirm: styled, and reports what happened) ── */
 const CFG={resolve:null};
-function ask({title,body,ok='OK',danger=false}){
+// while a layer owns the screen the page behind it must not scroll (touch drag
+// on a bottom sheet otherwise scrolls the list underneath it)
+function syncLock(){
+  const layered=$('#scrim').classList.contains('open')||$('#cfrim').classList.contains('open')||$('#gate').classList.contains('open');
+  // <html> is the element that actually scrolls the page
+  document.documentElement.classList.toggle('lock',layered);
+  document.body.classList.toggle('lock',layered);
+}
+function ask({title,body,ok='OK',danger=false,m='wow'}){
   return new Promise(res=>{
     const scrim=$('#cfrim');
     $('#cf-title').textContent=title;
     $('#cf-body').innerHTML=body;
     const okb=$('#cf-ok');
     okb.textContent=ok;
-    okb.className='btn'+(danger?' danger':'');
-    scrim.classList.add('open');
+    okb.className='btn'+(danger?' pink':'');
+    $('#cfrim .sheet').classList.toggle('danger',danger);
+    mood('#cf-mimi',m);
+    scrim.classList.add('open');syncLock();
     setTimeout(()=>okb.focus(),40);
     CFG.resolve=res;
   });
 }
-function cfClose(v){const r=CFG.resolve;CFG.resolve=null;$('#cfrim').classList.remove('open');if(r)r(v);}
+function cfClose(v){const r=CFG.resolve;CFG.resolve=null;$('#cfrim').classList.remove('open');syncLock();if(r)r(v);}
 $('#cf-no').onclick=()=>cfClose(false);
 $('#cf-ok').onclick=()=>cfClose(true);
 $('#cfrim').onclick=e=>{if(e.target===$('#cfrim'))cfClose(false);};
@@ -543,9 +963,19 @@ addEventListener('keydown',e=>{
   if($('#scrim').classList.contains('open'))closeSheet();
 });
 
-/* ── toast ── */
+/* ── toast: Mimi says it ── */
 let tt;
-function toast(msg,err){const el=$('#toast');el.textContent=msg;el.classList.toggle('err',!!err);el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2600);}
+function toast(msg,err){
+  const el=$('#toast');
+  clearTimeout(tt);
+  el.classList.toggle('err',!!err);
+  el.querySelector('.sr').textContent=msg;
+  el.querySelector('.tt').textContent=msg;
+  mood(el,err?'sad':'happy',2400);
+  el.classList.add('show');
+  if(!err){const m=el.querySelector('.tm');fx.burstAt(m,16);hop(m);}
+  tt=setTimeout(()=>el.classList.remove('show'),Math.max(2800,msg.length*55));
+}
 
 /* ── render ── */
 function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -560,7 +990,7 @@ const ago=s=>{const d=(Date.now()-new Date(s.replace(' ','T')+'Z'))/1e3;
   if(d<3600)return Math.max(1,d/60|0)+'m';if(d<86400)return(d/3600|0)+'h';if(d<2592000)return(d/86400|0)+'d';return s.slice(0,10);};
 
 function histHtml(h){
-  return `<div class="histbox"><div class="hhead">HISTORY · ${h.length}</div>`+
+  return `<div class="histbox"><div class="hhead">history · ${h.length}</div>`+
     (h.length?h.map(x=>`<div class="hrow"><b>${esc(x.action)}</b> ${esc(x.at)}`+
       (x.old_text?`<div class="hold">↩ ${esc(x.old_text.slice(0,180))}${x.old_text.length>180?'…':''}</div>`:'')+
       `</div>`).join(''):
@@ -573,24 +1003,24 @@ function tagChips(m,limit=6){
   const show=t.slice(0,limit);
   return `<div class="tags">`+show.map(x=>{
     const on=state.tagFilter===x?' on':'';
-    return `<button class="chip${on}" data-tag="${esc(x)}">#${esc(x)}</button>`;
+    return `<button class="chip c${hcol(x)}${on}" data-tag="${esc(x)}">#${esc(x)}</button>`;
   }).join('')+(t.length>limit?`<span class="tagmore">+${t.length-limit}</span>`:'')+`</div>`;
 }
 
 function card(m){
-  const el=document.createElement('div');el.className='card';
-  el.innerHTML=`<div class="meta"><span class="id">#${m.id}</span><span>${ago(m.updated_at)}</span><span style="margin-left:auto">${m.text.length}c</span></div>
+  const el=document.createElement('div');el.className='card st c'+(m.id%6);
+  el.innerHTML=`<span class="no">No.${m.id}</span><div class="meta"><span>${ago(m.updated_at)}</span><span class="len">${m.text.length}c</span></div>
     <div class="txt"></div>
     ${tagChips(m)}
-    <button class="ia expand" hidden></button>
+    <div class="row2"><button class="ia expand" hidden></button>
     <div class="acts">
-      <button class="ia" data-act="edit">edit</button>
-      <button class="ia" data-act="hist">history</button>
+      <button class="ia c c3" data-act="edit">edit</button>
+      <button class="ia c c4" data-act="hist">history</button>
       ${state.mode==='trash'
-        ?`<button class="ia restore" data-act="restore">↩ restore</button>
-          <button class="ia danger" data-act="purge" title="delete permanently — cannot be undone">⚡ purge</button>`
-        :`<button class="ia danger" data-act="del" title="soft-delete">🗑 delete</button>`}
-    </div>`;
+        ?`<button class="ia c c2" data-act="restore">↩ restore</button>
+          <button class="ia c c1" data-act="purge" title="delete permanently — cannot be undone">⚡ purge</button>`
+        :`<button class="ia c c1" data-act="del" title="soft-delete">delete</button>`}
+    </div></div>`;
   const box=el.querySelector('.txt'),exp=el.querySelector('.expand');
   let open=false,hist=null;
   const paint=()=>{
@@ -604,24 +1034,29 @@ function card(m){
   exp.onclick=toggle;
   paint();
   el.querySelectorAll('.tags .chip').forEach(c=>c.onclick=e=>{e.stopPropagation();setTagFilter(c.dataset.tag);});
-  el.querySelector('[data-act=edit]').onclick=()=>openEdit(m);
+  el.querySelector('[data-act=edit]').onclick=()=>{
+    const t=prompt('แก้ memory:',m.text);if(!t||!t.trim())return;
+    const g=prompt('tags (คั่นด้วย ,):',(m.tags||[]).join(', '));
+    const body={text:t.trim()};if(g!==null)body.tags=parseTags(g);
+    req('/memories/'+m.id,{method:'PATCH',body:JSON.stringify(body)}).then(()=>{toast('แก้เรียบร้อย เนียนมาก #'+m.id);load();}).catch(e=>toast(e.message,1));
+  };
   const db=el.querySelector('[data-act=del]');
   if(db)db.onclick=async()=>{
-    if(!await ask({title:'move to trash?',body:`<b>#${m.id}</b> will be recoverable from the Trash tab.<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'move to trash',danger:true}))return;
-    try{await req('/memories/'+m.id,{method:'DELETE'});toast('trashed #'+m.id);load();}
+    if(!await ask({title:'move to trash?',body:`<b>#${m.id}</b> จะไปอยู่ในถังขยะ — กู้คืนได้จากแท็บ Trash นะ<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'move to trash',danger:true,m:'sad'}))return;
+    try{await req('/memories/'+m.id,{method:'DELETE'});el.classList.add('vanish');await sleep(RM()?0:340);toast('โยนลงถังแล้ว #'+m.id+' (เปลี่ยนใจกู้คืนได้)');load();}
     catch(e){toast(e.message,1);}
   };
   const pg=el.querySelector('[data-act=purge]');
   if(pg)pg.onclick=async()=>{
     // two asks: purge is the only unrecoverable action in this UI, so it gets
     // an explicit second gate rather than a single click-through confirm
-    if(!await ask({title:'purge permanently?',body:'This erases the row from the database. <b>There is no undo and no backup.</b>',ok:'continue',danger:true}))return;
-    if(!await ask({title:'last chance',body:`Memory <b>#${m.id}</b> and its ${(m.tags||[]).length} tag link(s) will be gone for good.<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'⚡ purge #'+m.id,danger:true}))return;
-    try{const r=await req('/memories/'+m.id+'/purge?confirm=yes',{method:'DELETE'});toast(`purged #${m.id} · ${r.chars} chars gone`);load();}
+    if(!await ask({title:'purge permanently?',body:'ลบออกจากฐานข้อมูลเลยนะ <b>ไม่มี undo ไม่มี backup</b>',ok:'continue',danger:true,m:'wow'}))return;
+    if(!await ask({title:'last chance',body:`Memory <b>#${m.id}</b> กับแท็ก ${(m.tags||[]).length} อัน จะหายไปตลอดกาล<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'⚡ purge #'+m.id,danger:true,m:'sad'}))return;
+    try{const r=await req('/memories/'+m.id+'/purge?confirm=yes',{method:'DELETE'});el.classList.add('vanish');await sleep(RM()?0:340);toast(`ลบถาวร #${m.id} · ${r.chars} ตัวอักษร ลาก่อนนน`);load();}
     catch(e){toast(e.message,1);}
   };
   const rs=el.querySelector('[data-act=restore]');
-  if(rs){rs.onclick=()=>req('/memories/'+m.id+'/restore',{method:'POST'}).then(()=>{toast('restored');load();}).catch(e=>toast(e.message,1));rs.style.display='inline-block';}
+  if(rs){rs.onclick=()=>req('/memories/'+m.id+'/restore',{method:'POST'}).then(()=>{fx.burstAt(rs,26);toast('กลับมาแล้ว! ยินดีต้อนรับกลับบ้าน #'+m.id);load();}).catch(e=>toast(e.message,1));}
   el.querySelector('[data-act=hist]').onclick=async()=>{
     if(hist){open=!open;paint();return;}
     try{hist=await req('/memories/'+m.id+'/history');open=true;paint();}catch(e){toast(e.message,1);}
@@ -629,16 +1064,32 @@ function card(m){
   return el;
 }
 
+/* ── views ── */
+function setHead(title,sub){
+  $('#head').hidden=false;
+  $('#h-title').textContent=title;
+  $('#h-sub').textContent=sub||'';
+  $('#h-clear').hidden=!state.tagFilter;
+}
+function showView(name){
+  const map={dash:'#v-dash',tags:'#v-tags',list:'#v-list',relay:'#relay'};
+  for(const k in map){
+    const el=$(map[k]),on=k===name;
+    if(on&&el.hidden){el.hidden=false;}      // re-triggers the entrance
+    else if(!on)el.hidden=true;
+  }
+  $('#head').hidden=name==='dash';
+  $('.searchrow').style.display=name==='relay'?'none':'';
+}
+const emptyBox=(msg,m='sleep',extra='')=>`<div class="empty"><div class="emimi">${MIMI(m)}</div><div>${msg}</div>${extra}</div>`;
+
 /* ── nav ── */
 async function load(reset=true){
-  // one pane at a time: memory cards, relay, tags, dashboard
-  const rel=state.mode!=='recent'&&state.mode!=='trash';
-  $('#cards').hidden=rel;$('#more').hidden=rel;$('#label').hidden=rel;
-  $('.search').style.display=rel?'none':'';
-  $('#relay').hidden=state.mode!=='relay';
-  $('#tagsview').hidden=state.mode!=='tags';
-  $('#dash').hidden=state.mode!=='dash';
-  if(rel)return state.mode==='relay'?loadRelay():state.mode==='tags'?loadTags():loadDash();
+  const m=state.mode;
+  if(m==='dashboard')return renderDash();
+  if(m==='tags')return renderTags();
+  if(m==='relay')return loadRelay();
+  showView('list');
   const host=$('#cards');
   const first=reset||host.children.length===0;
   if(reset){state.offset=0;host.innerHTML='';}
@@ -646,80 +1097,122 @@ async function load(reset=true){
   try{
     const tf=state.tagFilter?`&tag=${encodeURIComponent(state.tagFilter)}`:'';
     if(state.q){items=await req('/memories/search?q='+encodeURIComponent(state.q)+'&limit=50'+tf);total=items.length;}
-    else if(state.mode==='trash'){const r=await req(`/memories/deleted?limit=${state.limit}&offset=${state.offset}`);items=r.items;total=r.total;}
+    else if(m==='trash'){const r=await req(`/memories/deleted?limit=${state.limit}&offset=${state.offset}`);items=r.items;total=r.total;}
     else{const r=await req(`/memories?limit=${state.limit}&offset=${state.offset}${tf}`);items=r.items;total=r.total;}
   }catch(e){
     // never swallow: a silent empty list is indistinguishable from "no data",
     // which is how a dead server or an expired token looks like normal use
     toast(e.message||'load failed',1);
-    if(first)host.innerHTML=`<div class="empty">could not load — ${esc(e.message||'unknown error')}</div>`;
-    $('#label').textContent='ERROR';
+    if(first)host.innerHTML=emptyBox('โหลดไม่ได้อะ — '+esc(e.message||'unknown error'),'sad');
+    setHead('Error','');
     $('#more').hidden=true;
     return;
   }
   if(first)host.innerHTML='';
-  items.forEach((m,i)=>{const c=card(m);c.style.animationDelay=(i%50)*12+'ms';host.appendChild(c);});
-  $('#more').hidden=!(state.mode==='recent'&&!state.q&&items.length===state.limit&&state.offset+items.length<(total??Infinity));
-  $('#label').innerHTML=state.q?`SEARCH <span>·</span> "${esc(state.q)}"${state.tagFilter?` in <span>#${esc(state.tagFilter)}</span>`:''} — ${items.length} hits`
-    :state.mode==='trash'?`TRASH <span>·</span> ${total} recoverable`
-    :state.tagFilter?`TAG <span>·</span> #${esc(state.tagFilter)} — ${total} memories`
-    :`LATEST <span>·</span> ${state.offset+items.length}+ shown`;
-  if(!items.length&&reset)host.innerHTML=`<div class="empty">${state.q?'no recall — different words?':state.tagFilter?'no memories with this tag':'nothing here yet'}</div>`;
+  items.forEach((x,i)=>{const c=card(x);c.style.animationDelay=Math.min(i,12)*55+'ms';host.appendChild(c);});
+  $('#more').hidden=!(m==='recent'&&!state.q&&items.length===state.limit&&state.offset+items.length<(total??Infinity));
+  if(state.q)setHead('Recall',`"${state.q}"${state.tagFilter?' in #'+state.tagFilter:''} · ${items.length} hits`);
+  else if(m==='trash')setHead('Trash',`${total} recoverable`);
+  else if(state.tagFilter)setHead('#'+state.tagFilter,`${total} memories`);
+  else setHead('Recent',`${state.offset+items.length}+ shown`);
+  if(!items.length&&reset)host.innerHTML=state.q?emptyBox('ค้นไม่เจออะ… ลองคำอื่นดูมั้ย?','sad')
+    :state.tagFilter?emptyBox('แท็กนี้ยังไม่มีความทรงจำเลย','sleep')
+    :m==='trash'?emptyBox('ถังขยะว่างเปล่า สะอาดเอี่ยม','happy')
+    :emptyBox('ยังไม่มีความทรงจำเลย — จดเรื่องแรกกันมั้ย?','sleep','<button class="btn" data-open-add>Add the first one</button>');
+  const ob=host.querySelector('[data-open-add]');if(ob)ob.onclick=()=>openSheet('add');
   stats();
 }
 
-async function stats(){try{const s=await req('/stats');$('#c-recent').textContent=s.live;$('#c-trash').textContent=s.deleted;$('#c-tags').textContent=s.tags;}catch(e){}}
-function setTagFilter(t){state.tagFilter=t;state.mode='recent';$$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.mode==='recent'));load();}
-
-/* ── tags view: full tag census from GET /tags, click a row to browse it ── */
-let tagCache=[];
-async function loadTags(){
-  const list=$('#tg-list');
-  list.innerHTML='<div class="rnone">loading…</div>';
-  try{
-    const r=await req('/tags?limit=400');
-    tagCache=r.tags||[];
-    $('#tg-note').textContent=r.total>400?`showing top 400 of ${r.total} — type to narrow`:'';
-    paintTags();
-  }catch(e){list.innerHTML=`<div class="rnone">${esc(e.message)}</div>`;$('#tg-note').textContent='';}
+async function stats(){
+  try{const s=await req('/stats');STATS=s;$('#c-recent').textContent=s.live;$('#c-trash').textContent=s.deleted;$('#c-tags').textContent=s.tags;return s;}catch(e){}
 }
+function setActive(mode){$$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.mode===mode));}
+function go(mode,rt){
+  state.mode=mode;state.q='';state.tagFilter='';$('#q').value='';
+  if(rt)rTab=rt;
+  setActive(mode);load();
+  const b=$('.nav button.active');if(b&&b.scrollIntoView)b.scrollIntoView({inline:'center',block:'nearest',behavior:RM()?'auto':'smooth'});
+}
+function setTagFilter(t){state.tagFilter=t;state.mode='recent';setActive('recent');load();}
+$('#h-clear').onclick=()=>{state.tagFilter='';load();};
+
+/* ── dashboard: the guild board ── */
+function countTo(el,n){
+  if(RM()||n<2){el.textContent=n;return;}
+  const t0=performance.now(),D=900;
+  const step=t=>{const k=Math.min(1,(t-t0)/D),e=1-Math.pow(1-k,3);el.textContent=Math.round(n*e);if(k<1)requestAnimationFrame(step);};
+  requestAnimationFrame(step);
+}
+const STAT_MEM=[['live','Live','i-gem','recent','c0'],['deleted','In trash','i-trash','trash','c1'],['history','History','i-clock',null,'c3'],['tags','Tags','i-tags','tags','c4']];
+const STAT_REL=[['handoffs','Handoffs','i-relay','relay:handoff','c3'],['leases','Leases','i-lock','relay:leases','c4'],['lessons','Lessons','i-recent','relay:lessons','c2'],['crystals','Crystals','i-gem','relay:crystals','c1'],['audit','Audit','i-eye','relay:audit','c5']];
+function statTile(key,label,icon,dest,cls,val,i){
+  const b=document.createElement(dest?'button':'div');
+  b.className='stat '+cls;
+  b.style.animationDelay=i*60+'ms';
+  b.innerHTML=`<span class="ib"><svg class="ic"><use href="#${icon}"/></svg></span><span class="n">0</span><span class="k">${label}</span>`;
+  if(dest)b.onclick=()=>{const[md,rt]=dest.split(':');go(md,rt);};
+  countTo(b.querySelector('.n'),val||0);
+  return b;
+}
+function greeting(s){
+  const h=new Date().getHours(),n=s.live.toLocaleString();
+  if(h>=5&&h<11)return `อรุณสวัสดิ์! ตื่นมาก็ยังจำได้ครบ <b>${n}</b> เรื่องเลยนะ ไม่ลืมสักอย่าง`;
+  if(h>=11&&h<16)return `บ่ายแล้ว~ <b>${n}</b> เรื่องยังอยู่ครบ กินข้าวหรือยัง? (เรื่องนี้จำให้ไม่ได้นะ)`;
+  if(h>=16&&h<22)return `เย็นแล้ว ความทรงจำ <b>${n}</b> เรื่องนอนหลับสบายอยู่ในนี้`;
+  return `ดึกแล้วนะ… ไม่นอนเหรอ? <b>${n}</b> เรื่องเฝ้าให้อยู่ ไปนอนเถอะ`;
+}
+function heroLines(s){return [
+  'จิ้มทำไมเนี่ย จั๊กจี้นะ!','เมื่อกี้ลืมไปแล้ว… ล้อเล่น จำได้ทุกอย่าง',
+  'อยากให้จำอะไรเพิ่มมั้ย? กดแท็บ Add ได้เลย',`ถังขยะมี ${s.deleted} เรื่อง ยังไม่ได้ทิ้งใจนะ`,
+  'ขอขนมได้มั้ย ♡ (ไม่มีให้ แต่ขอบคุณ)',`แท็กมี ${s.tags.toLocaleString()} อัน จำได้หมดไม่ต้องห่วง`,'ฮึบ! วันนี้ก็ช่วยกันจำนะ'];}
+async function renderDash(){
+  showView('dash');
+  $('#ver').textContent=(META.version?'v'+META.version+' · ':'')+'SQLite · Persistent memory service';
+  const s=await stats();
+  if(!s){$('#hero-say').textContent='โหลดสถานะไม่ได้อะ — ลองเช็ก access token ดูนะ';mood('#hero-mimi','sad');return;}
+  $('#hero-say').innerHTML=greeting(s);mood('#hero-mimi','happy',1800);
+  const mem=$('#stats-mem'),rel=$('#stats-relay');mem.innerHTML='';rel.innerHTML='';
+  STAT_MEM.forEach(([k,l,ic,d,c],i)=>mem.appendChild(statTile(k,l,ic,d,c,s[k],i)));
+  STAT_REL.forEach(([k,l,ic,d,c],i)=>rel.appendChild(statTile(k,l,ic,d,c,(s.relay||{})[k],i+4)));
+  try{
+    const a=(await req('/audit?limit=1')).items?.[0];
+    $('#last').innerHTML=a?`ล่าสุด: <span class="pix">${esc(a.action)}</span> โดย <b>${esc(a.actor)}</b>${a.target?' ที่ <b>'+esc(a.target)+'</b>':''} · ${ago(a.at)} ที่แล้ว`:'ยังไม่มีความเคลื่อนไหวเลย เงียบจัง…';
+  }catch(e){$('#last').textContent='';}
+}
+$('#hero-mimi').onclick=()=>{
+  const el=$('#hero-mimi'),b=$('#hero-say');
+  hop(el);mood(el,'wow',700);setTimeout(()=>mood(el,'happy',1400),700);
+  fx.burstAt(el,18);
+  if(STATS){b.innerHTML=pick(heroLines(STATS));b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');}
+};
+
+/* ── tags: floating bubbles ── */
+let tagData=[];
+// tags carry their weight in size, but a thumb still needs a 44px target:
+// on touch the floor is raised and the growth curve is compressed to match.
+// asked per paint, not cached: a phone can rotate or drop its pointer.
+const touch=()=>matchMedia('(pointer:coarse)').matches;
 function paintTags(){
-  const f=($('#tg-filter').value||'').trim().toLowerCase();
-  const max=tagCache.length?tagCache[0].n:1;
-  const rows=tagCache.filter(t=>!f||t.tag.includes(f));
-  $('#tg-list').innerHTML=rows.length?rows.map(t=>`
-    <div class="trow" data-tag="${esc(t.tag)}" role="button" tabindex="0" title="browse #${esc(t.tag)}">
-      <span class="t">#${esc(t.tag)}</span>
-      <span class="meter"><span style="width:${Math.max(2,Math.round(t.n/max*100))}%"></span></span>
-      <span class="n">${t.n}</span>
-    </div>`).join('')
-    :`<div class="rnone">no tags${f?` match "${esc(f)}"`:' yet'}</div>`;
+  const f=$('#tag-q').value.trim().toLowerCase();
+  const rows=tagData.filter(t=>!f||t.tag.includes(f));
+  const max=Math.max(1,...tagData.map(t=>t.n));
+  $('#tagfield').innerHTML=rows.length?rows.map((t,i)=>{
+    const k=Math.log(t.n+1)/Math.log(max+1);
+    const floor=touch()?44:36;
+    return `<button class="gem c${hcol(t.tag)}" data-tag="${esc(t.tag)}" style="font-size:${(13+k*8).toFixed(1)}px;min-height:${(floor+k*12).toFixed(0)}px;animation-delay:${Math.min(i,40)*22}ms">#${esc(t.tag)}<b>${t.n}</b></button>`;
+  }).join(''):emptyBox(f?'ไม่มีแท็ก “'+esc(f)+'” อะ':'ยังไม่มีแท็กเลย','sleep');
+  $$('#tagfield .gem').forEach(g=>g.onclick=()=>setTagFilter(g.dataset.tag));
+  setHead('Tags',`${rows.length} shown`);
 }
-$('#tg-filter').oninput=paintTags;
-$('#tg-list').onclick=e=>{const row=e.target.closest('.trow');if(row)setTagFilter(row.dataset.tag);};
-$('#tg-list').onkeydown=e=>{if(e.key==='Enter'&&e.target.classList.contains('trow'))setTagFilter(e.target.dataset.tag);};
-
-/* ── dashboard: /stats at a glance + latest audit entry ── */
-async function loadDash(){
-  const grid=$('#dash-grid'),foot=$('#dash-foot');
-  try{
-    const s=await req('/stats');
-    const tiles=[
-      ['live',s.live,1],['trashed',s.deleted],['history',s.history],['tags',s.tags],
-      ['handoffs',s.relay.handoffs],['leases',s.relay.leases],['lessons',s.relay.lessons],
-      ['crystals',s.relay.crystals],['audit',s.relay.audit],
-    ];
-    grid.innerHTML=tiles.map(([lab,num,hot],i)=>
-      `<div class="tile${hot?' hot':''}" style="animation-delay:${i*30}ms"><span class="idx">${String(i+1).padStart(2,'0')}</span><div class="num">${num}</div><div class="lab">${lab}</div></div>`
-    ).join('');
-    $('#dash-sub').innerHTML=`memory service<br><b>v${esc(VER)}</b> · sqlite`;
-    const a=await req('/audit?limit=1');
-    const e=a.items&&a.items[0];
-    foot.innerHTML=
-      `last activity · ${e?`<b>${esc(e.action)}</b> by ${esc(e.actor)} on ${esc(e.target||'—')} · ${ago(e.at)}`:'<span>—</span>'}<br>
-      <span class="ver">minimem ${esc(VER)} · sqlite · this host only</span>`;
-  }catch(err){grid.innerHTML=`<div class="rnone">${esc(err.message)}</div>`;foot.textContent='';}
+async function renderTags(){
+  showView('tags');
+  try{const r=await req('/tags?limit=400');tagData=r.tags||[];paintTags();stats();
+    // say when the cloud is truncated, otherwise "no tag" reads as "tag missing"
+    $('#tag-note').textContent=r.total>400?`showing top 400 of ${r.total} — type to narrow`:'';
+  }
+  catch(e){toast(e.message,1);$('#tag-note').textContent='';$('#tagfield').innerHTML=emptyBox('โหลดไม่ได้อะ — '+esc(e.message),'sad');setHead('Tags','');}
 }
+$('#tag-q').oninput=paintTags;
 
 /* ── relay pane: handoff / leases / lessons / crystals / audit ── */
 let rTab='handoff';
@@ -727,7 +1220,7 @@ const ago2=ago;
 const NONE=t=>`<div class="rnone">${t}</div>`;
 
 function rcard(head,body,refs,actions){
-  return `<div class="rcard"><div class="rh">${head}</div>`+
+  return `<div class="rcard st"><div class="rh">${head}</div>`+
     (body?`<div class="rt">${body}</div>`:'')+
     (refs?`<div class="refs">${refs}</div>`:'')+
     (actions?`<div class="rel">${actions}</div>`:'')+`</div>`;
@@ -744,7 +1237,7 @@ function refLinks(refs){
 
 async function relayGet(path,hostId,emptyMsg){
   const host=$(hostId);
-  host.innerHTML=`<div class="rnone">loading…</div>`;
+  host.innerHTML=`<div class="rnone">กำลังโหลด…</div>`;
   try{
     const r=await req(path);
     const rows=(r&&(r.items||r))||[];
@@ -754,21 +1247,17 @@ async function relayGet(path,hostId,emptyMsg){
 }
 
 async function loadRelay(){
-  $('#cards').hidden=state.mode==='relay';
-  $('#more').hidden=true;
-  $('#label').hidden=state.mode==='relay';
-  $('.search').style.display=state.mode==='relay'?'none':'';
-  const L=$('#label');
+  showView('relay');
   $$('.rpane').forEach(el=>el.classList.toggle('active',el.id==='rp-'+rTab));
   $$('.rtab').forEach(b=>b.classList.toggle('active',b.dataset.r===rTab));
   stats();
 
   if(rTab==='handoff'){
     const agent=$('#ho-agent').value.trim();
-    L.innerHTML=`HANDOFF <span>·</span> ${agent?'for '+esc(agent):'pick an agent'}`;
-    if(!agent){$('#ho-list').innerHTML=NONE('enter an agent name — /handoff needs ?agent=');return;}
+    setHead('Handoff',agent?'for '+agent:'pick an agent');
+    if(!agent){$('#ho-list').innerHTML=NONE('ใส่ชื่อ agent ก่อนนะ — /handoff ต้องมี ?agent=');return;}
     const all=$('#ho-all').checked?'&all=1':'';
-    const rows=await relayGet('/handoff?agent='+encodeURIComponent(agent)+all,'#ho-list','no handoff for this agent');
+    const rows=await relayGet('/handoff?agent='+encodeURIComponent(agent)+all,'#ho-list','agent นี้ไม่มีงานส่งต่อเลย');
     if(rows===null)return;
     if(!rows.length&&$('#ho-list').innerHTML)return;
     $('#ho-list').innerHTML=rows.map(h=>rcard(
@@ -777,19 +1266,19 @@ async function loadRelay(){
       (h.acked_at?`<span class="acked">✓ acked ${ago2(h.acked_at)}</span>`
                 :h.read_at?'<span class="pend">read, not acked</span>':'<span class="pend">unread</span>')+
         refLinks(h.refs),
-      h.acked_at?'':`<button class="btn ghost" data-ack="${h.id}">✓ ack</button>`
-    )).join('')||NONE('no handoff for this agent');
+      h.acked_at?'':`<button class="btn" data-ack="${h.id}">✓ Ack</button>`
+    )).join('')||NONE('agent นี้ไม่มีงานส่งต่อเลย');
     $$('#ho-list [data-ack]').forEach(b=>b.onclick=async()=>{
       b.disabled=true;
-      try{await req('/handoff/'+b.dataset.ack+'/ack',{method:'POST',body:JSON.stringify({agent})});toast('acked #'+b.dataset.ack);loadRelay();}
+      try{await req('/handoff/'+b.dataset.ack+'/ack',{method:'POST',body:JSON.stringify({agent})});fx.burstAt(b,22);toast('รับทราบ! #'+b.dataset.ack);loadRelay();}
       catch(e){b.disabled=false;toast(e.message,1);}
     });
     $$('#ho-list [data-goto]').forEach(a=>a.onclick=()=>{
       state.mode='recent';state.q='';state.tagFilter='';$('#q').value='';
-      $$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.mode==='recent'));
-      $('#label').textContent='MEMORY #'+a.dataset.goto;
+      setActive('recent');
+      showView('list');setHead('Memory #'+a.dataset.goto,'');
       req('/memories/'+a.dataset.goto).then(m=>{
-        $('#cards').hidden=false;$('#relay').hidden=true;
+        $('#more').hidden=true;
         $('#cards').innerHTML='';$('#cards').appendChild(card(m));
       }).catch(e=>toast(e.message,1));
     });
@@ -797,18 +1286,18 @@ async function loadRelay(){
   }
 
   if(rTab==='leases'){
-    L.innerHTML='LEASES <span>·</span> named locks';
-    const rows=await relayGet('/leases','#ls-list','no lease held');
+    setHead('Leases','named locks');
+    const rows=await relayGet('/leases','#ls-list','ไม่มี lease ที่ถูกล็อกอยู่');
     if(rows===null)return;
     if(rows.length)$('#ls-list').innerHTML=rows.map(l=>rcard(
       `<b>${esc(l.name)}</b><span>held by ${esc(l.holder)}</span><span>expires ${ago2(l.expires_at)}</span>`,
       l.note?esc(l.note):'',
       `<span>acquired ${ago2(l.acquired_at)}</span>`,
-      `<button class="btn ghost" data-rel="${esc(l.name)}" data-holder="${esc(l.holder)}">release</button>`
+      `<button class="btn pink" data-rel="${esc(l.name)}" data-holder="${esc(l.holder)}">Release</button>`
     )).join('');
     $$('#ls-list [data-rel]').forEach(b=>b.onclick=async()=>{
-      if(!await ask({title:'release lease?',body:`<b>${esc(b.dataset.rel)}</b> — held by ${esc(b.dataset.holder)}.<br>Releasing lets another agent take it immediately.`,ok:'release',danger:true}))return;
-      try{await req('/leases/'+encodeURIComponent(b.dataset.rel)+'?holder='+encodeURIComponent(b.dataset.holder),{method:'DELETE'});toast('released');loadRelay();}
+      if(!await ask({title:'release lease?',body:`<b>${esc(b.dataset.rel)}</b> — ถือโดย ${esc(b.dataset.holder)}<br>ปล่อยแล้ว agent อื่นจะคว้าไปได้ทันทีเลยนะ`,ok:'release',danger:true,m:'wow'}))return;
+      try{await req('/leases/'+encodeURIComponent(b.dataset.rel)+'?holder='+encodeURIComponent(b.dataset.holder),{method:'DELETE'});toast('ปล่อยแล้ว');loadRelay();}
       catch(e){toast(e.message,1);}
     });
     return;
@@ -816,8 +1305,8 @@ async function loadRelay(){
 
   if(rTab==='lessons'){
     const scope=$('#ln-scope').value.trim();
-    L.innerHTML=`LESSONS <span>·</span> ${scope?'#'+esc(scope):'all scopes'}`;
-    const rows=await relayGet('/lessons?limit=200'+(scope?'&scope='+encodeURIComponent(scope):''),'#ln-list','no lesson recorded');
+    setHead('Lessons',scope?'#'+scope:'all scopes');
+    const rows=await relayGet('/lessons?limit=200'+(scope?'&scope='+encodeURIComponent(scope):''),'#ln-list','ยังไม่มีบทเรียนที่จดไว้');
     if(rows===null)return;
     if(rows.length)$('#ln-list').innerHTML=rows.map(x=>rcard(
       `<b>#${x.id}</b>${x.scope?`<span>#${esc(x.scope)}</span>`:''}<span>${ago2(x.created_at)}</span>`,
@@ -827,8 +1316,8 @@ async function loadRelay(){
   }
 
   if(rTab==='crystals'){
-    L.innerHTML='CRYSTALS <span>·</span> merged views';
-    const rows=await relayGet('/crystals?limit=200','#cr-list','no crystal yet');
+    setHead('Crystals','merged views');
+    const rows=await relayGet('/crystals?limit=200','#cr-list','ยังไม่มีคริสตัลเลย');
     if(rows===null)return;
     if(rows.length)$('#cr-list').innerHTML=rows.map(x=>{
       const src=refLinks(x.sources);
@@ -839,8 +1328,8 @@ async function loadRelay(){
   }
 
   if(rTab==='audit'){
-    L.innerHTML='AUDIT <span>·</span> newest first';
-    const rows=await relayGet('/audit?limit=200','#au-list','no audit entry');
+    setHead('Audit','newest first');
+    const rows=await relayGet('/audit?limit=200','#au-list','ยังไม่มีบันทึก audit');
     if(rows===null)return;
     if(rows.length)$('#au-list').innerHTML=rows.map(x=>rcard(
       `<b>${esc(x.action)}</b><span>${esc(x.actor)}</span><span>${ago2(x.at)}</span>`,
@@ -857,151 +1346,116 @@ $('#cr-load').onclick=loadRelay;
 $('#au-load').onclick=loadRelay;
 $('#ls-load').onclick=async()=>{
   const name=$('#ls-name').value.trim(),holder=$('#ls-holder').value.trim();
-  if(!name||!holder){toast('name + holder required',1);return;}
+  if(!name||!holder){toast('ใส่ name กับ holder ด้วยนะ',1);return;}
   try{
     await req('/leases',{method:'POST',body:JSON.stringify({name,holder,ttl_minutes:Number($('#ls-ttl').value)||30})});
-    toast('lease held: '+name);$('#ls-name').value='';$('#ls-holder').value='';loadRelay();
+    toast('ล็อกแล้ว: '+name);$('#ls-name').value='';$('#ls-holder').value='';loadRelay();
   }catch(e){toast(e.message,1);loadRelay();}
 };
 
-// write side of the relay: handoff (send a note), lessons, crystals
+/* ── relay writes: handoff / lesson / crystal ── */
+function busy(btn,on,label){
+  btn.disabled=on;
+  if(on){btn._t=btn.textContent;btn.textContent=label;}
+  else if(btn._t){btn.textContent=btn._t;btn._t='';}
+}
 $('#ho-send').onclick=async()=>{
-  const from=$('#ho-from').value.trim();
+  const btn=$('#ho-send');
+  const from=$('#ho-from').value.trim()||'mem';
+  // the "who am I" default matches how /handoff reads are filtered, so an
+  // author who forgets the from field still sees their own note in the list
   const to=$('#ho-to').value.trim()||$('#ho-agent').value.trim();
   const body=$('#ho-body').value.trim();
-  if(!from||!to||!body){toast('from, to and body are required',1);return;}
-  const b=$('#ho-send');b.disabled=true;
+  if(!to){toast('ใส่ชื่อคนรับ (to) ด้วยนะ',1);return;}
+  if(!body){toast('ยังไม่ได้เขียนเนื้อหาที่จะส่งต่อเลย',1);return;}
+  busy(btn,true,'กำลังส่ง…');
   try{
     const r=await req('/handoff',{method:'POST',body:JSON.stringify({from,to,body,topic:$('#ho-topic').value.trim()||undefined})});
-    toast('handoff #'+r.id+' → '+to);
-    $('#ho-from').value='';$('#ho-topic').value='';$('#ho-body').value='';
-    if(!$('#ho-agent').value)$('#ho-agent').value=to; // show the other side's inbox
+    fx.burstAt(btn,26);toast('ส่งต่อแล้ว! #'+r.id+' ถึงมือ '+to);
+    $('#ho-body').value='';$('#ho-topic').value='';
+    $('#ho-agent').value=$('#ho-agent').value.trim()||to;   // so the list shows it right away
     loadRelay();
   }catch(e){toast(e.message,1);}
-  finally{b.disabled=false;}
+  finally{busy(btn,false);}
 };
-['#ho-from','#ho-to','#ho-topic','#ho-body'].forEach(s=>$(s).onkeydown=e=>{if(e.key==='Enter')$('#ho-send').click();});
-
 $('#ln-save').onclick=async()=>{
-  const t=$('#ln-new').value.trim();
-  if(!t){toast('lesson text required',1);return;}
-  const scope=$('#ln-new-scope').value.trim();
-  const b=$('#ln-save');b.disabled=true;
+  const btn=$('#ln-save');
+  const text=$('#ln-new').value.trim();
+  if(!text){toast('ยังไม่ได้เขียน lesson เลย',1);return;}
+  busy(btn,true,'กำลังจด…');
   try{
-    const r=await req('/lessons',{method:'POST',body:JSON.stringify({text:t,scope:scope||undefined})});
-    toast('lesson #'+r.id+' saved');
-    $('#ln-new').value='';
-    if(scope)$('#ln-scope').value=scope; // keep the visible list matching what was just saved
+    await req('/lessons',{method:'POST',body:JSON.stringify({text,scope:$('#ln-new-scope').value.trim()||undefined})});
+    fx.burstAt(btn,24);toast('จดบทเรียนแล้ว คราวหน้าจะไม่ลืม');
+    $('#ln-new').value='';$('#ln-new-scope').value='';
     loadRelay();
   }catch(e){toast(e.message,1);}
-  finally{b.disabled=false;}
+  finally{busy(btn,false);}
 };
-$('#ln-new').onkeydown=e=>{if(e.key==='Enter')$('#ln-save').click();};
-
 $('#cr-save').onclick=async()=>{
-  const t=$('#cr-new').value.trim();
-  if(!t){toast('crystal text required',1);return;}
-  const src=($('#cr-sources').value||'').split(/[,\s]+/).map(Number).filter(n=>Number.isFinite(n)&&n>0);
-  const b=$('#cr-save');b.disabled=true;
+  const btn=$('#cr-save');
+  const text=$('#cr-new').value.trim();
+  if(!text){toast('ยังไม่ได้เขียน crystal เลย',1);return;}
+  const sources=($('#cr-sources').value||'').split(/[,\s]+/).map(Number).filter(n=>Number.isFinite(n)&&n>0);
+  busy(btn,true,'กำลังเกาะ…');
   try{
-    const r=await req('/crystals',{method:'POST',body:JSON.stringify({text:t,sources:src.length?src:undefined})});
-    toast('crystal #'+r.id+' saved');
+    await req('/crystals',{method:'POST',body:JSON.stringify({text,sources:sources.length?sources:undefined})});
+    fx.burstAt(btn,24);toast('crystal เกาะติดแล้ว ✦');
     $('#cr-new').value='';$('#cr-sources').value='';
     loadRelay();
   }catch(e){toast(e.message,1);}
-  finally{b.disabled=false;}
+  finally{busy(btn,false);}
 };
-$('#cr-new').onkeydown=e=>{if(e.key==='Enter')$('#cr-save').click();};
+/* Enter sends from the single-line fields; the textareas keep Enter for newlines */
+['#ho-from','#ho-to','#ho-topic'].forEach(s=>$(s).onkeydown=e=>{if(e.key==='Enter')$('#ho-send').click();});
+['#ln-new','#ln-new-scope'].forEach(s=>$(s).onkeydown=e=>{if(e.key==='Enter'&&!e.ctrlKey&&!e.metaKey)$('#ln-save').click();});
+$('#cr-sources').onkeydown=e=>{if(e.key==='Enter')$('#cr-save').click();};
+['#ho-body','#cr-new'].forEach(s=>$(s).onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();$(s==='#ho-body'?'#ho-send':'#cr-save').click();}});
 
 /* ── nav ── */
 $$('.nav button').forEach(b=>b.onclick=()=>{
   const mode=b.dataset.mode;
   if(mode==='add')return openSheet('add');
   if(mode==='extract')return openSheet('extract');
-  $$('.nav button').forEach(x=>x.classList.toggle('active',x===b));
-  state.mode=mode;state.q='';state.tagFilter='';$('#q').value='';
-  if(mode!=='relay')state.offset=0;
-  load();
+  go(mode);
 });
 $('#more').onclick=()=>{state.offset+=state.limit;load(false);};
 
-/* ── search ── */
+/* ── search: typing anywhere jumps to recall ── */
 let deb;
-$('#q').oninput=()=>{clearTimeout(deb);deb=setTimeout(()=>{state.q=$('#q').value.trim();load();},400);};
-addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==$('#q')&&!e.metaKey&&!e.ctrlKey&&!$('.scrim.open')&&!$('.gate.open')){e.preventDefault();$('#q').focus();}});
+$('#q').oninput=()=>{clearTimeout(deb);deb=setTimeout(()=>{
+  state.q=$('#q').value.trim();
+  if(state.q&&state.mode!=='recent'&&state.mode!=='trash'){state.mode='recent';setActive('recent');}
+  else if(!state.q&&(state.mode==='dashboard'||state.mode==='tags'))return;
+  load();
+},400);};
+addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==$('#q')&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&!e.metaKey&&!e.ctrlKey&&!$('.scrim.open')&&!$('.gate.open')){e.preventDefault();$('#q').focus();}});
 
 /* ── modal ── */
-// the sheet has two faces: "Capture" (add + extract tabs) and edit mode
-// (extract tab hidden, save button PATCHes the target memory)
-function resetSheet(){
-  editId=null;
-  $('#sheet-title').textContent='Capture';
-  $$('.tabs button').forEach(b=>b.style.display='');
-  $('#add-save').textContent='Store it';
-}
-function openSheet(pane){
-  if(editId!==null){$('#add-text').value='';$('#add-tags').value='';} // stale edit draft
-  resetSheet();
-  $('#scrim').classList.add('open');switchPane(pane);
-}
-function openEdit(m){
-  editId=m.id;
-  $('#sheet-title').textContent='Edit #'+m.id;
-  $$('.tabs button').forEach(b=>b.style.display=b.dataset.pane==='add'?'':'none');
-  $('#add-save').textContent='Save changes';
-  $('#add-text').value=m.text;
-  $('#add-tags').value=(m.tags||[]).join(', ');
-  $('#ex-done').style.display='none';
-  $('#scrim').classList.add('open');
-  switchPane('add');
-}
-function closeSheet(){$('#scrim').classList.remove('open');}
+function openSheet(pane){$('#scrim').classList.add('open');syncLock();mood('#scrim .peek','happy');switchPane(pane);}
+function closeSheet(){$('#scrim').classList.remove('open');syncLock();}
 function switchPane(p){$$('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.pane===p));$$('.pane').forEach(el=>el.classList.toggle('active',el.id==='pane-'+p));setTimeout(()=>$(p==='add'?'#add-text':'#ex-text').focus(),50);}
 $$('.tabs button').forEach(b=>b.onclick=()=>switchPane(b.dataset.pane));
 $('#sheet-close').onclick=closeSheet;
 $('#scrim').onclick=e=>{if(e.target===$('#scrim'))closeSheet();};
 $('#go-add').onclick=()=>openSheet('add');
 $('#add-save').onclick=async()=>{const t=$('#add-text').value.trim();if(!t)return;$('#add-save').disabled=true;
-  const tags=parseTags($('#add-tags').value),wasEdit=editId!==null;
-  try{
-    if(wasEdit){
-      await req('/memories/'+editId,{method:'PATCH',body:JSON.stringify({text:t,tags})});
-      toast('updated #'+editId);
-    }else{
-      const r=await req('/memories',{method:'POST',body:JSON.stringify({text:t,tags})});
-      toast('stored #'+r.id);
-    }
-    $('#add-text').value='';$('#add-tags').value='';closeSheet();load();
-  }
+  try{const tags=parseTags($('#add-tags').value);const r=await req('/memories',{method:'POST',body:JSON.stringify({text:t,tags})});fx.burstAt($('#add-save'),34);toast(`จดแล้วจ้า! #${r.id} ไม่ลืมแน่นอน`);$('#add-text').value='';$('#add-tags').value='';closeSheet();load();}
   catch(e){toast(e.message,1);}finally{$('#add-save').disabled=false;}};
-$('#ex-run').onclick=async()=>{const t=$('#ex-text').value.trim();if(!t)return;const b=$('#ex-run');b.disabled=true;b.textContent='thinking…';$('#ex-done').style.display='none';
+$('#ex-run').onclick=async()=>{const t=$('#ex-text').value.trim();if(!t)return;const b=$('#ex-run');b.disabled=true;b.textContent='Mimi กำลังคิด…';$('#ex-done').style.display='none';mood('#scrim .peek','sleep');
   try{const r=await req('/extract',{method:'POST',body:JSON.stringify({text:t})});
     $('#ex-done').style.display='block';
     $('#ex-done').textContent=`[${r.model}] added ${r.added} · updated ${r.updated} · deleted ${r.deleted} · skipped ${r.skipped}`;
-    $('#ex-text').value='';toast('extraction done');load();}
-  catch(e){toast(e.message,1);}finally{b.disabled=false;b.textContent='Extract & store';}};
+    fx.burstAt(b,34);$('#ex-text').value='';toast('สกัดเสร็จแล้ว! ได้ของดีมาเพียบ');load();}
+  catch(e){toast(e.message,1);}finally{b.disabled=false;b.textContent='Extract & store';mood('#scrim .peek','happy');}};
 
-/* ── theme toggle (dark <-> light) ── */
-const THK='minimem_theme';
-function paintThemeBtn(){
-  const light=document.documentElement.dataset.theme==='light';
-  $('#theme-toggle').textContent=light?'◑ light':'◐ dark';
-  document.querySelector('meta[name=theme-color]').content=light?'#ffffff':'#0a0a0a';
-}
-$('#theme-toggle').onclick=()=>{
-  const next=document.documentElement.dataset.theme==='light'?'dark':'light';
-  document.documentElement.dataset.theme=next;
-  try{localStorage.setItem(THK,next);}catch(e){}
-  paintThemeBtn();
-};
-paintThemeBtn();
-
-/* ── token gate ── */
+/* ── token gate: the guild door ── */
 const gateIn=$('#gate-tok'),gateErr=$('#gate-err'),gateBtn=$('#gate-save'),gateEl=$('#gate');
 function showGate(){
-  gateEl.classList.add('open');
+  gateEl.classList.remove('unlock');
+  gateEl.classList.add('open');syncLock();
   // drop any shake left over from a previous failure, it must not replay here
   gateEl.classList.remove('shake');
+  mood('#gate-mimi','idle');
   $('#gate-keep').checked=tokenKept;
   $('#gate-forget').hidden=!localStorage.getItem(TK);
   gateErr.classList.remove('show');gateErr.textContent='';
@@ -1014,7 +1468,7 @@ $('#gate-forget').onclick=()=>{
   localStorage.removeItem(TK);localStorage.removeItem(UK);
   tokenKept=false;token='';$('#gate-keep').checked=false;$('#gate-forget').hidden=true;
   // token is gone from memory too, so the open gate cannot be used until re-entered
-  gateEl.classList.add('open');gateErr.classList.remove('show');gateErr.textContent='';
+  gateEl.classList.add('open');syncLock();gateErr.classList.remove('show');gateErr.textContent='';
   setTimeout(()=>gateIn.focus(),60);
   toast('ลบรหัสออกจากเครื่องแล้ว · ใส่รหัสใหม่เพื่อเข้า');
 };
@@ -1033,16 +1487,23 @@ async function saveGate(){
   try{
     await req('/stats');
     store.setItem(TK,token);store.setItem(UK,who);
-    gateEl.classList.remove('open');gateIn.value='';
+    gateIn.value='';
     gateErr.classList.remove('show');gateErr.textContent='';
-    toast(keep?'unlocked · remembered':'unlocked');boot();
+    // Mimi cheers, confetti, the door pops shut behind you
+    mood('#gate-mimi','happy');hop('#gate-mimi');fx.burstAt($('#gate-mimi'),44);
+    if(RM()){gateEl.classList.remove('open');}
+    // the door pops shut behind you, then the scroll lock is released with it
+    else{gateEl.classList.add('unlock');setTimeout(()=>{gateEl.classList.remove('open','unlock');syncLock();},620);}
+    syncLock();
+    toast(keep?'เข้ากิลด์สำเร็จ! จำรหัสไว้ให้แล้ว':'เข้ากิลด์สำเร็จ!');boot();
   }
   catch(e){
     token=prev;tokenKept=prevKept;
     (prevKept?localStorage:sessionStorage).setItem(TK,token);
     (prevKept?localStorage:sessionStorage).setItem(UK,who);
-    gateErr.textContent=e.message==='bad token'?'รหัสไม่ถูกต้อง':e.message;
+    gateErr.textContent=e.message==='bad token'?'รหัสไม่ถูกต้อง — ลองใหม่นะ':e.message;
     gateErr.classList.add('show');
+    mood('#gate-mimi','sad',2200);
     // re-trigger the shake on repeat failures (animation won't restart otherwise)
     gateEl.classList.remove('shake');void gateEl.offsetWidth;gateEl.classList.add('shake');
     gateIn.select();
@@ -1050,18 +1511,44 @@ async function saveGate(){
   finally{gateBtn.disabled=false;gateBtn.textContent='Unlock';}
 }
 
+/* ── intro: title screen + iris wipe, once per 6 hours, skippable ── */
+function intro(){
+  const el=$('#intro');
+  let last=0;try{last=+localStorage.getItem('minimem_intro')||0;}catch(e){}
+  if(RM()||Date.now()-last<6*3600e3)return;
+  try{localStorage.setItem('minimem_intro',Date.now());}catch(e){}
+  el.hidden=false;
+  const go=el.querySelector('.go');go.style.opacity=1;
+  let done=false;
+  const end=()=>{if(done)return;done=true;el.classList.add('out');
+    setTimeout(()=>{el.classList.add('gone');fx.burst(innerWidth/2,innerHeight/3,36);},880);};
+  el.onclick=end;
+  addEventListener('keydown',end,{once:true});
+  setTimeout(end,2400);
+}
+
 /* ── boot ── */
 async function boot(){
   try{
     const h=await (await fetch(API+'/health')).json();
-    AUTH_ON=h.auth!==false;VER=h.version;
+    AUTH_ON=h.auth!==false;
+    META.version=h.version||'';
     $('#hb-txt').textContent='online · :'+location.port+(AUTH_ON?'':' · open');
+    $('#hb-dot').classList.remove('off');
   }
-  catch(e){$('#hb-txt').textContent='offline';$('#hb-dot').style.background='var(--danger)';}
-  if(!AUTH_ON){$('#gate').classList.remove('open');$('#open-token').style.display='none';}
+  catch(e){$('#hb-txt').textContent='offline';$('#hb-dot').classList.add('off');}
+  if(!AUTH_ON){$('#gate').classList.remove('open');syncLock();$('#open-token').style.display='none';}
   if(AUTH_ON&&!token){showGate();return;}
   try{await stats();load();}catch(e){}
 }
+mountMimi();paintTheme();
+/* the full recall hint does not fit a phone width — shorten it rather than clip it */
+function fitPlaceholder(){
+  $('#q').placeholder=innerWidth<560?'recall — ไทย & English':`recall — ไทย & English พิมพ์เพี้ยนนิดหน่อยก็เจอ…`;
+}
+addEventListener('resize',fitPlaceholder);
+fitPlaceholder();
+intro();
 boot();
 </script>
 </body>
