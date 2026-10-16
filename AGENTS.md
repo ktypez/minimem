@@ -40,6 +40,8 @@ bun test search.test.ts                      # search regression tests
 - Hermes plugin: `~/.hermes/plugins/minimem/` (plugin.yaml + __init__.py, MCP tools `minimem_*`)
 - Web UI: `public/index.html` — one hand-written file, **no build step / no bundler**; served
   `no-store` via `Bun.file`, so editing it is live without a restart. Themes: `data-theme="day|night"`.
+- UI checks: `sh test/ui/run.sh` — headless chromium over CDP (node ≥22, no deps), throwaway
+  instances on :3311 (auth off) / :3312 (auth on), never touches :3100. See `test/ui/README.md`.
 - Copied legacy: `~/projects/memory-service/` — the ORIGINAL minimem (same schema); **stopped/legacy, do not run it**.
 
 ## API essentials

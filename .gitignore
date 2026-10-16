@@ -9,6 +9,9 @@ data/
 .env
 minimem.env
 
+# UI-check artefacts, if someone points UI_OUT at the repo
+test/ui/out/
+
 .bun/
 dist/
 *.log
