@@ -77,6 +77,11 @@ All routes speak JSON. With auth on, send `Authorization: Bearer $MINIMEM_TOKEN`
 - `GET /memories/:id` · `PATCH /memories/:id` · `DELETE /memories/:id`.
 - `GET /memories/deleted` · `POST /memories/:id/restore` — deletes are soft.
 - `GET /memories/search?q=&tag=&limit=` — FTS5 trigram, ranked; Thai-safe.
+- `GET /memories/recall?q=&limit=&mode=keyword|hybrid` — hybrid keyword+semantic ranking with
+  provenance (`match: both|keyword|semantic|none`) and `shadowed` (the older records of a fact
+  that were not recalled).
+- `GET|POST|DELETE /supersedes` — the relations that say "these two memories state the same
+  fact, this one is current". See [docs/same-fact.md](docs/same-fact.md).
 - `GET /memories/:id/history` — every version of one memory.
 - `GET /tags?limit=` → tag cloud with counts, live memories only.
 - `POST /extract` — send free text, get validated memory operations back from an LLM.
