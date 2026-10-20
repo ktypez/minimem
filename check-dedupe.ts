@@ -24,7 +24,20 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const DB = process.env.MINIMEM_DB_PATH ?? "/tmp/mm-verify/minimem.db";
-const PORT = Number(process.env.MM_PORT ?? 3314);
+// The port must be OURS. A fixed port means a leftover server from an
+// earlier run can still be bound there, and fetch() will then hit whichever
+// one the kernel hands out — the checks then read another server's database
+// and fail for reasons that have nothing to do with the code under test.
+const freePort = async (): Promise<number> => {
+  for (let i = 0; i < 40; i++) {
+    const p = 3400 + Math.floor(Math.random() * 2600);
+    const s = Bun.listen({ hostname: "127.0.0.1", port: p, socket: { data() {}, open() {}, close() {} } });
+    s.stop();
+    return p;
+  }
+  throw new Error("no free port");
+};
+const PORT = Number(process.env.MM_PORT ?? (await freePort()));
 const BASE = `http://127.0.0.1:${PORT}`;
 
 // the pairs the user verified in the corpus: [OLD id, NEW id, label]
@@ -75,6 +88,18 @@ const child = Bun.spawn([process.execPath, "run", "server.ts"], {
   env,
   stdout: "pipe",
   stderr: "pipe",
+});
+// Never leave the server behind: a leftover on this port is exactly what
+// made an earlier run read a different database and fail.
+const stopChild = () => {
+  try {
+    child.kill();
+  } catch {}
+};
+process.on("exit", stopChild);
+process.on("SIGINT", () => {
+  stopChild();
+  process.exit(130);
 });
 const deadline = Date.now() + 25000;
 let up = false;
@@ -133,7 +158,7 @@ for (const [oldId, newId, label] of PAIRS) {
   console.log(`  shadowed: ${JSON.stringify(out.shadowed)}`);
   if (winner)
     console.log(
-      `  winner: #${winner.id} score=${winner.score.toFixed(4)} match=${winner.match} supersedes=${JSON.stringify(winner.supersedes ?? [])}`,
+      `  winner: #${winner.id} score=${winner.score?.toFixed(4)} match=${winner.match} supersedes=${JSON.stringify(winner.supersedes ?? [])}`,
     );
   serverLog();
   if (!oldIn && electedIn) {

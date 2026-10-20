@@ -245,7 +245,7 @@ const CLAIM_SYSTEM = `For each note, extract:
 Answer with JSON only, one entry per note:
 {"notes":[{"id":<the id shown>,"subject":"...","claim":"...","artifact":"...","time":"...","is_update":<true|false>}]}`;
 
-const MERGE_SYSTEM = `Two notes from a memory system, each reduced to subject / claim / artifact / time.
+export const MERGE_SYSTEM = `Two notes from a memory system, each reduced to subject / claim / artifact / time.
 
 THE MERGE TEST. Imagine merging the two notes into ONE note that keeps every piece of information from both.
 
@@ -387,6 +387,7 @@ export async function judgePairs(
   model = ADJUDICATE_MODEL,
   votes = 3,
   style = ADJUDICATE_STYLE,
+  systemOverride?: string,
 ): Promise<Map<string, Adjudication> | null> {
   if (!pairs.length) return new Map();
   const out = new Map<string, Adjudication>();
@@ -401,7 +402,7 @@ export async function judgePairs(
       )
       .join("\n\n");
     const reply = await chat(
-      SYSTEM_FOR(style),
+      systemOverride ?? SYSTEM_FOR(style),
       `Judge each of the ${batch.length} pairs independently.\n\n${body}`,
       { model, maxTokens: 4000, temperature: 0.2 },
     );
