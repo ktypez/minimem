@@ -38,7 +38,7 @@
 
 import { Database } from "bun:sqlite";
 import { resolve } from "node:path";
-import { ADJUDICATE_MODEL, extractClaims, judgePairs, pairKey, type Claim } from "./adjudicate";
+import { ADJUDICATE_MODEL, ADJUDICATE_STYLE, extractClaims, judgePairs, pairKey, type Claim } from "./adjudicate";
 import { cosine, EMBED_MODEL } from "./embed";
 
 const argv = process.argv.slice(2);
@@ -53,6 +53,7 @@ const THRESHOLD = Number(flag("threshold", "0.78"));
 const BATCH = Math.max(1, Number(flag("batch", "10")));
 const VOTES = Math.max(1, Number(flag("votes", process.env.ADJUDICATE_VOTES ?? "1")));
 const MODEL = flag("model", ADJUDICATE_MODEL);
+const STYLE = flag("style", ADJUDICATE_STYLE);
 const DB_PATH =
   flag("db") ??
   process.env.MINIMEM_DB_PATH ??
@@ -163,7 +164,7 @@ for (let i = 0; i < pending.length; i += BATCH) {
     console.error(`batch at ${i}: no claims available, skipped`);
     continue;
   }
-  const verdicts = await judgePairs(pairs, MODEL, VOTES);
+  const verdicts = await judgePairs(pairs, MODEL, VOTES, STYLE);
   if (!verdicts) {
     console.error(`batch at ${i}: model failed, skipped`);
     continue;

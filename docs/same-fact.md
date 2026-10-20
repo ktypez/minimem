@@ -115,6 +115,22 @@ row height that went from 77px to 65px, a roster re-listed with a different
 set, a commit that went from not-pushed to pushed). Those are exactly the
 pairs the feature exists to collapse.
 
+A third framing is worth recording because it sounds best of all: *"if one of
+the notes were deleted, would information exist that is ONLY in the deleted
+note?"* On a weak model it produced **no false collapses at all**, which is
+exactly what made it worth measuring properly. Through the real pipeline it
+is a disaster — F1 0.29, recall 0.18, answering DIFFERENT for 59 of 67
+pairs. The question is vacuously "yes" for any revision, because a later
+version always adds *something*: a new value, a new timestamp, a correction.
+So it collapses nothing, and it misses 23 of the 28 genuine pairs. It is
+selectable with `--style deletion` so the comparison stays reproducible.
+
+| prompt framing | precision | recall | F1 |
+|---|---|---|---|
+| merge test (default) | 0.78 | 0.75 | **0.76** |
+| symmetric / "same subject and attribute" | 0.78 | 0.61 | 0.65 |
+| "would anything be lost by deleting one?" | 0.83 | 0.18 | 0.29 |
+
 ### The numbers that matter
 
 Scored against the 55 unambiguous hand-labelled pairs of the live corpus:

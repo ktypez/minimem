@@ -303,10 +303,53 @@ export const claimText = (c: Claim): string =>
  * cast said SAME. It is off by default because it costs N times the calls for
  * a gain that was not measured on this corpus.
  */
+/**
+ * The alternative framing, kept selectable so the head-to-head is
+ * reproducible, and NOT the default because it lost it badly.
+ *
+ * The idea: instead of asking whether a merged note would be one statement,
+ * ask what would be LOST. "If one of the notes were deleted, would
+ * information exist that is ONLY in the deleted note?"
+ *
+ * It is a sharp-sounding test, and on a weak model it produced no false
+ * collapses at all — which is exactly what made it worth measuring. Run
+ * through the real pipeline it is a disaster: F1 0.29, recall 0.18. It
+ * answered DIFFERENT for 59 of 67 pairs.
+ *
+ * The reason is that the question is vacuously DIFFERENT for a revision. Any
+ * later version adds *something* — a new value, a new timestamp, a correction
+ * — so "information that is ONLY in the deleted note" is almost always
+ * "yes", and the test collapses nothing at all. It misses 23 of the 28
+ * genuine pairs, including every one where the value changed.
+ */
+const DELETION_SYSTEM = `Two notes from a memory system. Each has been reduced to its subject, its claim, the concrete artifact it points at, and a time/version.
+
+Decide SAME or DIFFERENT.
+
+SAME = the two notes assert the same underlying fact, so that one is a rewording, a refinement, or a later correction of the other. A reader keeping only one would not miss any information from the other.
+
+DIFFERENT = the two notes assert different facts, so that BOTH are worth keeping. This is the case when:
+  - they point at DIFFERENT artifacts (different files, different screens, different fields, different commits)
+  - they record DIFFERENT events or different states, even about the same subject
+  - one describes a schema/field and the other describes how it is displayed
+  - they are two tasks with different purposes (how to check vs how to configure)
+
+The single best test: if one of the notes were deleted, would information exist that is ONLY in the deleted note? If yes -> DIFFERENT. If no -> SAME.
+
+Do not be fooled by shared subject wording. Two notes about "the Portal" that record two different events are DIFFERENT. Two notes about "the copy format" that specify two different formats are DIFFERENT.
+
+Answer with JSON only:
+{"verdicts":[{"pair":<int>,"same":<true|false>,"reason":"<max 20 words>"}]}`;
+
+export const ADJUDICATE_STYLE = env("ADJUDICATE_STYLE") ?? "merge";
+
+const SYSTEM_FOR = (style: string) => (style === "deletion" ? DELETION_SYSTEM : MERGE_SYSTEM);
+
 export async function judgePairs(
   pairs: { aId: number; a: Claim; bId: number; b: Claim }[],
   model = ADJUDICATE_MODEL,
   votes = 3,
+  style = ADJUDICATE_STYLE,
 ): Promise<Map<string, Adjudication> | null> {
   if (!pairs.length) return new Map();
   const out = new Map<string, Adjudication>();
@@ -321,7 +364,7 @@ export async function judgePairs(
       )
       .join("\n\n");
     const reply = await chat(
-      MERGE_SYSTEM,
+      SYSTEM_FOR(style),
       `Judge each of the ${batch.length} pairs independently.\n\n${body}`,
       { model, maxTokens: 4000, temperature: 0.2 },
     );
