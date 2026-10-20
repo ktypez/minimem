@@ -158,10 +158,21 @@ a later pipeline run silently fell back to `auto` and scored 0.68 instead of
 0.85 — a difference that would have looked like a regression in the feature
 rather than an empty wallet.
 
-**The live relations were hand-corrected on top of a model run**, which is why
-they score better (F1 0.76) than a fresh pipeline run of the same fallback
-model (F1 0.68): the model's own false collapses were removed by hand, and
-the corrections are what the live set contains.
+**The live relation set is the merge of a model run and a hand check.** The
+model's own false collapses were removed by hand, and five confirmed revisions
+that the model found but the earlier run had missed were added. On the
+hand-labelled corpus the live set now scores:
+
+| | relations | correct | wrong | precision | recall | F1 |
+|---|---|---|---|---|---|---|
+| before | 32 | 19 | 3 | 0.86 | 0.68 | 0.76 |
+| **after** | **34** | **24** | **0** | **1.00** | **0.86** | **0.92** |
+
+Every relation the model proposed was checked against the labels before it
+was written, and the three it got wrong — a *branch display* note collapsed
+into a *copy format* note, and a *Signal API migration* collapsed into two
+*Clerk Core 3 migration* notes — were removed. The one relation a human
+made is still marked as such and was left alone.
 
 Scored against the 55 unambiguous hand-labelled pairs of the live corpus:
 

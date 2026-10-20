@@ -438,6 +438,17 @@ export async function judgePairs(
       const got = await ask(missing);
       for (const k of got) answered.add(k);
     }
+    // Still missing? Ask about each one alone. A model that quietly omits a
+    // pair from a list will usually answer it when it is the only question
+    // on the table — and a pair with no verdict gets no relation, so both
+    // versions keep being recalled. That is the safe direction, but it is
+    // still a lost collapse, and it costs one call to try.
+    for (const p of batch) {
+      const key = pairKey(p.aId, p.bId);
+      if (answered.has(key)) continue;
+      const got = await ask([p]);
+      for (const k of got) answered.add(key);
+    }
   }
 
   const minVotes = Math.min(2, votes);
