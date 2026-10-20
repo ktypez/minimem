@@ -13,9 +13,21 @@
  *   HOST / PORT      default 127.0.0.1:3100
  *   EXTRACT_MODELS   comma-separated gateway model ids, tried in order
  *
+ * Semantic layer (all optional — unset = keyword-only, the old behaviour):
+ *   EMBED_ENABLED      1|0  (default: on iff a CF AI token is configured)
+ *   EMBED_PROVIDER     cloudflare
+ *   EMBED_MODEL        @cf/baai/bge-m3   (1024-dim, multilingual)
+ *   CF_ACCOUNT_ID      Cloudflare account id
+ *   CF_AI_TOKEN        Cloudflare AI token (falls back to CLOUDFLARE_AI_API_TOKEN)
+ *   HYBRID_W_FTS / HYBRID_W_VEC / HYBRID_W_REC   blend weights
+ *   DECAY_HALF_LIFE_DAYS  recency half-life (default 45)
+ *   NEAR_DUP_COS          cosine above which two hits are one fact (default 0.90)
+ *   TRUST_WEIGHT_VERIFIED / _UNVERIFIED / _DISPUTED
+ *
  *   bun install
  *   MINIMEM_TOKEN=$(openssl rand -hex 16) bun run server.ts
  *   bun run server.ts --check     # open the DB, print stats, exit
+ *   EMBED_ENABLED=1 bun run backfill.ts --limit 25   # embed existing rows
  *
  * Backup: run Litestream next to it, replicating MINIMEM_DB_PATH to S3/R2/another disk.
  *   litestream replicate /var/lib/minimem/minimem.db s3://bucket/minimem
@@ -28,6 +40,32 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { keywords, matchExpr } from "./search_kw.ts";
+import {
+  CF_ACCOUNT_ID,
+  CF_AI_TOKEN,
+  EMBED_ENABLED,
+  EMBED_MODEL,
+  EMBED_PROVIDER,
+  type Cand,
+  type Scored,
+  cosine,
+  dedupeByMeaning,
+  embedBatchSafe,
+  embedReady,
+  hashText,
+  packVec,
+  rankHybrid,
+  unpackVec,
+  weights,
+} from "./embed.ts";
+import {
+  backfill,
+  dropEmbedding,
+  embeddingStats,
+  getVector,
+  loadVectors,
+  storeEmbedding,
+} from "./embedstore.ts";
 
 const env = (k: string) => process.env[k];
 const DB_PATH = env("MINIMEM_DB_PATH") ?? env("DB_PATH") ?? "./data/minimem.db";
@@ -173,7 +211,7 @@ const auth = (raw: string | undefined): boolean => {
 };
 
 // ---------- DB ----------
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 mkdirSync(dirname(DB_PATH), { recursive: true });
 const db = new Database(DB_PATH, { create: true });
 db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;`);
@@ -249,7 +287,29 @@ CREATE TABLE IF NOT EXISTS audit (
   detail TEXT,
   at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
+-- ---------- v3: semantic index ----------
+-- one row per memory that has been embedded. The vector is a float32 blob of
+-- EMBED_DIM unit-normalised values (4 KiB at 1024 dims). text_hash binds the
+-- vector to the exact (model, text) it was made from, so editing a memory
+-- invalidates its vector instead of silently scoring stale meaning.
+CREATE TABLE IF NOT EXISTS embeddings (
+  memory_id   INTEGER PRIMARY KEY,
+  model       TEXT NOT NULL,
+  dim         INTEGER NOT NULL,
+  vec         BLOB NOT NULL,
+  text_hash   TEXT NOT NULL,
+  embedded_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS embeddings_model_idx ON embeddings(model);
 `);
+// v3 columns on memories: nullable, no backfill needed. agent_source = who said
+// it, trust = how much to believe it. Both are advisory metadata for the agent;
+// nothing is ever auto-deleted or auto-forgotten because of them.
+{
+  const cols = db.query("PRAGMA table_info(memories)").all() as { name: string }[];
+  if (!cols.some((c) => c.name === "agent_source")) db.exec("ALTER TABLE memories ADD COLUMN agent_source TEXT");
+  if (!cols.some((c) => c.name === "trust")) db.exec("ALTER TABLE memories ADD COLUMN trust TEXT DEFAULT 'unverified'");
+}
 {
   const cols = db.query("PRAGMA table_info(history)").all() as { name: string }[];
   if (!cols.some((c) => c.name === "old_tags")) db.exec("ALTER TABLE history ADD COLUMN old_tags TEXT");
@@ -260,22 +320,24 @@ type Mem = {
   text: string;
   created_at: string;
   updated_at: string;
+  agent_source?: string | null;
+  trust?: string | null;
   tags?: string[];
 };
 
 const q = {
-  insert: db.query("INSERT INTO memories(text) VALUES(?) RETURNING id"),
+  insert: db.query("INSERT INTO memories(text, agent_source, trust) VALUES(?, ?, ?) RETURNING id"),
   ftsIns: db.query("INSERT INTO memories_fts(rowid, text) VALUES(?, ?)"),
   ftsDel: db.query("DELETE FROM memories_fts WHERE rowid = ?"),
   hist: db.query("INSERT INTO history(memory_id, action, old_text, old_tags) VALUES(?, ?, ?, ?)"),
-  get: db.query("SELECT id, text, updated_at FROM memories WHERE id = ? AND deleted_at IS NULL"),
+  get: db.query("SELECT id, text, updated_at, agent_source, trust FROM memories WHERE id = ? AND deleted_at IS NULL"),
   getFull: db.query(
-    "SELECT id, text, created_at, updated_at FROM memories WHERE id = ? AND deleted_at IS NULL",
+    "SELECT id, text, created_at, updated_at, agent_source, trust FROM memories WHERE id = ? AND deleted_at IS NULL",
   ),
   upd: db.query("UPDATE memories SET text = ?, updated_at = datetime('now') WHERE id = ?"),
   del: db.query("UPDATE memories SET deleted_at = datetime('now') WHERE id = ?"),
   list: db.query(
-    "SELECT id, text, created_at, updated_at FROM memories WHERE deleted_at IS NULL ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?",
+    "SELECT id, text, created_at, updated_at, agent_source, trust FROM memories WHERE deleted_at IS NULL ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?",
   ),
   count: db.query("SELECT COUNT(*) AS n FROM memories WHERE deleted_at IS NULL"),
   dup: db.query("SELECT id FROM memories WHERE text = ? AND deleted_at IS NULL"),
@@ -285,6 +347,21 @@ const q = {
       WHERE memories_fts MATCH ? AND m.deleted_at IS NULL
       ORDER BY rank LIMIT ?`,
   ),
+  // same FTS5 trigram path, but also returns the raw bm25 `rank` so the hybrid
+  // blend can normalise it. The keyword path itself is unchanged.
+  searchRanked: db.query(
+    `SELECT m.id, m.text, m.created_at, m.updated_at, m.agent_source, m.trust, f.rank AS fts
+       FROM memories_fts f JOIN memories m ON m.id = f.rowid
+      WHERE memories_fts MATCH ? AND m.deleted_at IS NULL
+      ORDER BY rank LIMIT ?`,
+  ),
+  byIds: (ids: number[]) =>
+    db
+      .query(
+        `SELECT id, text, created_at, updated_at, agent_source, trust FROM memories
+          WHERE deleted_at IS NULL AND id IN (${ids.map(() => "?").join(",")})`,
+      )
+      .all(...ids) as Mem[],
   deletedList: db.query(
     "SELECT id, text, created_at, updated_at, deleted_at FROM memories WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT ? OFFSET ?",
   ),
@@ -356,6 +433,36 @@ const r = {
   auList: db.query("SELECT id, actor, action, target, detail, at FROM audit ORDER BY id DESC LIMIT ?"),
 };
 
+// ---------- v3: embeddings (write path) ----------
+// A memory must never wait on a third-party network call to be saved, so the
+// vector is built in the background. A failure is logged, not thrown: the row
+// simply stays un-embedded until the next write or the next backfill run.
+const embedQueue: { id: number; text: string }[] = [];
+let embedDraining: Promise<void> | null = null;
+const EMBED_BATCH = 16;
+const EMBED_QUEUE_CAP = 2000;
+
+function enqueueEmbed(id: number, text: string): void {
+  if (!embedReady()) return;
+  if (embedQueue.length >= EMBED_QUEUE_CAP) embedQueue.shift(); // provider down: drop oldest, backfill recovers
+  embedQueue.push({ id, text });
+  if (!embedDraining) embedDraining = drainEmbeds().finally(() => { embedDraining = null; });
+}
+
+async function drainEmbeds(): Promise<void> {
+  while (embedQueue.length) {
+    const batch = embedQueue.splice(0, EMBED_BATCH);
+    const res = await embedBatchSafe(batch.map((b) => b.text));
+    if ("error" in res) {
+      console.error(`[embed] ${res.error} — ${batch.length} memories left un-embedded (run ./backfill.sh)`);
+      embedQueue.length = 0; // the backfill is the recovery path, not this queue
+      return;
+    }
+    for (let i = 0; i < batch.length; i++) storeEmbedding(db, batch[i].id, res.vectors[i], batch[i].text);
+    invalidateVectors();
+  }
+}
+
 /** normalize: trim, lowercase, collapse spaces, strip leading '#', drop empties, dedupe, cap 10 tags x 40 chars */
 function normTags(input: unknown): string[] {
   if (!Array.isArray(input)) return [];
@@ -371,16 +478,40 @@ function normTags(input: unknown): string[] {
 
 const tagsOf = (id: number): string[] => (q.tagOf.all(id) as { tag: string }[]).map((r) => r.tag);
 
+/** trust is advisory metadata; anything unrecognised degrades to 'unverified' */
+const TRUSTS = ["verified", "unverified", "disputed"] as const;
+function normTrust(v: unknown): string {
+  const t = String(v ?? "").trim().toLowerCase();
+  return (TRUSTS as readonly string[]).includes(t) ? t : "unverified";
+}
+
+/** set the attributability fields on an existing memory (never touches text) */
+function setMeta(id: number, agent?: unknown, trust?: unknown): boolean {
+  const has = (v: unknown) => v !== undefined && v !== null && String(v).trim() !== "";
+  let touched = false;
+  if (has(agent)) {
+    db.query("UPDATE memories SET agent_source = ? WHERE id = ? AND deleted_at IS NULL").run(
+      String(agent).trim().slice(0, 64),
+      id,
+    );
+    touched = true;
+  }
+  if (has(trust)) {
+    db.query("UPDATE memories SET trust = ? WHERE id = ? AND deleted_at IS NULL").run(normTrust(trust), id);
+    touched = true;
+  }
+  return touched;
+}
+
 function setTags(id: number, tags: string[]): void {
   q.tagDel.run(id);
   for (const t of tags) q.tagAdd.run(id, t);
 }
 
-/** attach tags to a list of memories */
-function withTags(rows: Mem[]): Mem[] {
-  if (!rows.length) return rows;
-  const ids = rows.map((r) => r.id);
+/** bulk tag lookup for a page of memories — one query, not one per row */
+function tagsFor(ids: number[]): Map<number, string[]> {
   const map = new Map<number, string[]>();
+  if (!ids.length) return map;
   const stmt = db.query(
     `SELECT memory_id, tag FROM tags WHERE memory_id IN (${ids.map(() => "?").join(",")}) ORDER BY tag`,
   );
@@ -389,19 +520,27 @@ function withTags(rows: Mem[]): Mem[] {
     arr.push(r.tag);
     map.set(r.memory_id, arr);
   }
+  return map;
+}
+
+/** attach tags to a list of memories */
+function withTags(rows: Mem[]): Mem[] {
+  if (!rows.length) return rows;
+  const map = tagsFor(rows.map((r) => r.id));
   return rows.map((r) => ({ ...r, tags: map.get(r.id) ?? [] }));
 }
 
-function addMem(text: string, tags: string[] = []): number {
+function addMem(text: string, tags: string[] = [], agent?: string | null, trust?: string | null): number {
   const dup = q.dup.get(text) as { id: number } | null;
   if (dup) {
     if (tags.length) setTags(dup.id, tags);
     return dup.id;
   }
-  const { id } = q.insert.get(text) as { id: number };
+  const { id } = q.insert.get(text, agent ?? null, normTrust(trust)) as { id: number };
   q.ftsIns.run(id, text);
   q.hist.run(id, "add", null, null);
   if (tags.length) setTags(id, tags);
+  enqueueEmbed(id, text);
   return id;
 }
 
@@ -414,6 +553,10 @@ function updateMem(id: number, text: string, tags?: string[]): boolean {
   q.ftsDel.run(id);
   q.ftsIns.run(id, text);
   if (tags) setTags(id, tags);
+  // the vector was made from the old text: drop it and build a new one rather
+  // than let a stale meaning keep scoring hits for the new text
+  dropEmbedding(db, id);
+  enqueueEmbed(id, text);
   return true;
 }
 
@@ -424,6 +567,8 @@ function deleteMem(id: number): boolean {
   q.hist.run(id, "delete", old.text, oldTags.length ? JSON.stringify(oldTags) : null);
   q.del.run(id);
   q.ftsDel.run(id);
+  dropEmbedding(db, id);
+  invalidateVectors();
   return true;
 }
 
@@ -442,6 +587,8 @@ function purgeMem(id: number): string | null {
   q.ftsDel.run(row.id);
   q.hardDelTags.run(row.id);
   q.hardDelHist.run(row.id);
+  dropEmbedding(db, row.id);
+  invalidateVectors();
   audit("system", "purge", `memory:${id}`, { chars: before.text.length });
   return before.text;
 }
@@ -489,6 +636,169 @@ function relevant(input: string): Mem[] {
   for (const m of search(input, 40)) byId.set(m.id, m);
   for (const m of recent(30, 0)) byId.set(m.id, m);
   return [...byId.values()];
+}
+
+// ---------- v3: hybrid recall ----------
+// FTS5 trigram stays the exact/identifier path. This adds cosine similarity
+// over the semantic index plus an age decay, and blends the three. It never
+// replaces the keyword path: with EMBED_ENABLED=0, no provider configured, or
+// a provider error, recall() returns exactly what search() returns.
+export type RecallMode = "hybrid" | "keyword";
+
+export type RecallOut = {
+  mode: RecallMode;
+  /** set when hybrid was asked for but could not run — the caller falls back visibly */
+  degraded: string | null;
+  items: Scored[];
+  /** older near-duplicates dropped from the page, with the newer id that won */
+  shadowed: { id: number; by: number; cos: number }[];
+  candidates: number;
+  /** how many candidates passed the relevance gate */
+  relevant: number;
+  /** true when nothing matched and `items` is the recency fallback page */
+  fallback_used: boolean;
+};
+
+const poolSize = (limit: number) => Math.min(Math.max(limit * 5, 40), 200);
+
+type Cached = { at: number; model: string; vectors: Map<number, Float32Array> };
+let vecCache: Cached | null = null;
+const VEC_TTL_MS = 10_000;
+
+/**
+ * All index vectors, memoised for a few seconds. A search otherwise re-reads
+ * ~4 MB of blobs from SQLite; writes drop the cache so a new memory is visible
+ * to semantic recall immediately.
+ */
+function cachedVectors(model: string): Map<number, Float32Array> {
+  if (vecCache && vecCache.model === model && Date.now() - vecCache.at < VEC_TTL_MS) return vecCache.vectors;
+  const m = new Map<number, Float32Array>();
+  for (const r of loadVectors(db, model)) m.set(r.id, r.vec);
+  vecCache = { at: Date.now(), model, vectors: m };
+  return m;
+}
+
+// a write changes what the index holds
+function invalidateVectors(): void {
+  vecCache = null;
+}
+
+async function recall(
+  query: string,
+  limit = 10,
+  opts: { tag?: string; mode?: RecallMode; trust?: string; dedupe?: boolean } = {},
+): Promise<RecallOut> {
+  const mode = opts.mode ?? "hybrid";
+  const keywordOnly = (degraded: string | null = null): RecallOut => ({
+    mode: "keyword",
+    degraded,
+    items: search(query, limit, opts.tag) as unknown as Scored[],
+    shadowed: [],
+    candidates: 0,
+    relevant: 0,
+    fallback_used: false,
+  });
+  if (mode !== "hybrid") return keywordOnly();
+  // embeddings off / provider not configured: keyword-only, but say so
+  if (!embedReady()) {
+    return keywordOnly(
+      `embeddings unavailable (EMBED_ENABLED=${EMBED_ENABLED ? 1 : 0}, token ${CF_AI_TOKEN ? "set" : "missing"}, account ${CF_ACCOUNT_ID ? "set" : "missing"})`,
+    );
+  }
+
+  const terms = keywords(query);
+  if (!terms.length)
+    return { mode: "hybrid", degraded: null, items: [], shadowed: [], candidates: 0, relevant: 0, fallback_used: false };
+
+  const w = weights();
+  const pool = poolSize(limit);
+  const tagged = opts.tag
+    ? new Set((q.tagIds.all(opts.tag) as { memory_id: number }[]).map((r) => r.memory_id))
+    : null;
+  const keep = (m: { id: number; trust?: string | null }) =>
+    (!tagged || tagged.has(m.id)) && (!opts.trust || normTrust(m.trust) === normTrust(opts.trust));
+
+  // (a) keyword hits — the existing trigram path, same MATCH expression
+  const cands = new Map<number, Cand>();
+  for (const row of q.searchRanked.all(matchExpr(terms), pool) as unknown as (Mem & { fts: number })[]) {
+    if (!keep(row)) continue;
+    cands.set(row.id, { ...row, trust: normTrust(row.trust), agent_source: row.agent_source ?? null, fts: row.fts });
+  }
+
+  // (b) semantic hits — cosine over the whole embedded corpus, not just keyword hits.
+  // The vector map stays local on purpose: it must never reach a JSON response.
+  let degraded: string | null = null;
+  let vectors: Map<number, Float32Array> | null = null;
+  // id -> cosine for EVERY embedded row, not only the ones that make the top
+  // pool. A keyword hit that happens to be embedded must still contribute its
+  // cosine, otherwise the vector signal is silently dropped for it.
+  const cosOf = new Map<number, number>();
+  const qv = await embedBatchSafe([query]);
+  if ("error" in qv) {
+    // provider down: keyword + recency still work, so answer instead of failing
+    degraded = qv.error;
+  } else {
+    const queryVec = unpackVec(packVec(qv.vectors[0]));
+    vectors = cachedVectors(EMBED_MODEL);
+    for (const [id, vec] of vectors) cosOf.set(id, cosine(queryVec, vec));
+    // semantic-only candidates: above the relevance floor, best cosine first
+    const floor = w.minRelevance;
+    const sem = [...cosOf.entries()]
+      .filter(([, c]) => c >= floor)
+      .sort((a, b) => b[1] - a[1] || b[0] - a[0])
+      .slice(0, pool)
+      .map(([id]) => id);
+    for (const m of q.byIds(sem.filter((id) => !cands.has(id)))) {
+      if (!keep(m)) continue;
+      cands.set(m.id, { ...m, trust: normTrust(m.trust), agent_source: m.agent_source ?? null });
+    }
+  }
+
+  // (c) every candidate that has a vector contributes its cosine
+  for (const c of cands.values()) {
+    const cc = cosOf.get(c.id);
+    if (cc !== undefined) c.cos = cc;
+  }
+
+  const ranked = rankHybrid([...cands.values()], w);
+  // Dedupe is O(n^2) in 1024-dim cosines, so it only runs over the head of the
+  // ranking: any row that could land on the page is inside it, and a row far
+  // down the ranking is not being "recalled as current" anyway.
+  const DEDUPE_HEAD = 60;
+  const head = ranked.slice(0, DEDUPE_HEAD);
+  const deduped =
+    opts.dedupe === false
+      ? { kept: head, shadowed: [] as RecallOut["shadowed"] }
+      : dedupeByMeaning(head, w, vectors);
+  const keptAll = [...deduped.kept, ...ranked.slice(DEDUPE_HEAD)];
+
+  // relevance is the gate: only rows that matched by word or by meaning are
+  // answers. Recency alone does not make an irrelevant memory relevant, so the
+  // newest memories come back ONLY when nothing matched at all.
+  const relevant = keptAll.filter((r) => r.match !== "none");
+  let items = relevant.slice(0, limit);
+  let fallbackUsed = false;
+  if (!items.length) {
+    fallbackUsed = true;
+    const fresh = recent(pool, 0).filter(keep);
+    const fb = rankHybrid(
+      fresh.map((m) => ({ ...m, trust: normTrust(m.trust), agent_source: m.agent_source ?? null })),
+      w,
+    );
+    items = dedupeByMeaning(fb, w, vectors).kept.slice(0, limit);
+  }
+
+  const tags = tagsFor(items.map((r) => r.id));
+  for (const r of items) r.tags = tags.get(r.id) ?? [];
+  return {
+    mode: "hybrid",
+    degraded,
+    items,
+    shadowed: deduped.shadowed,
+    candidates: cands.size,
+    relevant: relevant.length,
+    fallback_used: fallbackUsed,
+  };
 }
 
 // ---------- LLM extraction ----------
@@ -580,6 +890,8 @@ function restoreMem(id: number): boolean {
   q.ftsIns.run(row.id, row.text);
   const tags = tagsOf(row.id);
   q.hist.run(row.id, "restore", null, tags.length ? JSON.stringify(tags) : null);
+  // deleting dropped the vector; restoring means it has to be built again
+  enqueueEmbed(row.id, row.text);
   return true;
 }
 
@@ -673,7 +985,49 @@ const toolErr = (msg: string) => ({ content: [{ type: "text" as const, text: msg
 
 const MCP_TOOLS = [
   { name: "memory_save", description: "Store one durable fact. Dedupes identical text and returns the existing id.", inputSchema: { type: "object", properties: { text: { type: "string" }, tags: { type: "array", items: { type: "string" } }, agent: { type: "string" } }, required: ["text"] } },
-  { name: "memory_search", description: "Full-text (trigram) search over memories; works for Thai and substring queries.", inputSchema: { type: "object", properties: { query: { type: "string" }, limit: { type: "number" }, tag: { type: "string" } }, required: ["query"] } },
+  {
+    name: "memory_search",
+    description:
+      "Search memories. Default is hybrid (keyword + semantic + recency); mode='keyword' forces the pure trigram path. " +
+      "Results carry score, cos, age_days, trust and agent_source so you can judge freshness before trusting a memory.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        limit: { type: "number" },
+        tag: { type: "string" },
+        mode: { type: "string", enum: ["hybrid", "keyword"] },
+        trust: { type: "string", enum: ["verified", "unverified", "disputed"] },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "memory_recall",
+    description:
+      "Hybrid recall with provenance: which signal found each memory, how old it is, who said it, how much to trust it, " +
+      "and which older near-duplicates it supersedes (shadowed). Use when a plain search feels off or too old.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        limit: { type: "number" },
+        tag: { type: "string" },
+        mode: { type: "string", enum: ["hybrid", "keyword"] },
+        trust: { type: "string", enum: ["verified", "unverified", "disputed"] },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "memory_trust",
+    description: "Set trust (verified|unverified|disputed) and/or agent_source on an existing memory. Never changes the text.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "number" }, trust: { type: "string" }, agent: { type: "string" } },
+      required: ["id"],
+    },
+  },
   { name: "memory_recent", description: "Newest memories, optionally filtered by tag and paged.", inputSchema: { type: "object", properties: { limit: { type: "number" }, offset: { type: "number" }, tag: { type: "string" } } } },
   { name: "memory_forget", description: "Soft-delete a memory (recoverable from /memories/deleted).", inputSchema: { type: "object", properties: { id: { type: "number" }, agent: { type: "string" } }, required: ["id"] } },
   { name: "lesson_save", description: "Record a durable 'do it this way' rule learned while working.", inputSchema: { type: "object", properties: { text: { type: "string" }, scope: { type: "string" } }, required: ["text"] } },
@@ -687,7 +1041,7 @@ const MCP_TOOLS = [
   { name: "memory_stats", description: "Counts of memories, handoffs, leases, lessons, crystals, audit rows.", inputSchema: { type: "object", properties: {} } },
 ];
 
-function mcpCall(name: string, a: Record<string, unknown>) {
+async function mcpCall(name: string, a: Record<string, unknown>) {
   const str = (k: string) => String(a[k] ?? "").trim();
   const num = (k: string, d: number) => (Number.isFinite(Number(a[k])) ? Number(a[k]) : d);
   switch (name) {
@@ -695,7 +1049,7 @@ function mcpCall(name: string, a: Record<string, unknown>) {
       const text = str("text");
       if (!text) return toolErr("text is required");
       const before = (q.count.get() as { n: number }).n;
-      const id = addMem(text.slice(0, 4000), normTags(a.tags));
+      const id = addMem(text.slice(0, 4000), normTags(a.tags), str("agent") || null, a.trust);
       const after = (q.count.get() as { n: number }).n;
       if (after === before) return toolText({ id, status: "duplicate" });
       audit(str("agent") || "mcp", "memory_save", `memory:${id}`);
@@ -704,8 +1058,40 @@ function mcpCall(name: string, a: Record<string, unknown>) {
     case "memory_search": {
       const qq = str("query");
       if (!qq) return toolErr("query is required");
-      const items = search(qq, Math.min(num("limit", 10), 50), normTags([a.tag])[0]);
-      return toolText({ total: items.length, items });
+      const out = await recall(qq, Math.min(num("limit", 10), 50), {
+        tag: normTags([a.tag])[0],
+        mode: a.mode === "keyword" ? "keyword" : "hybrid",
+        trust: a.trust ? str("trust") : undefined,
+      });
+      return toolText({ total: out.items.length, mode: out.mode, degraded: out.degraded, items: out.items });
+    }
+    case "memory_recall": {
+      const qq = str("query");
+      if (!qq) return toolErr("query is required");
+      const out = await recall(qq, Math.min(num("limit", 10), 50), {
+        tag: normTags([a.tag])[0],
+        mode: a.mode === "keyword" ? "keyword" : "hybrid",
+        trust: a.trust ? str("trust") : undefined,
+      });
+      return toolText({
+        mode: out.mode,
+        degraded: out.degraded,
+        candidates: out.candidates,
+        relevant: out.relevant,
+        fallback_used: out.fallback_used,
+        total: out.items.length,
+        items: out.items,
+        shadowed: out.shadowed,
+      });
+    }
+    case "memory_trust": {
+      const id = num("id", 0);
+      const row = q.get.get(id);
+      if (!row) return toolErr(`memory ${id} not found`);
+      const touched = setMeta(id, a.agent, a.trust);
+      if (!touched) return toolErr("pass trust and/or agent");
+      audit(str("agent") || "mcp", "memory_trust", `memory:${id}`);
+      return toolText({ ok: true, id, trust: normTrust(a.trust), agent_source: str("agent") || null });
     }
     case "memory_recent": {
       const tag = normTags([a.tag])[0];
@@ -781,7 +1167,7 @@ async function handleMcp(body: Rpc): Promise<{ status: number; body: unknown }> 
     case "tools/call": {
       const name = String(params.name ?? "");
       const args = (params.arguments ?? {}) as Record<string, unknown>;
-      const res = mcpCall(name, args);
+      const res = await mcpCall(name, args);
       if (!res) return { status: 200, body: { jsonrpc: "2.0", id, error: { code: -32602, message: `unknown tool: ${name}` } } };
       return ok(res);
     }
@@ -908,10 +1294,55 @@ const app = new Elysia()
     }
     return withTags([row])[0];
   })
-  // recall (optional ?tag= to constrain)
-  .get("/memories/search", ({ query }) =>
-    search(query.q ?? "", Math.min(Number(query.limit ?? 10), 50), normTags([query.tag])[0]),
-  )
+  // recall (optional ?tag= to constrain, ?mode=keyword to force the pure FTS5
+  // path, ?trust= to filter). Still returns the bare array the web UI expects.
+  .get("/memories/search", async ({ query }) => {
+    const out = await recall(String(query.q ?? ""), Math.min(Number(query.limit ?? 10), 50), {
+      tag: normTags([query.tag])[0],
+      mode: query.mode === "keyword" ? "keyword" : "hybrid",
+      trust: query.trust,
+      dedupe: query.dedupe === "0" ? false : true,
+    });
+    return out.items;
+  })
+  // same recall, with the provenance the agent needs: which signal found it,
+  // how old it is, who said it, and which older near-duplicates it superseded
+  .get("/memories/recall", async ({ query }) => {
+    const out = await recall(String(query.q ?? ""), Math.min(Number(query.limit ?? 10), 50), {
+      tag: normTags([query.tag])[0],
+      mode: query.mode === "keyword" ? "keyword" : "hybrid",
+      trust: query.trust,
+      dedupe: query.dedupe === "0" ? false : true,
+    });
+    return {
+      mode: out.mode,
+      degraded: out.degraded,
+      candidates: out.candidates,
+      relevant: out.relevant,
+      fallback_used: out.fallback_used,
+      total: out.items.length,
+      items: out.items,
+      shadowed: out.shadowed,
+    };
+  })
+  // semantic index state — never returns the token, only whether it is set
+  .get("/embeddings", () => ({
+    enabled: EMBED_ENABLED,
+    ready: embedReady(),
+    provider: EMBED_PROVIDER,
+    model: EMBED_MODEL,
+    account_id: CF_ACCOUNT_ID ? "set" : "missing",
+    ai_token: process.env.CF_AI_TOKEN ? "CF_AI_TOKEN" : process.env.CLOUDFLARE_AI_TOKEN ? "CLOUDFLARE_AI_TOKEN" : "missing",
+    ...embeddingStats(db),
+  }))
+  // backfill: idempotent, resumable, capped per call. Safe to run while live.
+  .post("/embeddings/backfill", async ({ query }) => {
+    const limit = Math.min(Math.max(Number(query.limit ?? 25), 1), 500);
+    const batchSize = Math.min(Math.max(Number(query.batch ?? 16), 1), 100);
+    const rep = await backfill(db, { limit, batchSize });
+    invalidateVectors();
+    return { ok: !rep.error, ...rep };
+  })
   // all tags with counts (for the filter bar)
   .get("/tags", ({ query }) => ({
     total: (q.tagTotal.get() as { n: number }).n,
