@@ -133,6 +133,31 @@ Or point the agent at the MCP endpoint — one URL, no wrapper binary:
   "headers": { "Authorization": "Bearer $MINIMEM_TOKEN" } } } }
 ```
 
+### Connect a client
+
+1. Get the token from the env file the installer wrote. Keep it out of any file you commit.
+   ```sh
+   export MINIMEM_TOKEN="$(sed -n 's/^MINIMEM_TOKEN="\(.*\)"/\1/p' /etc/minimem/minimem.env)"
+   ```
+2. Point the client at the endpoint:
+   - same host: `http://127.0.0.1:3100/mcp`
+   - another machine on the LAN: `https://<host>:3145/mcp` (Caddy TLS, see the Caddyfile block for 3145)
+   - transport `streamable-http`, header `Authorization: Bearer <token>`
+3. Check the handshake before you blame the client:
+   ```sh
+   curl -s -X POST http://127.0.0.1:3100/mcp \
+     -H "Authorization: Bearer $MINIMEM_TOKEN" \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json, text/event-stream" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"probe","version":"0"}}}'
+   ```
+   A JSON result with `serverInfo.name` set to `minimem` means the server is up and the token is accepted. `401` means the token is wrong or missing.
+
+Notes:
+- `POST /mcp` is the only write path. `GET /mcp` returns `405`.
+- Protocol version is `2025-06-18`. Tools have no name prefix.
+- Only the LAN port is reachable from outside the host. There is no public tunnel for `/mcp`.
+
 Thirteen tools come back: `memory_save`, `memory_search`, `memory_recent`, `memory_forget`,
 `lesson_save`, `lesson_list`, `handoff_write`, `handoff_read`, `handoff_ack`, `lease_acquire`,
 `lease_release`, `crystal_save`, `memory_stats`.
