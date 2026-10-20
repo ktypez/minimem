@@ -84,13 +84,36 @@ The two reduced claims are compared with one question:
 
 The merge test is what made this work. Asking *"are these the same fact?"*
 scored 56% accuracy; the merge test with the same model family scored F1 0.85
-in isolation, 0.75 end-to-end over the whole pipeline (precision 0.83,
-recall 0.68).
+in isolation, 0.76 end-to-end over the whole pipeline.
 
 Worked examples in the prompt matter a lot, and so does the *direction* of the
 examples: the hard cases are "same tracked thing, later state" (a version bump
 is the same fact) versus "two events about one project" (a migration and its
 E2E test are two facts).
+
+A stricter prompt was tried and rejected on measurement: symmetric wording,
+"the same SUBJECT and the same ATTRIBUTE", "the shared project name or date
+alone is NEVER enough for SAME". It reads better and scores **worse** — F1 0.65
+against 0.76 — because it refuses the vintage pairs whose *value* changed (a
+row height that went from 77px to 65px, a roster re-listed with a different
+set, a commit that went from not-pushed to pushed). Those are exactly the
+pairs the feature exists to collapse.
+
+### The numbers that matter
+
+Scored against the 55 unambiguous hand-labelled pairs of the live corpus:
+
+| rule | precision | recall | F1 | false collapses |
+|---|---|---|---|---|
+| cosine >= 0.78 (the old rule) | 0.52 | 1.00 | **0.51** | **27** |
+| merge test + stored relations | 0.86 | 0.68 | **0.76** | **3** |
+
+The old rule's perfect recall is not a virtue: it comes from collapsing
+everything, including 27 distinct facts. The new rule trades some recall for
+precision, and the trade is the right way round — a false collapse deletes a
+fact from every query that would have found it, while a missed collapse only
+leaves a redundant note next to the current one.
+
 
 ### Stage 3 — store the relation
 
