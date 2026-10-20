@@ -208,22 +208,27 @@ const CLAIM_SYSTEM = `For each note, extract:
 Answer with JSON only, one entry per note:
 {"notes":[{"id":<the id shown>,"subject":"...","claim":"...","artifact":"...","time":"...","is_update":<true|false>}]}`;
 
-const MERGE_SYSTEM = `You are a memory-store deduplicator for a personal memory store. A semantic search sometimes returns two notes together. Decide whether they record the SAME underlying fact -- so that one is a STALE VINTAGE of the other and the older one should be hidden -- or DIFFERENT facts that merely share a topic, project, or date.
+const MERGE_SYSTEM = `Two notes from a memory system, each reduced to subject / claim / artifact / time.
 
-The question is symmetric: it does not matter which note is listed first. If EITHER note is a stale vintage of the other, the answer is SAME. If both notes add distinct facts, the answer is DIFFERENT.
+THE MERGE TEST. Imagine merging the two notes into ONE note that keeps every piece of information from both.
 
-Each note is given as its subject, its claim, the concrete artifact it points at, and its time.
+  - If the merged note would be ONE coherent statement (the second just updates, refines, corrects or restates the first) -> SAME.
+  - If the merged note would have to be TWO separate statements (each carrying information the other lacks) -> DIFFERENT.
 
-Judge each note at the granularity of "which specific thing is this note about": a specific commit, a specific file, a specific roster, a specific session, a specific document, a specific UI measurement, a specific named decision, a specific migration.
+Same tracked thing, later state -> SAME. Examples:
+  "Hermes upgraded to v0.22.0" + "Hermes upgraded to v0.22.2" -> SAME (one upgrade line)
+  "Clerk Core 3 migration, NOT pushed" + "Clerk Core 3 migration PUSHED" -> SAME (one migration line)
+  "Logfare roster cut to 4 models" + "Logfare roster live: those 4 models" -> SAME (one roster)
+  "screenshot swiss-dash.png" + "screenshot swiss-tags.png" -> DIFFERENT (two screenshots)
+  "migrated to Clerk Core 3" + "E2E login VERIFIED" -> DIFFERENT (migration and its test are two facts)
+  "dependency upgrade" + "migration to Clerk Core 3" -> DIFFERENT
+  "branch field added to D1" + "how branch is displayed in the UI" -> DIFFERENT (schema vs display)
+  "opencode crashed twice" + "how to recover opencode" -> DIFFERENT (incident vs recipe)
 
-SAME (one is a stale vintage of the other) = the two notes report the SAME specific thing at the same subject-and-attribute granularity, and one simply updates, corrects, or elaborates the other. The VALUE may have changed and that is still SAME: row height 77px then 65px; a model roster re-listed with a different set; a proposed name then the chosen name; a commit first "not pushed" then "pushed"; a doc first "not merged" then "merged"; a brief index note then a detailed version of the same index; a spec then the final wording of the same spec. Both notes must be about the same SUBJECT and the same ATTRIBUTE (e.g. both about the row height of the catalog rows; both about the contents of the Logfare roster; both about the status of commit 91dce00).
+A note about a DIFFERENT aspect of the same project is DIFFERENT, even when both mention the project. A note that records an event and a note that records a later, separate event are DIFFERENT.
 
-DIFFERENT (both must be kept) = the two notes track two different attributes, two different artifacts, or two different events, even when they share the same project, the same day, and the same overall topic. Specifically DIFFERENT if: the commits, file paths, rosters, documents, or attributes differ; or each note records a distinct separate step or outcome (a migration record vs. a later end-to-end verification result; a crash report vs. a recovery recipe; a dependency upgrade vs. a framework migration; two different UI layout changes; an audit batch vs. a later git-history purge); or one is a policy/overview/directory document and the other is a specific claim of a different scope.
-
-The shared project name, product name, or date alone is NEVER enough for SAME. Ask: is there ONE specific underlying fact, at the same subject-and-attribute granularity, that both notes report?
-
-Answer with JSON only:
-{"verdicts":[{"pair":<int>,"same":<true|false>,"reason":"<one-sentence reason>"}]}`;
+Ignore dates, wording and length. Answer with JSON only:
+{"verdicts":[{"pair":<int>,"same":<true|false>,"reason":"<max 20 words>"}]}`;
 
 // ---------- stage 1: claims ----------
 
@@ -281,18 +286,22 @@ export const claimText = (c: Claim): string =>
  * Judge a batch of pairs. The result is keyed by "a:b" (order-independent) so
  * the caller can look it up without remembering which side was "a".
  *
- * THREE VOTES, UNANIMITY REQUIRED
+ * VOTES
  *
- * One call is not enough. Measured on the live corpus, a single call on 55
- * hand-labelled pairs scores 0.73-0.76 accuracy, and the error is not evenly
- * spread: some pairs flip between calls. Three votes, taken with the pair in
- * both orders, and a relation written only when all three agree, scored 0.836
- * accuracy at precision 0.83 and recall 0.86 — against 0.764 for one call at
- * the same precision.
+ * One call is the default, and it is enough: measured on the live corpus
+ * against 55 hand-labelled pairs, the merge-test prompt scores precision 0.86
+ * / recall 0.68 / F1 0.76, against F1 0.51 for the old cosine rule.
  *
- * The order matters less than it looks, because the prompt is explicitly
- * symmetric; it is varied anyway so a residual order bias cannot decide a
- * relation on its own.
+ * A prompt that asks the question in a more "rigorous" way — explicitly
+ * symmetric, with "the same SUBJECT and the same ATTRIBUTE" and "the shared
+ * project name alone is never enough" — was tried and measured WORSE here
+ * (F1 0.65): it refuses the vintage pairs whose value changed, which is
+ * exactly the case the feature exists for. The merge test is kept because it
+ * is what was measured, not because it reads better.
+ *
+ * `--votes N` takes several votes and writes a relation only when every vote
+ * cast said SAME. It is off by default because it costs N times the calls for
+ * a gain that was not measured on this corpus.
  */
 export async function judgePairs(
   pairs: { aId: number; a: Claim; bId: number; b: Claim }[],
@@ -351,14 +360,16 @@ export async function judgePairs(
     }
   }
 
+  const minVotes = Math.min(2, votes);
   for (const [key, t] of tally) {
     // A relation is written only when every vote that was cast said SAME, and
-    // at least two votes were cast. One vote is not enough: some pairs flip
-    // between calls. A pair that split its votes, or that nobody answered,
-    // gets no relation — both memories keep being recalled.
+    // at least `minVotes` votes were cast. With more than one vote, some pairs
+    // flip between calls, so a single vote is not enough. A pair that split
+    // its votes, or that nobody answered, gets no relation — both memories
+    // keep being recalled.
     if (t.diff > 0) {
       out.set(key, { same: false, reason: t.reason });
-    } else if (t.cast >= 2) {
+    } else if (t.cast >= minVotes) {
       out.set(key, { same: true, reason: t.reason });
     }
   }

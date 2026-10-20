@@ -90,6 +90,16 @@ if (!up) {
   child.kill();
   process.exit(2);
 }
+// The server's own state decides whether the dedupe runs at all: without the
+// semantic index there are no vectors, so nothing can be collapsed. Say so
+// when a check fails.
+const embedState = await (await fetch(`${BASE}/embeddings`)).json().catch(() => null);
+const serverLog = () => {
+  if (!embedState) return;
+  console.log(
+    `\n[server] db=${DB} embeddings=${embedState.ready ? "ready" : "NOT READY"} (${embedState.embedded ?? "?"} vectors)`,
+  );
+};
 
 const db = new Database(DB, { readonly: true });
 const textOf = (id: number) =>
@@ -125,10 +135,12 @@ for (const [oldId, newId, label] of PAIRS) {
     console.log(
       `  winner: #${winner.id} score=${winner.score.toFixed(4)} match=${winner.match} supersedes=${JSON.stringify(winner.supersedes ?? [])}`,
     );
+  serverLog();
   if (!oldIn && electedIn) {
     console.log(`  OK: the stale vintage #${oldId} is not recalled; the current #${elected} is`);
   } else {
     console.log(`  FAIL: old in page=${oldIn} (want false), current in page=${electedIn} (want true)`);
+    serverLog();
     failures++;
   }
 }
