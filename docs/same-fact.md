@@ -55,6 +55,22 @@ deterministic features over the same 67 hand-labelled pairs:
 None of them beats guessing. The two populations overlap almost completely:
 there is no threshold on any of these that separates them.
 
+Chunk-level claim coverage was measured a second time, more carefully, because
+it is the most plausible of the five: split each document into its claims,
+embed every claim, and call two documents the same fact when every claim of
+one is matched by a claim of the other at cosine 0.80. It is *precise* and
+*incomplete*:
+
+| rule | precision | recall | F1 |
+|---|---|---|---|
+| chunk coverage, every claim matched | 0.92 | 0.61 | 0.73 |
+| merge test + stored relations | 0.86 | 0.68 | **0.76** |
+
+Seven of the eighteen genuine revision pairs share no claim at all — a
+reworded note and its correction have no common sentence — so coverage
+cannot see them however the threshold is set. It is a good *precision* signal
+and a poor *identity* test, which is the opposite of what this feature needs.
+
 ## What is done instead
 
 The question is semantic, so it is answered by a model — but **once**, offline,
