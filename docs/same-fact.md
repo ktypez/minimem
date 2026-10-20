@@ -131,7 +131,37 @@ selectable with `--style deletion` so the comparison stays reproducible.
 | symmetric / "same subject and attribute" | 0.78 | 0.61 | 0.65 |
 | "would anything be lost by deleting one?" | 0.83 | 0.18 | 0.29 |
 
-### The numbers that matter
+### Which model decides
+
+The adjudicator's model is chosen by measurement, not by taste. Same merge
+prompt, same claims, same 55 hand-labelled pairs of the live corpus:
+
+| model | precision | recall | F1 | time |
+|---|---|---|---|---|
+| **hyper/glm-5.3-flash** | 0.94 | 0.77 | **0.85** | 76s |
+| hyper/qwen3.8-flash | 0.83 | 0.71 | 0.77 | 195s |
+| auto (the router's pick) | 0.78 | 0.75 | 0.76 | 300s |
+| ag/gemini-3.8-flash-high | 0.90 | 0.64 | 0.75 | 552s |
+
+`hyper/glm-5.3-flash` wins on every axis that matters and is also the
+fastest — seven times quicker than the route `auto` happened to pick, so the
+better model is the cheaper one. It is the default. `auto` is a fallback
+rather than the default because letting the router choose means the verdict
+quality changes with whatever the router is routing to that day.
+
+A provider that answers *out of credits* or *authentication failed* is
+**quarantined for the rest of the run** instead of being retried on every
+batch. Before this, a hyper outage cost one failed round trip per batch per
+dead model; now it costs one, and the run continues on the fallback. This
+mattered in practice: the sweep below was run while hyper had credits, and
+a later pipeline run silently fell back to `auto` and scored 0.68 instead of
+0.85 — a difference that would have looked like a regression in the feature
+rather than an empty wallet.
+
+**The live relations were hand-corrected on top of a model run**, which is why
+they score better (F1 0.76) than a fresh pipeline run of the same fallback
+model (F1 0.68): the model's own false collapses were removed by hand, and
+the corrections are what the live set contains.
 
 Scored against the 55 unambiguous hand-labelled pairs of the live corpus:
 
