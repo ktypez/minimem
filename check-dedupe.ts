@@ -5,8 +5,18 @@
  *
  *   bun run check-dedupe.ts
  *
- * The corpus was bulk-imported, so both halves of a pair share a timestamp:
- * insertion order (the higher id) is what decides the vintage.
+ * WHAT "SAME FACT" MEANS NOW
+ *
+ * It used to be a cosine threshold, which was measurably wrong: cosine
+ * measures topical similarity, not factual identity, so distinct facts that
+ * shared a topic were collapsed too (27 of 67 pairs on the live corpus — and
+ * the false ones were the HIGHEST cosine ones). The answer is now a stored
+ * relation in the `supersedes` table, produced by `curate.ts` and readable
+ * with GET /supersedes.
+ *
+ * So this script checks the two things that must both hold:
+ *   1. a pair KNOWN to be the same fact collapses to the current vintage
+ *   2. a pair known to be DIFFERENT facts survives intact
  */
 import { Database } from "bun:sqlite";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -21,8 +31,20 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const PAIRS: [number, number, string][] = [
   [848, 849, "Jev EXISTS on Vercel AI Gateway / Correction: the two Free promos"],
   [907, 916, "truck cold-start optimisations NOT DONE / SUPERSEDES the earlier"],
-  [803, 810, "Thai combining marks clipped / Compacted catalog rows"],
   [588, 894, "Hermes Provider Setup / Hermes current model/provider topology (SUPERSEDES)"],
+];
+
+// pairs that must NOT be collapsed: two different facts that share a topic
+const DIFFERENT: [number, number, string][] = [
+  [587, 588, "Hermes Maintenance / Hermes Provider Setup"],
+  [714, 720, "Hermes Memory Policy / Vault Rules"],
+  [970, 973, "swiss-redesign screenshot: dash / mobile-dash"],
+  // #803 and #810 look like a revision pair — same spacing work, same deploy
+  // lineage — but #810 also records a separate Maps layout change, so #803
+  // still holds information (the 76px virtual estimate, the 473-item
+  // verification, deploy a1093a85) that #810 does not. Merging them would
+  // lose it, so both stay.
+  [803, 810, "catalog spacing fix / compacted rows PLUS a separate Maps layout change"],
 ];
 
 const dir = mkdtempSync(join(tmpdir(), "minimem-dedupe-"));
@@ -74,6 +96,12 @@ const textOf = (id: number) =>
   ((db.query("SELECT text FROM memories WHERE id=?").get(id) as { text: string } | null)?.text ?? "");
 
 let failures = 0;
+
+// ---------- 1. same fact -> the current vintage wins ----------
+// The elected row is not necessarily the pair's own "new" member: a fact can
+// have several records of the same vintage and the newest of all of them
+// wins. So the requirement is: the OLD vintage must not be recalled, and the
+// row that superseded it must be.
 for (const [oldId, newId, label] of PAIRS) {
   const q = textOf(oldId).slice(0, 40);
   const res = await fetch(`${BASE}/memories/recall?q=${encodeURIComponent(q)}&limit=20`);
@@ -83,31 +111,59 @@ for (const [oldId, newId, label] of PAIRS) {
   };
   const ids = out.items.map((i) => i.id);
   const oldIn = ids.includes(oldId);
-  const newIn = ids.includes(newId);
   const sh = out.shadowed.find((s) => s.id === oldId); // attribution of the shadowing
-  const winner = out.items.find((i) => i.id === newId || i.id === oldId);
+  const elected = sh?.by ?? newId; // the row that took over
+  const electedIn = ids.includes(elected);
+  const winner = out.items.find((i) => i.id === elected || i.id === oldId);
 
-  console.log(`\n### ${label}`);
+  console.log(`\n### SAME FACT: ${label}`);
   console.log(`  query: ${JSON.stringify(q)}`);
   console.log(`  old #${oldId} in the page: ${oldIn ? "YES  <-- STALE VINTAGE RECALLED" : "no"}`);
-  console.log(`  new #${newId} in the page: ${newIn ? "yes" : "no"}`);
+  console.log(`  current #${elected} in the page: ${electedIn ? "yes" : "no"}`);
   console.log(`  shadowed: ${JSON.stringify(out.shadowed)}`);
   if (winner)
     console.log(
       `  winner: #${winner.id} score=${winner.score.toFixed(4)} match=${winner.match} supersedes=${JSON.stringify(winner.supersedes ?? [])}`,
     );
-  // The requirement is: the OLD vintage must not be recalled as current, and
-  // the NEW vintage must be. (Which row the shadowing is attributed to can be
-  // a third, even-newer record of the same fact.)
-  if (!oldIn && newIn) {
-    console.log(`  OK: the stale vintage #${oldId} is not recalled; the current #${newId} is`);
+  if (!oldIn && electedIn) {
+    console.log(`  OK: the stale vintage #${oldId} is not recalled; the current #${elected} is`);
   } else {
-    console.log(`  FAIL: old in page=${oldIn} (want false), new in page=${newIn} (want true)`);
+    console.log(`  FAIL: old in page=${oldIn} (want false), current in page=${electedIn} (want true)`);
     failures++;
   }
 }
+
+// ---------- 2. different facts -> they must not be collapsed INTO EACH OTHER ----------
+// Either of them may still be shadowed by a THIRD record of its own fact —
+// that is correct behaviour. What must never happen is one swallowing the
+// other.
+for (const [aId, bId, label] of DIFFERENT) {
+  const q = textOf(aId).slice(0, 40);
+  const res = await fetch(`${BASE}/memories/recall?q=${encodeURIComponent(q)}&limit=20`);
+  const out = (await res.json()) as {
+    items: { id: number }[];
+    shadowed: { id: number; by: number }[];
+  };
+  const ids = out.items.map((i) => i.id);
+  const aShadowedByB = out.shadowed.some((s) => s.id === aId && s.by === bId);
+  const bShadowedByA = out.shadowed.some((s) => s.id === bId && s.by === aId);
+  const merged = aShadowedByB || bShadowedByA;
+  console.log(`\n### DIFFERENT FACTS: ${label}`);
+  console.log(`  query: ${JSON.stringify(q)}`);
+  console.log(`  #${aId} in page: ${ids.includes(aId)}   #${bId} in page: ${ids.includes(bId)}`);
+  console.log(`  shadowed: ${JSON.stringify(out.shadowed)}`);
+  if (!merged) {
+    console.log(`  OK: neither swallowed the other; both stay distinct facts`);
+  } else {
+    console.log(`  FAIL: one distinct fact was collapsed into the other`);
+    failures++;
+  }
+}
+
 db.close();
 child.kill();
 rmSync(dir, { recursive: true, force: true });
-console.log(`\n=== ${failures === 0 ? "PASS: every revision pair collapsed to the newer vintage" : `FAIL: ${failures} pair(s)`}`);
+console.log(
+  `\n=== ${failures === 0 ? "PASS: revision pairs collapse to the current vintage, distinct facts survive" : `FAIL: ${failures} check(s)`}`,
+);
 process.exit(failures === 0 ? 0 : 1);

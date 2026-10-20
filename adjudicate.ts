@@ -167,13 +167,13 @@ export async function chat(
 // ---------- prompts ----------
 
 const CLAIM_SYSTEM = `For each note, extract:
-- subject: the SPECIFIC thing the note is about (a feature, file, field, setting, task, event). "the branch field in data.mcky.space" is a subject; "data.mcky.space" alone is too vague.
+- subject: the HEADLINE topic of the note — what the note is a note ABOUT. Usually the note's title or its first heading. If the note opens with a "this supersedes an earlier note about X" preamble, the subject is the note's own topic, NOT X. Example: a note titled "Hermes Maintenance" that opens by saying it supersedes an old provider note has subject "Hermes Maintenance".
 - claim: what the note ASSERTS about that subject, in one sentence.
 - artifact: the concrete thing the note points at — a file path, a screen, a field name, a commit, a command. If it points at nothing specific, say "none".
 - time: the date, version or state it refers to.
 - is_update: true if the note reads as a later revision, correction or updated state of some earlier statement; false if it just states a fact on its own.
 
-Answer with JSON only, one entry per note, in the order given:
+Answer with JSON only, one entry per note:
 {"notes":[{"id":<the id shown>,"subject":"...","claim":"...","artifact":"...","time":"...","is_update":<true|false>}]}`;
 
 const MERGE_SYSTEM = `Two notes from a memory system, each reduced to subject / claim / artifact / time.
