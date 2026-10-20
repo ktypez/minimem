@@ -302,6 +302,28 @@ CREATE TABLE IF NOT EXISTS embeddings (
 );
 CREATE INDEX IF NOT EXISTS embeddings_model_idx ON embeddings(model);
 `);
+
+// ---------- v4: supersede relations ----------
+// "These two memories state the same fact; this one is current." The table is
+// the AUTHORITY on that question — cosine similarity is not, because cosine
+// measures topical similarity and cannot tell a stale vintage from a
+// different fact about the same topic. A row is only ever written by an
+// explicit adjudication (model verdict or human decision), never by a
+// similarity threshold.
+//
+// `id_a` is always the CURRENT record, `id_b` the one it supersedes.
+// `decided_by` records who made the call so an operator can audit it.
+db.exec(`
+CREATE TABLE IF NOT EXISTS supersedes (
+  id_a       INTEGER NOT NULL,     -- the current record
+  id_b       INTEGER NOT NULL,     -- the record it supersedes
+  reason     TEXT,
+  decided_by TEXT NOT NULL DEFAULT 'model',
+  decided_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (id_a, id_b)
+);
+CREATE INDEX IF NOT EXISTS supersedes_b_idx ON supersedes(id_b);
+`);
 // v3 columns on memories: nullable, no backfill needed. agent_source = who said
 // it, trust = how much to believe it. Both are advisory metadata for the agent;
 // nothing is ever auto-deleted or auto-forgotten because of them.
@@ -394,6 +416,13 @@ const q = {
     `SELECT COUNT(DISTINCT t.tag) AS n FROM tags t JOIN memories m ON m.id = t.memory_id
       WHERE m.deleted_at IS NULL`,
   ),
+  // supersede relations: "these two memories state the same fact"
+  supAll: db.query("SELECT id_a, id_b, reason, decided_by, decided_at FROM supersedes"),
+  supAdd: db.query(
+    "INSERT OR REPLACE INTO supersedes(id_a, id_b, reason, decided_by) VALUES(?, ?, ?, ?)",
+  ),
+  supDel: db.query("DELETE FROM supersedes WHERE id_a = ? AND id_b = ?"),
+  supOf: db.query("SELECT id_a, id_b, reason, decided_by, decided_at FROM supersedes WHERE id_a = ? OR id_b = ?"),
 };
 
 // ---------- v2 queries: handoffs / leases / lessons / crystals / audit ----------
@@ -683,6 +712,34 @@ function invalidateVectors(): void {
   vecCache = null;
 }
 
+// ---------- supersede relations ----------
+// The relations are the authority on "these two memories state the same
+// fact". They are read on every recall, so they are cached in memory and
+// invalidated whenever a relation is written.
+type RelRow = { id_a: number; id_b: number; reason: string | null; decided_by: string; decided_at: string };
+let relCache: { at: number; map: Map<string, number>; rows: RelRow[] } | null = null;
+const REL_TTL_MS = 30_000;
+
+function relations(): Map<string, number> {
+  if (relCache && Date.now() - relCache.at < REL_TTL_MS) return relCache.map;
+  const rows = q.supAll.all() as RelRow[];
+  const map = new Map<string, number>();
+  for (const r of rows) map.set(`${r.id_a}:${r.id_b}`, r.id_b);
+  relCache = { at: Date.now(), map, rows };
+  return map;
+}
+
+function invalidateRelations(): void {
+  relCache = null;
+}
+
+/** the relations as rows, for the API and for the MCP tool */
+const relationRows = (): RelRow[] => {
+  if (relCache && Date.now() - relCache.at < REL_TTL_MS) return relCache.rows;
+  relations();
+  return relCache!.rows;
+};
+
 async function recall(
   query: string,
   limit = 10,
@@ -769,7 +826,7 @@ async function recall(
   const deduped =
     opts.dedupe === false
       ? { kept: head, shadowed: [] as RecallOut["shadowed"] }
-      : dedupeByMeaning(head, w, vectors);
+      : dedupeByMeaning(head, w, vectors, relations());
   const keptAll = [...deduped.kept, ...ranked.slice(DEDUPE_HEAD)];
 
   // relevance is the gate: only rows that matched by word or by meaning are
@@ -785,7 +842,7 @@ async function recall(
       fresh.map((m) => ({ ...m, trust: normTrust(m.trust), agent_source: m.agent_source ?? null })),
       w,
     );
-    items = dedupeByMeaning(fb, w, vectors).kept.slice(0, limit);
+    items = dedupeByMeaning(fb, w, vectors, relations()).kept.slice(0, limit);
   }
 
   const tags = tagsFor(items.map((r) => r.id));
@@ -1039,6 +1096,22 @@ const MCP_TOOLS = [
   { name: "lease_release", description: "Release a lease you hold.", inputSchema: { type: "object", properties: { name: { type: "string" }, holder: { type: "string" } }, required: ["name", "holder"] } },
   { name: "crystal_save", description: "Store a merged/summarised memory (the long-term view).", inputSchema: { type: "object", properties: { text: { type: "string" }, sources: { type: "array" } }, required: ["text"] } },
   { name: "memory_stats", description: "Counts of memories, handoffs, leases, lessons, crystals, audit rows.", inputSchema: { type: "object", properties: {} } },
+  {
+    name: "memory_supersede",
+    description:
+      "Declare that two memories state the SAME fact, so only the current one is recalled. Use this when you write a " +
+      "corrected, updated or final version of something you already stored — it is the only way the store learns that " +
+      "the older memory is stale. Without it the older one keeps being recalled as if it were current.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        current: { type: "number", description: "id of the memory that is up to date" },
+        other: { type: "number", description: "id of the memory it replaces" },
+        reason: { type: "string", description: "why they are the same fact" },
+      },
+      required: ["current", "other"],
+    },
+  },
 ];
 
 async function mcpCall(name: string, a: Record<string, unknown>) {
@@ -1141,6 +1214,19 @@ async function mcpCall(name: string, a: Record<string, unknown>) {
       return toolText(crystalSave(text.slice(0, 4000), a.sources));
     }
     case "memory_stats": return toolText({ ...stats(), relay: relayStats() });
+    case "memory_supersede": {
+      const current = num("current", 0);
+      const other = num("other", 0);
+      if (!current || !other || current === other) return toolErr("current and other must be different ids");
+      const a = q.get.get(current) as { id: number } | null;
+      const b = q.get.get(other) as { id: number } | null;
+      if (!a || !b) return toolErr("memory not found");
+      q.supDel.run(other, current);
+      q.supAdd.run(current, other, str("reason").slice(0, 400) || null, str("agent") || "agent");
+      invalidateRelations();
+      audit(str("agent") || "mcp", "supersede", `${current}->${other}`);
+      return toolText({ ok: true, current, other });
+    }
     default: return null;
   }
 }
@@ -1348,6 +1434,49 @@ const app = new Elysia()
     total: (q.tagTotal.get() as { n: number }).n,
     tags: q.tagCounts.all(Math.min(Number(query.limit ?? 120), 400)) as { tag: string; n: number }[],
   }))
+  // ---------- supersede relations ----------
+  // "these two memories state the same fact; this one is current". The recall
+  // path reads these instead of guessing from cosine.
+  .get("/supersedes", ({ query }) => {
+    const id = query.memory_id ? Number(query.memory_id) : null;
+    const rows = id ? (q.supOf.all(id) as RelRow[]) : relationRows();
+    return { total: rows.length, items: rows };
+  })
+  // link two memories as the same fact. `current` is the one that wins the
+  // recall; `other` is the one that stops being recalled.
+  .post("/supersedes", ({ body, set }) => {
+    const current = Number((body as any)?.current);
+    const other = Number((body as any)?.other);
+    const reason = String((body as any)?.reason ?? "").slice(0, 400) || null;
+    const by = String((body as any)?.decided_by ?? "human").slice(0, 40);
+    if (!Number.isInteger(current) || !Number.isInteger(other) || current === other) {
+      set.status = 400;
+      return { error: "current and other must be different memory ids" };
+    }
+    const a = q.get.get(current) as { id: number } | null;
+    const b = q.get.get(other) as { id: number } | null;
+    if (!a || !b) {
+      set.status = 404;
+      return { error: "memory not found" };
+    }
+    // one direction only: if the reverse link exists, drop it first
+    q.supDel.run(other, current);
+    q.supAdd.run(current, other, reason, by);
+    invalidateRelations();
+    audit("relations", "supersede", `${current}->${other}`, { reason, by });
+    return { ok: true, current, other, reason, decided_by: by };
+  })
+  .delete("/supersedes", ({ query, set }) => {
+    const current = Number(query.current);
+    const other = Number(query.other);
+    if (!Number.isInteger(current) || !Number.isInteger(other)) {
+      set.status = 400;
+      return { error: "current and other are required" };
+    }
+    q.supDel.run(current, other);
+    invalidateRelations();
+    return { ok: true };
+  })
   // trash (soft-deleted, recoverable)
   .get("/memories/deleted", ({ query }) => {
     const limit = Math.min(Number(query.limit ?? 50), 200);

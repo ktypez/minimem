@@ -41,6 +41,7 @@
 // SEM_COS_NOISE_FLOOR, SEM_COS_GOOD_CEIL, SEM_FTS_STRONG, ...).
 
 import { createHash } from "node:crypto";
+import { isDifferentArtifact as artifactVeto } from "./artifact";
 
 const env = (k: string) => process.env[k];
 /** env knobs accept either spelling: DECAY_HALF_LIFE_DAYS or SEM_DECAY_HALF_LIFE_DAYS */
@@ -357,15 +358,74 @@ export function rankHybrid(cands: Cand[], w: Weights, nowMs = Date.now()): Score
 const round6 = (v: number) => Math.round(v * 1e6) / 1e6;
 
 /**
- * Collapse near-duplicate meanings, keeping the NEWER row.
+ * Are these two memories known to state the same underlying fact?
+ *
+ * The relations map is "currentId:otherId" -> otherId, i.e. it records
+ * "current supersedes other". A pair is the same fact when a relation links
+ * them in EITHER direction — direction only decides which one is current,
+ * not whether they are related.
+ *
+ * With no relations at all (empty map, or undefined) nothing is ever the same
+ * fact: the conservative default. A false collapse deletes a distinct fact
+ * from every query that would have found it, so an unproven pair must survive.
+ */
+export function isSameFact(
+  relations: Map<string, number> | undefined,
+  a: number,
+  b: number,
+): boolean {
+  if (!relations || !relations.size) return false;
+  return relations.has(`${a}:${b}`) || relations.has(`${b}:${a}`);
+}
+
+/**
+ * Deterministic veto: two rows that are the same TEMPLATE but a different
+ * ARTIFACT must never be collapsed, whatever the relations say.
+ *
+ * Five notes reading "swiss-redesign screenshot: /tmp/opencode/swiss-<page>.png"
+ * are five different screenshots. They share every word and every number, so
+ * they look maximally similar, but they point at different files and each one
+ * is a real fact. On the live corpus this signature fired on 10 pairs, all of
+ * them genuinely different facts, and on no genuine revision pair.
+ *
+ * See artifact.ts for the measurement.
+ */
+export function isDifferentArtifact(aText: string, bText: string): boolean {
+  return artifactVeto(aText, bText);
+}
+
+/**
+ * Collapse memories that are KNOWN to state the same fact, keeping the current
+ * one.
  *
  * This is the actual complaint this feature exists to fix: "an old memory is
- * recalled as if it were current". Two rows whose texts mean the same thing
- * (cosine >= nearDupCos) are one fact with two vintages; the older one is not
- * deleted, not hidden from /memories, just not *recalled* — the newer one
- * carries `supersedes`, and the dropped older ids come back in `shadowed`.
+ * recalled as if it were current". The older record is not deleted, not hidden
+ * from /memories, just not *recalled* — the current one carries `supersedes`,
+ * and the dropped ids come back in `shadowed`.
  *
- * VINTAGE ORDER. Which of two near-identical rows is the newer one?
+ * WHY RELATIONS, NOT COSINE
+ *
+ * The first version of this decided "same thing" by cosine >= nearDupCos. That
+ * was wrong, and measurably so. Cosine measures TOPICAL similarity, not
+ * FACTUAL IDENTITY. On the live corpus at 0.78 there were 67 candidate pairs:
+ * 28 were the same fact, 27 were DIFFERENT facts that merely shared a topic,
+ * and the false ones were not marginal — the swiss-redesign screenshot cluster
+ * sat at 0.90-0.96, above most of the true pairs. A false collapse is not a
+ * cosmetic bug: it deletes a distinct fact from the recall of every query
+ * that would have found it.
+ *
+ * No lexical substitute works either. Rare-token containment, IDF-weighted
+ * overlap, heading skeletons and chunk-level claim coverage were all measured
+ * on the same 67 hand-labelled pairs and all scored F1 <= 0.77 — worse than
+ * the prior of always collapsing. "Are these the same fact?" is a semantic
+ * question; it is answered by an adjudicator, and the verdict is STORED.
+ *
+ * So this function now takes the relations as given:
+ *   relations: "a:b" -> b, meaning "a supersedes b, they are the same fact"
+ * It never guesses. A pair with no relation simply stays in the results.
+ *
+ * VINTAGE ORDER. If two rows are found to be the same fact but no relation
+ * says which is current, fall back to time:
  *
  *   1. If one is meaningfully younger (by more than `supersedeMarginHours`),
  *      it is the newer vintage. The margin exists so that an unrelated later
@@ -387,6 +447,7 @@ export function dedupeByMeaning(
   ranked: Scored[],
   w: Weights,
   vectors: Map<number, Float32Array> | null,
+  relations?: Map<string, number>,
   nowMs = Date.now(),
 ): { kept: Scored[]; shadowed: { id: number; by: number; cos: number }[] } {
   const kept: Scored[] = [];
@@ -417,19 +478,24 @@ export function dedupeByMeaning(
       kept.push(s);
       continue;
     }
-    // every kept row that means the same thing as this one
+    // every kept row that is KNOWN to state the same fact as this one
     const nearDups: { row: Scored; cos: number }[] = [];
     for (const k of kept) {
       const kv = vectors.get(k.id);
       if (!kv) continue;
       const c = cosine(sv, kv);
-      if (c >= w.nearDupCos) nearDups.push({ row: k, cos: c });
+      // a relation is the only thing that makes two rows the same fact
+      if (c < w.nearDupCos) continue;
+      if (!isSameFact(relations, s.id, k.id)) continue;
+      // ...unless they are the same template pointing at different artifacts
+      if (isDifferentArtifact(s.text, k.text)) continue;
+      nearDups.push({ row: k, cos: c });
     }
     if (!nearDups.length) {
       kept.push(s);
       continue;
     }
-    // ELECT THE NEWEST VINTAGE, not merely the most similar row. A fact can
+    // ELECT THE NEWER VINTAGE, not merely the most similar row. A fact can
     // have several near-identical records in the corpus (the "Hermes Provider
     // Setup" / "Hermes Model Setup" / "current topology" trio sits at 0.77-0.80);
     // picking by cosine alone can leave the older record as the survivor and
