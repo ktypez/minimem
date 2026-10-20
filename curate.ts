@@ -51,6 +51,7 @@ const has = (name: string) => argv.includes(`--${name}`);
 const APPLY = has("apply");
 const THRESHOLD = Number(flag("threshold", "0.78"));
 const BATCH = Math.max(1, Number(flag("batch", "10")));
+const VOTES = Math.max(1, Number(flag("votes", process.env.ADJUDICATE_VOTES ?? "1")));
 const MODEL = flag("model", ADJUDICATE_MODEL);
 const DB_PATH =
   flag("db") ??
@@ -162,7 +163,7 @@ for (let i = 0; i < pending.length; i += BATCH) {
     console.error(`batch at ${i}: no claims available, skipped`);
     continue;
   }
-  const verdicts = await judgePairs(pairs, MODEL);
+  const verdicts = await judgePairs(pairs, MODEL, VOTES);
   if (!verdicts) {
     console.error(`batch at ${i}: model failed, skipped`);
     continue;
