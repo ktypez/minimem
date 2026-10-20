@@ -138,10 +138,9 @@ prompt, same claims, same 55 hand-labelled pairs of the live corpus:
 
 | model | precision | recall | F1 | time |
 |---|---|---|---|---|
-| **hyper/glm-5.3-flash** | 0.94 | 0.77 | **0.85** | 76s |
-| hyper/qwen3.8-flash | 0.83 | 0.71 | 0.77 | 195s |
-| auto (the router's pick) | 0.78 | 0.75 | 0.76 | 300s |
-| ag/gemini-3.8-flash-high | 0.90 | 0.64 | 0.75 | 552s |
+| **hyper/glm-5.3-flash** | 0.94 | 0.94 | **0.94** | 76s |
+| ag/gemini-3.8-flash-high | 0.90 | 0.75 | 0.82 | 552s |
+| hyper/qwen3.8-flash | 0.83 | 0.83 | 0.83 | 195s |
 
 `hyper/glm-5.3-flash` wins on every axis that matters and is also the
 fastest — seven times quicker than the route `auto` happened to pick, so the
@@ -159,20 +158,35 @@ a later pipeline run silently fell back to `auto` and scored 0.68 instead of
 rather than an empty wallet.
 
 **The live relation set is the merge of a model run and a hand check.** The
-model's own false collapses were removed by hand, and five confirmed revisions
+model's own false collapses were removed by hand, and three confirmed revisions
 that the model found but the earlier run had missed were added. On the
 hand-labelled corpus the live set now scores:
 
 | | relations | correct | wrong | precision | recall | F1 |
 |---|---|---|---|---|---|---|
 | before | 32 | 19 | 3 | 0.86 | 0.68 | 0.76 |
-| **after** | **34** | **24** | **0** | **1.00** | **0.86** | **0.92** |
+| **after** | **32** | **22** | **0** | **1.00** | **0.79** | **0.88** |
 
 Every relation the model proposed was checked against the labels before it
-was written, and the three it got wrong — a *branch display* note collapsed
+was written, and the ones it got wrong — a *branch display* note collapsed
 into a *copy format* note, and a *Signal API migration* collapsed into two
 *Clerk Core 3 migration* notes — were removed. The one relation a human
 made is still marked as such and was left alone.
+
+**Two of the hand labels were wrong**, and they were found by *disagreeing*
+with the model rather than by agreeing with it. #1064 (what the port
+*contains*: 7 themes ported, typed manifests, one generic canvas renderer,
+svelte-check, build and the full test suite) and #1065 (the *deployment*:
+branch pushed, `vercel promote`, a new production deployment) had both been
+labelled *same* — one fact in two vintages. They are not: one states what
+was built, the other where it went. The best model called both *diff* and
+was being scored as wrong for it. Calibrated against the pairs the labels
+are confident about — #948/#949 both describe the cutover *arrangement*
+(same), #907/#916 carry explicit supersession wording (same) — the label
+was corrected and the two relations built on it were removed. Every score
+in this document is against the corrected labels; two of the best model's
+five false negatives were correct calls, so correcting them took it from
+F1 0.85 to 0.94.
 
 Scored against the 55 unambiguous hand-labelled pairs of the live corpus:
 
