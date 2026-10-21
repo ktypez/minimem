@@ -211,6 +211,23 @@ a later pipeline run silently fell back to `auto` and scored 0.68 instead of
 0.85 — a difference that would have looked like a regression in the feature
 rather than an empty wallet.
 
+**`auto` is not a model, and it must never be used to measure anything.** On
+this router `auto` picks from a pool that changes with what is available:
+eight consecutive calls were served by eight *different* free models
+(`mistralai/codestral-2508`, `mistralai/devstral-medium`,
+`mistralai/mistral-medium-3.5`, `cohere/command-r-plus-08-2024`,
+`cohere/command-a-plus`, `cohere/north-mini-code`,
+`qwen/qwen3.8-omni-flash:free`, `mistralai/mistral-large-4-0`), and a later
+run of the same experiment was served by `gemini-3.8-flash-low` instead.
+Two identical runs of the same judgement over the same pairs then disagree on
+**14 to 16 of the 55 pairs**. The fallback chain therefore lists the pinned
+models *before* `auto`, and `auto` is the last resort rather than the second
+entry: the moment hyper ran out of credits, the curator was judging with a
+lottery.
+
+A pinned route is verifiable: `ag/gemini-3.8-flash-high` is served by
+`gemini-3.8-flash-n` on every call, which is what a measurement needs.
+
 **The live relation set is the merge of a model run and a hand check.** The
 model's own false collapses were removed by hand, and three confirmed revisions
 that the model found but the earlier run had missed were added. On the
@@ -344,6 +361,60 @@ comparison above cannot decide anything — in either direction.
 (And the earlier reading of it, "the sharpened prompt is a net loss", is not
 supported: on these three runs the sharpened arm has the *higher* mean. The
 0.025 gap it was rejected on is inside the noise.)
+
+### Pinned, the comparison is still not clean
+
+With the model pinned to one route — `ag/gemini-3.8-flash-low`, served by
+`gemini-3.8-flash-n` on every call, six pairs per call — the experiment
+becomes repeatable, and the verdict stability is completely different:
+
+| arm | F1 per run | mean | spread | P mean | R mean | pairs that flip between runs |
+|---|---|---|---|---|---|---|
+| production | 0.791 / 0.762 / 0.791 | 0.781 | 0.029 | 0.847 | 0.725 | 2 of 55 |
+| sharpened | 0.826 / 0.826 / 0.844 | **0.832** | 0.018 | 0.839 | 0.826 | 1 of 55 |
+| production + replacement-wording rule only | 0.773 / 0.783 / 0.739 | 0.765 | 0.043 | 0.777 | 0.754 | 4 of 55 |
+
+Pinned, the judge is stable (one to four pairs flip between two runs of the
+same arm, against fourteen to sixteen unpinned) and the precision is far
+higher than the lottery ever managed (0.85 against 0.57-0.64) — the free
+models were the weak part, not the prompt.
+
+On those numbers the sharpened prompt looks like a clear win: +0.05 F1, and
+the whole difference is recall (0.826 against 0.725) at the same precision.
+**It is still not a reason to change the prompt**, because the comparison is
+contaminated. Both prompts carry worked examples that are *labelled pairs in
+the evaluation corpus*:
+
+| prompt | example | is a labelled pair |
+|---|---|---|
+| production | "Logfare roster cut to 4 models" + "roster live" | #992/#993 |
+| production | "dependency upgrade" + "migration to Clerk Core 3" | #1091/#1093 |
+| production | "opencode crashed twice" + "how to recover opencode" | #934/#935 |
+| sharpened | "Jev exists on the gateway" + "Correction: the two Free promos" | #848/#849 |
+| sharpened | "what the port contains" + "the branch was promoted to production" | #1064/#1065 |
+
+So the arms are not being compared on reasoning; they are being compared on
+*which pairs were copied into them*. It shows in the per-pair results: the
+sharpened arm is right and the production arm wrong on #4/#716, #848/#849 and
+#1065/#1066, and the production arm is right and the sharpened arm wrong on
+#924/#935. One of those three wins (#848/#849) is the sharpened prompt's own
+example; one of the losses (#924/#935) is the production prompt's own
+example. Strip the copied pairs out and the two prompts are one pair apart
+in 55 — inside the run-to-run spread.
+
+The third arm, the production prompt plus only the replacement-wording rule,
+was the hypothesis that the *broad* relaxation in the sharpened prompt was
+what cost the false positives, and the isolated rule would keep the recall
+without them. Measured pinned, it is the **worst** of the three (0.765), with
+the lowest precision and the highest spread. So the rule is not what helps
+in the sharpened prompt, and the sharpened prompt's advantage is not
+reasoning at all.
+
+**The prompt stays where it is.** Not because the alternative was measured to
+be worse — it was not, it is inside the noise — but because the comparison
+cannot separate them: the corpus and the prompts share examples, so no score
+on this corpus can. A future comparison has to hold the example pairs out of
+the scoring, or judge on notes that were never written into a prompt.
 
 The obvious next move would be to fix the *extraction*, on the theory that the
 judge is being misled by the `subject` field: for the pair that every model

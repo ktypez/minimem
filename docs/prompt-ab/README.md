@@ -15,3 +15,24 @@ applied to the *same* verdicts.
 Labels come from [`../hand-labels.json`](../hand-labels.json). Each verdict
 file carries the label as it was at the time of the run, so re-score with the
 current label file, not the embedded one.
+
+## The two experiments
+
+- `variance-*.json` / `variance.log` — the **unpinned** runs: the model was
+  `auto`, which on this router is a lottery (eight different free models
+  served eight consecutive calls). Between two runs of the same arm, 14-16 of
+  the 55 pairs change verdict. This is why the first prompt comparison was
+  invalid.
+- `pinned-*.json` / `pinned.log` — the **pinned** runs: `ag/gemini-3.8-flash-low`
+  (served by `gemini-3.8-flash-n` on every call), six pairs per call, three
+  runs per arm. Between two runs of the same arm, 1-4 of the 55 pairs change
+  verdict.
+
+Arms: `A` production (merge test), `B` the sharpened prompt, `C` production
+plus only the replacement-wording rule.
+
+Note for anyone re-scoring: the prompts' worked examples are themselves
+labelled pairs in the corpus (#992/#993, #1091/#1093, #934/#935 in the
+production prompt; #848/#849, #1064/#1065 in the sharpened one), so a score
+on this corpus is inflated for every arm. Hold those pairs out to compare
+prompts honestly.
