@@ -238,6 +238,37 @@ credits; the comparison is between the two prompts on one model, which is
 what makes it valid. `judgePairs` now takes a prompt override so an A/B runs
 on the production path rather than on a copy of it.)
 
+The obvious next move would be to fix the *extraction*, on the theory that the
+judge is being misled by the `subject` field: for the pair that every model
+got wrong, the extractor had written
+
+    #848 subject = "Jev model on Vercel AI Gateway"
+    #849 subject = "Vercel AI Gateway free promos: jev vs tako-search"
+
+and the judge sees those two lines first. If the subject disagreement is
+what drives the false negative, the fix belongs upstream. It does not.
+
+Measuring subject overlap (Jaccard over the two subjects) against the labels
+says the opposite:
+
+| | subject overlap |
+|---|---|
+| same-fact pairs (22) | mean 0.406 |
+| different-fact pairs (33) | mean **0.501** |
+
+The overlap is *higher* for the pairs that are not the same fact. All 22
+same-fact pairs share at least one subject token, but 8 different-fact pairs
+have **identical** subjects — six of them the swiss-redesign screenshots
+("swiss-redesign screenshot" on both sides), and #1096/#1099 ("Portal
+(me.mcky.space) status" on both sides), which is exactly the false positive
+the best model made.
+
+So the `subject` field is not a signal for this decision; it is slightly
+anti-correlated with it, and the deterministic veto in `curate.ts` — not the
+judge — is what keeps the screenshot family apart. The judge is right to work
+from the *claim*. No change was made to the extractor, and the live
+`is_update` flag was left where it is.
+
 Calibrated against the pairs the labels are confident about — #948/#949 both
 describe the cutover *arrangement* (same), #907/#916 carry explicit
 supersession wording (same) — every score in this document is against the

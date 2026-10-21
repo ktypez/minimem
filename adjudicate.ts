@@ -388,6 +388,7 @@ export async function judgePairs(
   votes = 3,
   style = ADJUDICATE_STYLE,
   systemOverride?: string,
+  textFor: (c: Claim) => string = claimText,
 ): Promise<Map<string, Adjudication> | null> {
   if (!pairs.length) return new Map();
   const out = new Map<string, Adjudication>();
@@ -398,7 +399,7 @@ export async function judgePairs(
     const body = batch
       .map(
         (p, i) =>
-          `PAIR ${i + 1}\n--- A (#${p.aId})\n${claimText(p.a)}\n--- B (#${p.bId})\n${claimText(p.b)}`,
+          `PAIR ${i + 1}\n--- A (#${p.aId})\n${textFor(p.a)}\n--- B (#${p.bId})\n${textFor(p.b)}`,
       )
       .join("\n\n");
     const reply = await chat(

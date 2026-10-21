@@ -422,7 +422,7 @@ const q = {
     "INSERT OR REPLACE INTO supersedes(id_a, id_b, reason, decided_by) VALUES(?, ?, ?, ?)",
   ),
   supDel: db.query("DELETE FROM supersedes WHERE id_a = ? AND id_b = ?"),
-  supOf: db.query("SELECT id_a, id_b, reason, decided_by, decided_at FROM supersedes WHERE id_a = ? OR id_b = ?"),
+  supOf: db.query("SELECT id_a, id_b, reason, decided_by, decided_at FROM supersedes WHERE id_a = ?1 OR id_b = ?1"),
 };
 
 // ---------- v2 queries: handoffs / leases / lessons / crystals / audit ----------
