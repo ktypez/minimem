@@ -49,6 +49,7 @@ import {
   type Cand,
   type Scored,
   cosine,
+  closeRelations,
   dedupeByMeaning,
   embedBatchSafe,
   embedReady,
@@ -725,8 +726,13 @@ function relations(): Map<string, number> {
   const rows = q.supAll.all() as RelRow[];
   const map = new Map<string, number>();
   for (const r of rows) map.set(`${r.id_a}:${r.id_b}`, r.id_b);
-  relCache = { at: Date.now(), map, rows };
-  return map;
+  // Close the graph: "a supersedes b" + "b supersedes c" means a, b and c are
+  // three vintages of one fact, and a stale root must be shadowed by its
+  // live descendant even when the middle vintage is not in the results. The
+  // API and the MCP tool still report the stored EDGES (rows), not the
+  // expanded ones — the expansion is a lookup detail, not new knowledge.
+  relCache = { at: Date.now(), map: closeRelations(map), rows };
+  return relCache.map;
 }
 
 function invalidateRelations(): void {

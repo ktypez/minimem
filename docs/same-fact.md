@@ -24,18 +24,19 @@ Measured on the live corpus at 0.78, against the corrected labels:
 | | count |
 |---|---|
 | candidate pairs | 67 |
-| really the same fact (collapse was right) | 23 |
-| **different facts (collapse was wrong)** | **32** |
-| borderline | 12 |
+| really the same fact (collapse was right) | 25 |
+| **different facts (collapse was wrong)** | **31** |
+| borderline | 11 |
 
 | threshold | precision | recall | F1 |
 |---|---|---|---|
-| cosine >= 0.78 | 0.418 | 1.000 | 0.590 |
+| cosine >= 0.78 | 0.446 | 1.000 | 0.617 |
 
-Every one of the 23 same-fact pairs is above the threshold — the lowest true
-cosine is 0.882 — and so is every one of the 32 different-fact pairs. A
-single cut collapses **all 55** of them, which is not a threshold with a bad
-setting, it is a threshold with no information in it.
+Every one of the 25 same-fact pairs is above the threshold — the lowest true
+cosine is 0.782, the Portal status pair #1093/#1099 — and so is every one of
+the 31 different-fact pairs. A single cut collapses **all 56** of them, which
+is not a threshold with a bad setting, it is a threshold with no information
+in it.
 
 And the false ones were not the marginal ones. The corpus holds five
 `swiss-redesign screenshot: /tmp/opencode/swiss-<page>.png` notes — five
@@ -65,11 +66,12 @@ deterministic features over the same 67 hand-labelled pairs:
 None of them beats guessing. The two populations overlap almost completely:
 there is no threshold on any of these that separates them.
 
-This table was measured against the labels *before* the fourth label pass,
-and the correction only makes the separation harder: the same-fact
-population shrank from 28 pairs to 23 and the different-fact population grew
-from 27 to 32, so the "always collapse" baseline falls from 0.68 to 0.59. The
-numbers above are the generous ones.
+This table is measured against the labels as of the fifth pass: the
+same-fact population is 25 pairs (28 at the first pass, 23 after the fourth,
+25 after the fifth) and the different-fact population 31, so the "always
+collapse" baseline is **0.617**. The best cut anywhere in the range reaches
+F1 **0.657** (t = 0.797) — far below the adjudicator, and the numbers above
+are the generous ones.
 
 Chunk-level claim coverage was measured a second time, more carefully, because
 it is the most plausible of the five: split each document into its claims,
@@ -102,7 +104,7 @@ original result is confirmed and then some; the exact number is a property
 of the splitting, not of the corpus.
 
 What does reproduce, and is the point of the feature, is this: **eight of the
-twenty-three genuine revision pairs share no claim at all** — a reworded note
+twenty-five genuine revision pairs share no claim at all** — a reworded note
 and its correction have no common sentence — so coverage cannot see them
 however the threshold is set. It is a good *precision* signal and a poor
 *identity* test, which is the opposite of what this feature needs.
@@ -183,14 +185,15 @@ the pairs it quietly omitted, so `hyper/glm-5.3-flash` is scored on the 48
 pairs it answered and the other two on all 55. Its rate of answering every
 pair at all was part of why it won.
 
-The table also predates the fourth label pass. Only one label changed in
-that pass — #1096/#1099, from *diff* to *same* — and it was a false
-positive for every model whose per-pair verdicts were kept
-(`hyper/glm-5.3-flash` and `hyper/qwen3.8-flash` both called it SAME), so
-those two rows are if anything understated: that pair now counts as a true
-positive. Re-running the sweep to refresh the table needs hyper credits;
-until then the numbers here are the ones that were measured, and the
-per-pair verdicts that produced them are not on disk.
+The table also predates the fourth and fifth label passes. Two labels
+changed after it was measured — #1096/#1099 and #1093/#1099, both from
+*diff* to *same* — and both were false positives for every model whose
+per-pair verdicts were kept (`hyper/glm-5.3-flash` and
+`hyper/qwen3.8-flash` both called them SAME), so those rows are if anything
+understated: each pair now counts as a true positive. Re-running the sweep
+to refresh the table needs hyper credits; until then the numbers here are
+the ones that were measured, and the per-pair verdicts that produced them
+are not on disk.
 
 The labels themselves are in `docs/hand-labels.json`, with the reasoning for
 each correction in the `notes` field. They used to live in a temp directory,
@@ -236,7 +239,15 @@ hand-labelled corpus the live set now scores:
 | | relations | correct | wrong | precision | recall | F1 |
 |---|---|---|---|---|---|---|
 | before | 32 | 19 | 3 | 0.86 | 0.68 | 0.76 |
-| **after** | **33** | **23** | **0** | **1.00** | **1.00** | **1.00** |
+| after the third pass | 33 | 23 | 0 | 1.00 | 1.00 | 1.00 |
+| **after the fifth pass** | **37** | **28** | **0** | **1.00** | **1.00** | **1.00** |
+
+The fifth pass added the one edge the Portal status chain was missing
+(#1099 → #1093 — the root of the chain, so that the stale "NOT pushed"
+vintage is shadowed by the live one and not only by its middle) and the
+three edges of the note that records this work (#1125 → #1120/#1121/#1123).
+The label audit that came with it found that the two Portal pairs the judge
+called SAME were labelled *diff* by hand, and the hand labels were wrong.
 
 Every relation the model proposed was checked against the labels before it
 was written, and the one that got it wrong — a *branch display* note
@@ -326,7 +337,7 @@ the same votes:
 It was read as: the sharpened prompt does what it was designed to do — false
 negatives fall from 2 to 1 — and is still a net loss, because false positives
 rise from 15 to 19. The trade is asymmetric and the reason is structural: the
-corpus holds more distinct pairs (32) than same-fact pairs (23), and a false
+corpus holds more distinct pairs (31) than same-fact pairs (25), and a false
 collapse is not a wrong answer, it is a *deletion* — the distinct fact stops
 being recalled for every query that would have found it. Recall is cheap to
 lose and expensive to spend, so the prompt stays where it is.
@@ -370,17 +381,21 @@ becomes repeatable, and the verdict stability is completely different:
 
 | arm | F1 per run | mean | spread | P mean | R mean | pairs that flip between runs |
 |---|---|---|---|---|---|---|
-| production | 0.791 / 0.762 / 0.791 | 0.781 | 0.029 | 0.847 | 0.725 | 2 of 55 |
-| sharpened | 0.826 / 0.826 / 0.844 | **0.832** | 0.018 | 0.839 | 0.826 | 1 of 55 |
-| production + replacement-wording rule only | 0.773 / 0.783 / 0.739 | 0.765 | 0.043 | 0.777 | 0.754 | 4 of 55 |
+| production | 0.818 / 0.791 / 0.818 | 0.809 | 0.027 | 0.898 | 0.736 | 2 of 56 |
+| sharpened | 0.851 / 0.851 / 0.870 | **0.857** | 0.019 | 0.883 | 0.833 | 1 of 56 |
+| production + replacement-wording rule only | 0.800 / 0.809 / 0.766 | 0.791 | 0.043 | 0.822 | 0.764 | 4 of 56 |
+
+(Re-scored against the fifth-pass labels; the same nine runs against the
+fourth-pass labels scored 0.781 / 0.832 / 0.765.)
 
 Pinned, the judge is stable (one to four pairs flip between two runs of the
 same arm, against fourteen to sixteen unpinned) and the precision is far
-higher than the lottery ever managed (0.85 against 0.57-0.64) — the free
+higher than the lottery ever managed (0.90 against 0.57-0.64) — the free
 models were the weak part, not the prompt.
 
 On those numbers the sharpened prompt looks like a clear win: +0.05 F1, and
-the whole difference is recall (0.826 against 0.725) at the same precision.
+nearly all of the difference is recall (0.833 against 0.736) at a precision
+within a point (0.883 against 0.898).
 **It is still not a reason to change the prompt**, because the comparison is
 contaminated. Both prompts carry worked examples that are *labelled pairs in
 the evaluation corpus*:
@@ -405,7 +420,7 @@ in 55 — inside the run-to-run spread.
 The third arm, the production prompt plus only the replacement-wording rule,
 was the hypothesis that the *broad* relaxation in the sharpened prompt was
 what cost the false positives, and the isolated rule would keep the recall
-without them. Measured pinned, it is the **worst** of the three (0.765), with
+without them. Measured pinned, it is the **worst** of the three (0.791), with
 the lowest precision and the highest spread. So the rule is not what helps
 in the sharpened prompt, and the sharpened prompt's advantage is not
 reasoning at all.
@@ -431,8 +446,8 @@ says the opposite:
 
 | | subject overlap |
 |---|---|
-| same-fact pairs (23) | mean 0.432 |
-| different-fact pairs (32) | mean **0.485** |
+| same-fact pairs (25) | mean 0.373 |
+| different-fact pairs (31) | mean **0.460** |
 
 The overlap is *higher* for the pairs that are not the same fact. And the
 subject does not settle it in either direction: ten different-fact pairs
@@ -440,9 +455,10 @@ have **identical** subjects — all ten of them the swiss-redesign screenshot
 family ("swiss-redesign screenshot" on both sides, five notes, ten pairs) —
 while three same-fact pairs also have identical subjects (#729/#731 both
 "ImageGen-Logfare", #1096/#1099 both "Portal (me.mcky.space) status", #4/#716
-both "Hermes"). Every one of the 23 same-fact pairs shares at least one
-subject token, and the lowest-overlap one is #844/#862 at 0.10, where the
-subjects are "logfare non-text endpoints" and "logfare media generation".
+both "Hermes"). Every same-fact pair shares at least one
+subject token, and the lowest-overlap ones are #655/#729 and #655/#731 at
+0.00, where the subjects are "Logfare Image Generation" and
+"ImageGen-Logfare".
 
 So the `subject` field is not a signal for this decision; it is slightly
 anti-correlated with it, and the deterministic veto in `curate.ts` — not the
@@ -456,12 +472,19 @@ supersession wording (same) — every score in this document is against the
 corrected labels. Correcting them took the best model from F1 0.85 to 0.92
 and the live set from 0.88 to 1.00.
 
-Scored against the 55 unambiguous hand-labelled pairs of the live corpus:
+Scored against the 56 unambiguous hand-labelled pairs of the live corpus:
 
 | rule | precision | recall | F1 | false collapses |
 |---|---|---|---|---|
-| cosine >= 0.78 (the old rule) | 0.52 | 1.00 | **0.51** | **27** |
-| merge test + stored relations | 0.86 | 0.68 | **0.76** | **3** |
+| cosine >= 0.78 (the old rule) | 0.45 | 1.00 | **0.62** | **31** |
+| merge test + stored relations | 1.00 | 1.00 | **1.00** | **0** |
+
+The second row is the live relation set measured against the labels, and it
+is the number that matters: every confirmed-same pair has a relation, and
+not one confirmed-diff pair is collapsed. It was 0.86 / 0.68 / 0.76 with
+three false collapses before the fifth pass — two of those three were the
+Portal status pairs, and the label audit found that the relations were right
+and the labels were wrong.
 
 The old rule's perfect recall is not a virtue: it comes from collapsing
 everything, including 27 distinct facts. The new rule trades some recall for
@@ -490,6 +513,32 @@ relation says it is a stale version of another. The vintage choice (which of
 the two is current) falls back to time — newer `updated_at` wins, and on an
 imported corpus where every row shares a timestamp, the higher id wins, since
 it was inserted later.
+
+### The chain has to be closed
+
+A relation is an edge, but a revision chain is a path, and the recall path
+followed only the edge. "a supersedes b" and "b supersedes c" mean three
+vintages of one fact; the collapse lookup checked one edge at a time, so the
+root of a chain was shadowed only when the middle vintage happened to be in
+the result set.
+
+On the live corpus that produced the failure this feature exists to
+prevent. A query about the Portal status that returned #1093 and #1099
+without #1096 answered "NOT pushed" and "PUSHED" in the same breath — and
+which notes came back depended on what the vector search happened to
+surface.
+
+Two changes fix it. The relation map is closed over the graph before it is
+used, so a stale root is shadowed by its live descendant whatever the middle
+vintage did; and the relation is now the *authority* in the collapse instead
+of something a cosine score could veto. That veto was measurably useless:
+all 34 stored relations clear 0.78 on their own edge (the lowest is 0.782),
+but three of the four pairs a chain implies sit below it (0.764, 0.714,
+0.756) — the gate never protected a relation, it only hid the chains. A
+verdict the adjudicator made is evidence; a cosine score is not.
+
+The API and the MCP tool still report the stored *edges*. Closing the graph
+is a lookup detail, not new knowledge, and nothing is written.
 
 ## The deterministic veto
 
@@ -530,6 +579,8 @@ or, over MCP, the `memory_supersede` tool. A wrong relation is undone with
 | `artifact.ts` | the deterministic template/different-artifact veto |
 | `embed.ts` | `dedupeByMeaning` — now takes the relations instead of a threshold |
 | `check-dedupe.ts` | live check of both directions: revisions collapse, distinct facts do not |
+| `dedupe.test.ts` | the collapse rules, including the chain closure |
+| `docs/hand-labels.json` | the hand labels — the ground truth — with the reasoning for each correction |
 
 ## Running it
 
@@ -538,6 +589,20 @@ bun run curate.ts --db /path/to/minimem.db             # dry run — prints what
 bun run curate.ts --db /path/to/minimem.db --apply      # write
 bun run check-dedupe.ts                                 # live verification
 ```
+
+The check needs the service's own env, because the dedupe runs on the
+semantic path: without the embeddings there are no vectors, nothing can be
+collapsed, and every "the stale vintage must not be recalled" check fails
+for a reason that has nothing to do with the code under test.
+
+```sh
+set -a; . /etc/minimem/minimem.env; set +a
+bun run check-dedupe.ts
+```
+
+It now aborts with that reason instead of reporting four mystery failures.
+The database it checks is a copy, and it must be copied with `VACUUM INTO`
+(see below) or the vectors in it are stale.
 
 The adjudicator talks to the local 9router (`http://127.0.0.1:20128/v1`), so
 minimem needs no key of its own and is not exposed to the public gateways'

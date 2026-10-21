@@ -130,6 +130,22 @@ const serverLog = () => {
   );
 };
 
+// The dedupe runs on the semantic path. Without the embeddings there are no
+// vectors, nothing can be collapsed, and every "the stale vintage must not be
+// recalled" check below fails for a reason that has nothing to do with the
+// code under test. Say that, and stop, instead of reporting four mystery
+// failures. The env comes from the service's own file:
+//   set -a; . /etc/minimem/minimem.env; set +a
+if (embedState && !embedState.ready) {
+  console.error(
+    `\nABORT: the server's embeddings are not ready (${embedState.embedded ?? "?"} vectors) — the dedupe cannot run. ` +
+      `Load the service env: set -a; . /etc/minimem/minimem.env; set +a`,
+  );
+  child.kill();
+  rmSync(dir, { recursive: true, force: true });
+  process.exit(2);
+}
+
 const db = new Database(DB, { readonly: true });
 const textOf = (id: number) =>
   ((db.query("SELECT text FROM memories WHERE id=?").get(id) as { text: string } | null)?.text ?? "");

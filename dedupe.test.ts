@@ -13,7 +13,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { rankHybrid, type Cand } from "./embed.ts";
-import { dedupeByMeaning } from "./embed.ts";
+import { closeRelations, dedupeByMeaning } from "./embed.ts";
 
 const NOW = Date.parse("2026-10-20T00:00:00Z");
 const daysAgo = (d: number) =>
@@ -215,6 +215,80 @@ describe("dedupe by relation", () => {
     const { kept, shadowed } = dedupeByMeaning(ranked, W, null, rel(2, 1), NOW);
     expect(kept.length).toBe(2);
     expect(shadowed).toEqual([]);
+  });
+
+  // --- revision CHAINS -------------------------------------------------
+  //
+  // "a supersedes b" and "b supersedes c" are three vintages of one fact.
+  // The collapse lookup used to check a single edge, so the root was only
+  // dropped when the MIDDLE vintage happened to be in the result set. On the
+  // live corpus that made the answer depend on which notes the vector
+  // search returned: "NOT pushed" and "MERGED and PUSHED" came back together.
+
+  test("a chain shadows its root even when the middle vintage is absent", () => {
+    const [v1, v3] = pairAt(0.8);
+    const root = cand({ id: 1, updated_at: daysAgo(100), cos: 0.8 });
+    const leaf = cand({ id: 3, updated_at: daysAgo(1), cos: 0.8 });
+    const ranked = rankHybrid([leaf, root], W, NOW);
+    // the chain: 3 supersedes 2, 2 supersedes 1 — but 2 is not in the results
+    const chain = closeRelations(
+      new Map([
+        ["3:2", 2],
+        ["2:1", 1],
+      ]),
+    );
+    const { kept, shadowed } = dedupeByMeaning(
+      ranked,
+      W,
+      new Map([
+        [1, v1],
+        [3, v3],
+      ]),
+      chain,
+      NOW,
+    );
+    expect(kept.map((k) => k.id)).toEqual([3]);
+    expect(shadowed.map((s) => s.id)).toEqual([1]);
+  });
+
+  test("a relation survives a LOW cosine: the verdict is the authority", () => {
+    // two vintages of one fact, worded very differently — cosine 0.3
+    const va = new Float32Array(DIM);
+    va[0] = 1;
+    const vb = new Float32Array(DIM);
+    vb[0] = 0.3;
+    vb[1] = Math.sqrt(1 - 0.09);
+    const root = cand({ id: 1, updated_at: daysAgo(100), cos: 0.3 });
+    const leaf = cand({ id: 2, updated_at: daysAgo(1), cos: 0.3 });
+    const ranked = rankHybrid([leaf, root], W, NOW);
+    const { kept, shadowed } = dedupeByMeaning(
+      ranked,
+      W,
+      new Map([
+        [1, va],
+        [2, vb],
+      ]),
+      rel(2, 1),
+      NOW,
+    );
+    expect(kept.map((k) => k.id)).toEqual([2]);
+    expect(shadowed.map((s) => s.id)).toEqual([1]);
+  });
+
+  test("closeRelations adds only reachable pairs, and never a self-pair", () => {
+    const closed = closeRelations(
+      new Map([
+        ["3:2", 2],
+        ["2:1", 1],
+        ["9:9", 9],
+      ]),
+    );
+    expect(closed.has("3:2")).toBe(true);
+    expect(closed.has("2:1")).toBe(true);
+    expect(closed.has("3:1")).toBe(true); // the chain
+    expect(closed.has("1:3")).toBe(false); // direction is not invented
+    expect(closed.has("3:3")).toBe(false); // never a self-pair
+    expect(closed.has("1:2")).toBe(false); // 1 does not supersede 2
   });
 
   test("dedupe output still carries no raw vector", () => {

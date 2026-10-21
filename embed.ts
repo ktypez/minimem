@@ -379,6 +379,55 @@ export function isSameFact(
 }
 
 /**
+ * Expand a relation map so a REVISION CHAIN shadows its root.
+ *
+ * "a supersedes b" and "b supersedes c" mean a, b and c are three vintages of
+ * one fact. The table stores the edges, and the collapse lookup checked a
+ * single edge, so the middle vintage had to happen to be in the result set
+ * for the root to be dropped. When it was not, both the stale root and its
+ * live descendant came back together:
+ *
+ *   #1093 "Clerk Core 3 migrated, NOT pushed"  (superseded by #1096)
+ *   #1096 "Core 3 pushed, Signal API on branch" (superseded by #1099)
+ *   #1099 "Signal API MERGED and PUSHED, both live"
+ *
+ * A query for the Portal status that returned #1093 and #1099 without #1096
+ * answered "NOT pushed" and "PUSHED" in the same breath — the exact failure
+ * this feature exists to prevent, and it depended on which notes the vector
+ * search happened to return.
+ *
+ * The expansion adds "a:c" for every c reachable from a, so one edge lookup
+ * answers every chain question. Reachability, not adjacency: the chain is
+ * followed through the whole graph, and cycles are impossible here because a
+ * supersession always points at an older note.
+ */
+export function closeRelations(relations: Map<string, number>): Map<string, number> {
+  const adj = new Map<number, number[]>();
+  for (const [key, b] of relations) {
+    const sep = key.indexOf(":");
+    if (sep < 0) continue;
+    const a = Number(key.slice(0, sep));
+    if (!Number.isFinite(a)) continue;
+    const list = adj.get(a);
+    if (list) list.push(b);
+    else adj.set(a, [b]);
+  }
+  const out = new Map(relations);
+  for (const a of adj.keys()) {
+    const seen = new Set<number>();
+    const stack = [...(adj.get(a) ?? [])];
+    while (stack.length) {
+      const n = stack.pop() as number;
+      if (n === a || seen.has(n)) continue;
+      seen.add(n);
+      for (const m of adj.get(n) ?? []) stack.push(m);
+    }
+    for (const n of seen) out.set(`${a}:${n}`, n);
+  }
+  return out;
+}
+
+/**
  * Deterministic veto: two rows that are the same TEMPLATE but a different
  * ARTIFACT must never be collapsed, whatever the relations say.
  *
@@ -484,8 +533,14 @@ export function dedupeByMeaning(
       const kv = vectors.get(k.id);
       if (!kv) continue;
       const c = cosine(sv, kv);
-      // a relation is the only thing that makes two rows the same fact
-      if (c < w.nearDupCos) continue;
+      // The relation is the authority. Cosine used to gate this, and it vetoed
+      // exactly the pairs that mattered: the middle and the root of a
+      // revision chain, whose wording drifts further apart with every
+      // rewrite. Measured on the live corpus, all 34 stored relations clear
+      // 0.78 on their own edge (lowest 0.782), but 3 of the 4 pairs a chain
+      // implies sit below it (0.764, 0.714, 0.756) — so the gate did not
+      // protect a single relation, it only hid the chain. A verdict the
+      // adjudicator made is evidence; a cosine score is not.
       if (!isSameFact(relations, s.id, k.id)) continue;
       // ...unless they are the same template pointing at different artifacts
       if (isDifferentArtifact(s.text, k.text)) continue;
