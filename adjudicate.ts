@@ -107,7 +107,7 @@ export const ADJUDICATE_MODEL = env("ADJUDICATE_MODEL") ?? "hyper/glm-5.3-flash"
  */
 const FALLBACK_MODELS = (
   env("ADJUDICATE_FALLBACK_MODELS") ??
-  "hyper/glm-5.3-flash,hyper/qwen3.8-flash,ag/gemini-3.8-flash-high,ag/gemini-3.8-flash-low,auto",
+  "hyper/glm-5.3-flash,hyper/qwen3.8-flash,ag/gemini-3.8-flash-low,ag/gemini-3.8-flash-high,auto",
 )
   .split(",")
   .map((s) => s.trim())
@@ -387,9 +387,54 @@ Do not be fooled by shared subject wording. Two notes about "the Portal" that re
 Answer with JSON only:
 {"verdicts":[{"pair":<int>,"same":<true|false>,"reason":"<max 20 words>"}]}`;
 
-export const ADJUDICATE_STYLE = env("ADJUDICATE_STYLE") ?? "merge";
+export const ADJUDICATE_STYLE = env("ADJUDICATE_STYLE") ?? "sharpened";
 
-const SYSTEM_FOR = (style: string) => (style === "deletion" ? DELETION_SYSTEM : MERGE_SYSTEM);
+const SHARPENED_SYSTEM = `Two notes from a memory system, each reduced to subject / claim / artifact / time.
+
+THE QUESTION. Do the two notes assert THE SAME THING about THE SAME SUBJECT?
+
+  - If the second note is a newer, corrected, refined, re-measured or
+    re-stated version of the first -> SAME.
+  - If the two notes are about different subjects, or record different
+    events, and neither replaces the other -> DIFFERENT.
+
+SAME — the later note updates the earlier one:
+  "Hermes upgraded to v0.22.0" + "Hermes upgraded to v0.22.2" -> SAME
+  "Clerk Core 3 migration, NOT pushed" + "Clerk Core 3 migration PUSHED" -> SAME
+  "Logfare roster cut to 4 models" + "Logfare roster live: those 4 models" -> SAME
+  "Jev exists on the gateway" + "Correction: the two Free promos are not both models" -> SAME
+  "embeddings via Cloudflare with a fallback" + "migrated to 9router only, removed the Cloudflare path" -> SAME
+
+Extra detail does NOT make a pair DIFFERENT. A later note that adds a
+measurement, a cost, a command, a caveat or a second example is still the
+same fact, as long as it is about the same subject and updates that same
+statement.
+
+DIFFERENT — the two notes say different things:
+  "screenshot swiss-dash.png" + "screenshot swiss-tags.png" -> DIFFERENT
+  "migrated to Clerk Core 3" + "E2E login VERIFIED" -> DIFFERENT
+  "branch field added to D1" + "how the branch is displayed in the UI" -> DIFFERENT
+  "opencode crashed twice" + "how to recover opencode" -> DIFFERENT
+  "what the port contains: themes ported, tests pass" + "the branch was promoted to production" -> DIFFERENT
+     (one says what was built, the other says where it went)
+
+A note that bundles a SECOND, unrelated subject is DIFFERENT from a note
+that is only about the first subject.
+
+Wording that announces replacement is strong evidence of SAME: "Correction",
+"fixed", "migrated from", "removed", "after the first pass", "was pushed",
+"now", "updated", "replaced", "supersedes", "cut to", "no longer". A note
+that corrects or supersedes another is by definition about the same fact.
+
+Ignore dates, wording and length. Answer with JSON only:
+{"verdicts":[{"pair":<int>,"same":<true|false>,"reason":"<max 20 words>"}]}`;
+
+const SYSTEM_FOR = (style: string) =>
+  style === "deletion"
+    ? DELETION_SYSTEM
+    : style === "sharpened"
+      ? SHARPENED_SYSTEM
+      : MERGE_SYSTEM;
 
 export async function judgePairs(
   pairs: { aId: number; a: Claim; bId: number; b: Claim }[],
