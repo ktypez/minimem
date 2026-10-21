@@ -1,0 +1,5 @@
+name: minimem
+version: 0.2.0
+description: "minimem — local memory provider (hybrid recall with provenance, supersede relations, trust, lessons, handoffs, leases, crystal) via MCP on 127.0.0.1:3100."
+requires_env:
+  - MCP_MINIMEM_API_KEY

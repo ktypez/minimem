@@ -91,7 +91,7 @@ const MODELS = (env("EXTRACT_MODELS") ?? "google/gemini-2.5-flash-lite")
 
 // ---------- CLI ----------
 const NAME = "minimem";
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 
 function usage(): string {
   return `${NAME} ${VERSION} — small memory store for agents (Bun + Elysia + SQLite FTS5)
