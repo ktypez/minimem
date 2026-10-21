@@ -45,6 +45,10 @@ const PAIRS: [number, number, string][] = [
   [848, 849, "Jev EXISTS on Vercel AI Gateway / Correction: the two Free promos"],
   [907, 916, "truck cold-start optimisations NOT DONE / SUPERSEDES the earlier"],
   [588, 894, "Hermes Provider Setup / Hermes current model/provider topology (SUPERSEDES)"],
+  // #1099 re-states #1096 in full and advances the state, so #1096 is the
+  // stale vintage. #1096 is itself the current one for #1093, so this also
+  // checks that a chain (1093 <- 1096 <- 1099) shadows the right end.
+  [1096, 1099, "Portal status: Signal API branch NOT pushed / MERGED and PUSHED"],
 ];
 
 // pairs that must NOT be collapsed: two different facts that share a topic
