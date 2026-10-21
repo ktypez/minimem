@@ -333,15 +333,18 @@ says the opposite:
 
 | | subject overlap |
 |---|---|
-| same-fact pairs (22) | mean 0.406 |
-| different-fact pairs (33) | mean **0.501** |
+| same-fact pairs (23) | mean 0.432 |
+| different-fact pairs (32) | mean **0.485** |
 
-The overlap is *higher* for the pairs that are not the same fact. All 22
-same-fact pairs share at least one subject token, but 8 different-fact pairs
-have **identical** subjects — six of them the swiss-redesign screenshots
-("swiss-redesign screenshot" on both sides), and #1096/#1099 ("Portal
-(me.mcky.space) status" on both sides), which is exactly the false positive
-the best model made.
+The overlap is *higher* for the pairs that are not the same fact. And the
+subject does not settle it in either direction: ten different-fact pairs
+have **identical** subjects — all ten of them the swiss-redesign screenshot
+family ("swiss-redesign screenshot" on both sides, five notes, ten pairs) —
+while three same-fact pairs also have identical subjects (#729/#731 both
+"ImageGen-Logfare", #1096/#1099 both "Portal (me.mcky.space) status", #4/#716
+both "Hermes"). Every one of the 23 same-fact pairs shares at least one
+subject token, and the lowest-overlap one is #844/#862 at 0.10, where the
+subjects are "logfare non-text endpoints" and "logfare media generation".
 
 So the `subject` field is not a signal for this decision; it is slightly
 anti-correlated with it, and the deterministic veto in `curate.ts` — not the
