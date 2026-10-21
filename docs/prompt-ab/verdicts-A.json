@@ -1,0 +1,391 @@
+{
+ "arm": "A",
+ "note": "production (merge test)",
+ "verdicts": [
+  {
+   "a": 729,
+   "b": 731,
+   "label": "same",
+   "same": true,
+   "reason": "Same claim, updated artifact"
+  },
+  {
+   "a": 970,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (dashboard vs mobile)"
+  },
+  {
+   "a": 970,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (dash vs tags)"
+  },
+  {
+   "a": 971,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (recent vs tags)"
+  },
+  {
+   "a": 969,
+   "b": 971,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (gate vs recent)"
+  },
+  {
+   "a": 970,
+   "b": 971,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (dash vs recent)"
+  },
+  {
+   "a": 1096,
+   "b": 1099,
+   "label": "same",
+   "same": true,
+   "reason": "Same status, later state"
+  },
+  {
+   "a": 655,
+   "b": 729,
+   "label": "same",
+   "same": true,
+   "reason": "Same claim, different subject"
+  },
+  {
+   "a": 969,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (gate vs tags)"
+  },
+  {
+   "a": 969,
+   "b": 970,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (gate vs dash)"
+  },
+  {
+   "a": 655,
+   "b": 731,
+   "label": "same",
+   "same": true,
+   "reason": "Same claim, updated artifact"
+  },
+  {
+   "a": 591,
+   "b": 595,
+   "label": "same",
+   "same": true,
+   "reason": "Same event, refined details"
+  },
+  {
+   "a": 972,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "two different screenshots"
+  },
+  {
+   "a": 971,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "two different screenshots"
+  },
+  {
+   "a": 4,
+   "b": 716,
+   "label": "same",
+   "same": true,
+   "reason": "same Hermes description updated"
+  },
+  {
+   "a": 588,
+   "b": 647,
+   "label": "same",
+   "same": true,
+   "reason": "same provider setup updated"
+  },
+  {
+   "a": 1079,
+   "b": 1081,
+   "label": "same",
+   "same": true,
+   "reason": "same Hermes update sequence"
+  },
+  {
+   "a": 969,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "two different screenshots"
+  },
+  {
+   "a": 651,
+   "b": 746,
+   "label": "same",
+   "same": true,
+   "reason": "same OpenCode config details"
+  },
+  {
+   "a": 879,
+   "b": 885,
+   "label": "diff",
+   "same": true,
+   "reason": "same branch display evolution"
+  },
+  {
+   "a": 853,
+   "b": 891,
+   "label": "diff",
+   "same": false,
+   "reason": "different jev routing tests"
+  },
+  {
+   "a": 647,
+   "b": 894,
+   "label": "same",
+   "same": true,
+   "reason": "same provider topology updated"
+  },
+  {
+   "a": 1093,
+   "b": 1096,
+   "label": "same",
+   "same": true,
+   "reason": "same Clerk Core 3 migration status"
+  },
+  {
+   "a": 588,
+   "b": 894,
+   "label": "same",
+   "same": true,
+   "reason": "same provider setup updated"
+  },
+  {
+   "a": 992,
+   "b": 993,
+   "label": "same",
+   "same": false,
+   "reason": "two roster states, with different models"
+  },
+  {
+   "a": 1003,
+   "b": 1006,
+   "label": "same",
+   "same": true,
+   "reason": "same script behavior, with B adding detail"
+  },
+  {
+   "a": 1096,
+   "b": 1100,
+   "label": "diff",
+   "same": false,
+   "reason": "migration and its test are two facts"
+  },
+  {
+   "a": 854,
+   "b": 855,
+   "label": "same",
+   "same": false,
+   "reason": "two pipeline states, with B adding detail"
+  },
+  {
+   "a": 587,
+   "b": 588,
+   "label": "diff",
+   "same": true,
+   "reason": "Both describe the same Hermes provider configuration update and supersede prior notes."
+  },
+  {
+   "a": 879,
+   "b": 886,
+   "label": "diff",
+   "same": false,
+   "reason": "Note A covers display logic across multiple views; Note B focuses specifically on copy format details."
+  },
+  {
+   "a": 1078,
+   "b": 1083,
+   "label": "same",
+   "same": false,
+   "reason": "Note A describes a model swap within an active agent; Note B describes archiving that agent entirely."
+  },
+  {
+   "a": 1064,
+   "b": 1065,
+   "label": "diff",
+   "same": false,
+   "reason": "Note A records the code implementation/commit; Note B records the deployment/promotion to production."
+  },
+  {
+   "a": 848,
+   "b": 849,
+   "label": "same",
+   "same": false,
+   "reason": "B adds new info about tako-search tool and clarifies Jev status."
+  },
+  {
+   "a": 1099,
+   "b": 1100,
+   "label": "diff",
+   "same": true,
+   "reason": "B updates A with E2E verification and implementation details."
+  },
+  {
+   "a": 934,
+   "b": 935,
+   "label": "diff",
+   "same": true,
+   "reason": "B expands recovery steps and adds log locations."
+  },
+  {
+   "a": 881,
+   "b": 999,
+   "label": "same",
+   "same": false,
+   "reason": "B covers distinct aspects: command usage and kill switch vs wrapper status."
+  },
+  {
+   "a": 841,
+   "b": 846,
+   "label": "same",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 1064,
+   "b": 1066,
+   "label": "diff",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 844,
+   "b": 862,
+   "label": "same",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 793,
+   "b": 796,
+   "label": "diff",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 1063,
+   "b": 1065,
+   "label": "diff",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 948,
+   "b": 949,
+   "label": "same",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 1091,
+   "b": 1093,
+   "label": "diff",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 1065,
+   "b": 1066,
+   "label": "same",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 1093,
+   "b": 1100,
+   "label": "diff",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 924,
+   "b": 935,
+   "label": "diff",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 884,
+   "b": 886,
+   "label": "diff",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 878,
+   "b": 884,
+   "label": "diff",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 907,
+   "b": 916,
+   "label": "same",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 879,
+   "b": 880,
+   "label": "diff",
+   "same": false,
+   "reason": "Different aspects of the same project"
+  },
+  {
+   "a": 714,
+   "b": 720,
+   "label": "diff",
+   "same": false,
+   "reason": "Different aspects of the same project"
+  },
+  {
+   "a": 1093,
+   "b": 1099,
+   "label": "diff",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 890,
+   "b": 891,
+   "label": "diff",
+   "same": false,
+   "reason": "Different aspects of the same project"
+  },
+  {
+   "a": 1072,
+   "b": 1073,
+   "label": "diff",
+   "same": true,
+   "reason": "Same subject, later state"
+  },
+  {
+   "a": 803,
+   "b": 810,
+   "label": "diff",
+   "same": false,
+   "reason": "Different aspects of the same project"
+  }
+ ]
+}

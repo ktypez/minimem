@@ -1,0 +1,391 @@
+{
+ "arm": "B",
+ "note": "sharpened (earlier experiment)",
+ "verdicts": [
+  {
+   "a": 729,
+   "b": 731,
+   "label": "same",
+   "same": true,
+   "reason": "B updates A with canonical note reference"
+  },
+  {
+   "a": 970,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (dashboard vs mobile)"
+  },
+  {
+   "a": 970,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (dashboard vs tags)"
+  },
+  {
+   "a": 971,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (recent vs tags)"
+  },
+  {
+   "a": 969,
+   "b": 971,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (gate vs recent)"
+  },
+  {
+   "a": 970,
+   "b": 971,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (dashboard vs recent)"
+  },
+  {
+   "a": 1096,
+   "b": 1099,
+   "label": "same",
+   "same": true,
+   "reason": "B updates A with merged status"
+  },
+  {
+   "a": 655,
+   "b": 729,
+   "label": "same",
+   "same": true,
+   "reason": "Same claim, different subjects (Logfare vs ImageGen-Logfare)"
+  },
+  {
+   "a": 969,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (gate vs tags)"
+  },
+  {
+   "a": 969,
+   "b": 970,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (gate vs dashboard)"
+  },
+  {
+   "a": 655,
+   "b": 731,
+   "label": "same",
+   "same": true,
+   "reason": "B updates A with canonical note"
+  },
+  {
+   "a": 591,
+   "b": 595,
+   "label": "same",
+   "same": true,
+   "reason": "B refines A's vault rebuild details"
+  },
+  {
+   "a": 972,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (tags vs mobile-dash)"
+  },
+  {
+   "a": 971,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (recent vs mobile-dash)"
+  },
+  {
+   "a": 4,
+   "b": 716,
+   "label": "same",
+   "same": true,
+   "reason": "Same subject, updated details"
+  },
+  {
+   "a": 588,
+   "b": 647,
+   "label": "same",
+   "same": true,
+   "reason": "Same setup, supersedes older note"
+  },
+  {
+   "a": 1079,
+   "b": 1081,
+   "label": "same",
+   "same": true,
+   "reason": "Same update sequence, refined"
+  },
+  {
+   "a": 969,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (gate vs mobile-dash)"
+  },
+  {
+   "a": 651,
+   "b": 746,
+   "label": "same",
+   "same": true,
+   "reason": "Same config, added detail"
+  },
+  {
+   "a": 879,
+   "b": 885,
+   "label": "diff",
+   "same": true,
+   "reason": "Same branch display, updated format"
+  },
+  {
+   "a": 853,
+   "b": 891,
+   "label": "diff",
+   "same": true,
+   "reason": "Same routing, re-tested"
+  },
+  {
+   "a": 647,
+   "b": 894,
+   "label": "same",
+   "same": true,
+   "reason": "Same topology, supersedes older"
+  },
+  {
+   "a": 1093,
+   "b": 1096,
+   "label": "same",
+   "same": true,
+   "reason": "Same migration, status updated"
+  },
+  {
+   "a": 588,
+   "b": 894,
+   "label": "same",
+   "same": true,
+   "reason": "Same setup, supersedes older"
+  },
+  {
+   "a": 992,
+   "b": 993,
+   "label": "same",
+   "same": true,
+   "reason": "B updates A with the live roster, removing 2 models."
+  },
+  {
+   "a": 1003,
+   "b": 1006,
+   "label": "same",
+   "same": true,
+   "reason": "B updates A with the triage approach and a new pattern."
+  },
+  {
+   "a": 1096,
+   "b": 1100,
+   "label": "diff",
+   "same": true,
+   "reason": "B updates A with E2E login verification."
+  },
+  {
+   "a": 854,
+   "b": 855,
+   "label": "same",
+   "same": true,
+   "reason": "B updates A with the 9router migration."
+  },
+  {
+   "a": 587,
+   "b": 588,
+   "label": "diff",
+   "same": true,
+   "reason": "Both supersede old provider configs, confirming 9router as primary."
+  },
+  {
+   "a": 879,
+   "b": 886,
+   "label": "diff",
+   "same": false,
+   "reason": "A covers UI placement; B refines specific string formatting and spacing."
+  },
+  {
+   "a": 1078,
+   "b": 1083,
+   "label": "same",
+   "same": false,
+   "reason": "A updates scout's model; B archives scout entirely. Different actions/states."
+  },
+  {
+   "a": 1064,
+   "b": 1065,
+   "label": "diff",
+   "same": false,
+   "reason": "A describes code changes in the branch; B describes deployment promotion to production."
+  },
+  {
+   "a": 848,
+   "b": 849,
+   "label": "same",
+   "same": false,
+   "reason": "B adds unrelated subject (tako-search) and corrects Jev, different focus."
+  },
+  {
+   "a": 1099,
+   "b": 1100,
+   "label": "diff",
+   "same": true,
+   "reason": "B verifies E2E login, updating earlier status claim."
+  },
+  {
+   "a": 934,
+   "b": 935,
+   "label": "diff",
+   "same": true,
+   "reason": "Both notes describe opencode2 crashes and recovery"
+  },
+  {
+   "a": 881,
+   "b": 999,
+   "label": "same",
+   "same": false,
+   "reason": "Different subjects and claims"
+  },
+  {
+   "a": 841,
+   "b": 846,
+   "label": "same",
+   "same": true,
+   "reason": "Task Registry renamed to Task, commands updated"
+  },
+  {
+   "a": 1064,
+   "b": 1066,
+   "label": "diff",
+   "same": true,
+   "reason": "collage-sveltekit branch merged to main, deployment updated"
+  },
+  {
+   "a": 844,
+   "b": 862,
+   "label": "same",
+   "same": true,
+   "reason": "logfare media generation status updated"
+  },
+  {
+   "a": 793,
+   "b": 796,
+   "label": "diff",
+   "same": true,
+   "reason": "mcky.space audit batch commits rewritten after history purge"
+  },
+  {
+   "a": 1063,
+   "b": 1065,
+   "label": "diff",
+   "same": true,
+   "reason": "collage SvelteKit cutover and deployment to existing project"
+  },
+  {
+   "a": 948,
+   "b": 949,
+   "label": "same",
+   "same": true,
+   "reason": "truck Svelte cutover in repo then pushed to branch"
+  },
+  {
+   "a": 1091,
+   "b": 1093,
+   "label": "diff",
+   "same": false,
+   "reason": "Dependency upgrade vs Clerk Core 3 migration"
+  },
+  {
+   "a": 1065,
+   "b": 1066,
+   "label": "same",
+   "same": true,
+   "reason": "collage SvelteKit cutover then final deployment"
+  },
+  {
+   "a": 1093,
+   "b": 1100,
+   "label": "diff",
+   "same": true,
+   "reason": "Clerk Core 3 migration then E2E login verified"
+  },
+  {
+   "a": 924,
+   "b": 935,
+   "label": "diff",
+   "same": false,
+   "reason": "Different opencode service incidents"
+  },
+  {
+   "a": 884,
+   "b": 886,
+   "label": "diff",
+   "same": false,
+   "reason": "Branch display vs copy format"
+  },
+  {
+   "a": 878,
+   "b": 884,
+   "label": "diff",
+   "same": true,
+   "reason": "branch field added then display format updated"
+  },
+  {
+   "a": 907,
+   "b": 916,
+   "label": "same",
+   "same": true,
+   "reason": "B supersedes A's claim"
+  },
+  {
+   "a": 879,
+   "b": 880,
+   "label": "diff",
+   "same": false,
+   "reason": "Different subjects (branch vs customer-name)"
+  },
+  {
+   "a": 714,
+   "b": 720,
+   "label": "diff",
+   "same": false,
+   "reason": "Different subjects (Hermes Memory vs Vault Rules)"
+  },
+  {
+   "a": 1093,
+   "b": 1099,
+   "label": "diff",
+   "same": true,
+   "reason": "B updates A's migration status"
+  },
+  {
+   "a": 890,
+   "b": 891,
+   "label": "diff",
+   "same": false,
+   "reason": "Different subjects (Jev classification vs re-test)"
+  },
+  {
+   "a": 1072,
+   "b": 1073,
+   "label": "diff",
+   "same": false,
+   "reason": "Different subjects (R2 dependency vs dual upload)"
+  },
+  {
+   "a": 803,
+   "b": 810,
+   "label": "diff",
+   "same": false,
+   "reason": "Different subjects (Thai marks vs layout)"
+  }
+ ]
+}

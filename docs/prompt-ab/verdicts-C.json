@@ -1,0 +1,391 @@
+{
+ "arm": "C",
+ "note": "production + replacement-wording rule only",
+ "verdicts": [
+  {
+   "a": 729,
+   "b": 731,
+   "label": "same",
+   "same": true,
+   "reason": "B adds canonical reference, same image generation config."
+  },
+  {
+   "a": 970,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshot files (dashboard vs mobile dashboard)."
+  },
+  {
+   "a": 970,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshot content (dashboard vs tags view)."
+  },
+  {
+   "a": 971,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshot content (recent view vs tags view)."
+  },
+  {
+   "a": 969,
+   "b": 971,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshot files (gate vs recent view)."
+  },
+  {
+   "a": 970,
+   "b": 971,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshot content (dashboard vs recent view)."
+  },
+  {
+   "a": 1096,
+   "b": 1099,
+   "label": "same",
+   "same": true,
+   "reason": "B updates Signal API status from pending to merged/pushed."
+  },
+  {
+   "a": 655,
+   "b": 729,
+   "label": "same",
+   "same": true,
+   "reason": "Both describe identical image generation config; second restates."
+  },
+  {
+   "a": 969,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "two screenshots of different views"
+  },
+  {
+   "a": 969,
+   "b": 970,
+   "label": "diff",
+   "same": false,
+   "reason": "two screenshots of different views"
+  },
+  {
+   "a": 655,
+   "b": 731,
+   "label": "same",
+   "same": true,
+   "reason": "same image generation setup, B names a note"
+  },
+  {
+   "a": 591,
+   "b": 595,
+   "label": "same",
+   "same": true,
+   "reason": "B adds details to A, same vault rebuild"
+  },
+  {
+   "a": 972,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (tags vs mobile dashboard) are distinct artifacts."
+  },
+  {
+   "a": 971,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (recent vs mobile dashboard) are distinct artifacts."
+  },
+  {
+   "a": 4,
+   "b": 716,
+   "label": "same",
+   "same": true,
+   "reason": "B refines A's description of Hermes agent configuration and file paths."
+  },
+  {
+   "a": 588,
+   "b": 647,
+   "label": "same",
+   "same": true,
+   "reason": "Both notes describe the same verified provider setup change for Hermes."
+  },
+  {
+   "a": 1079,
+   "b": 1081,
+   "label": "same",
+   "same": false,
+   "reason": "Two separate update events (v0.22.0 then v0.22.2) with different details."
+  },
+  {
+   "a": 969,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots (gate vs mobile dashboard) are distinct artifacts."
+  },
+  {
+   "a": 651,
+   "b": 746,
+   "label": "same",
+   "same": true,
+   "reason": "B adds a policy rule to the existing OpenCode configuration facts in A."
+  },
+  {
+   "a": 879,
+   "b": 885,
+   "label": "diff",
+   "same": true,
+   "reason": "B corrects/refines the branch display format described in A."
+  },
+  {
+   "a": 853,
+   "b": 891,
+   "label": "diff",
+   "same": false,
+   "reason": "A covers general routing/auth; B covers specific System One API testing results."
+  },
+  {
+   "a": 647,
+   "b": 894,
+   "label": "same",
+   "same": true,
+   "reason": "Both verify the same current state of Hermes model/provider topology."
+  },
+  {
+   "a": 1093,
+   "b": 1096,
+   "label": "same",
+   "same": true,
+   "reason": "B updates the push status of the migration commit mentioned in A."
+  },
+  {
+   "a": 588,
+   "b": 894,
+   "label": "same",
+   "same": true,
+   "reason": "Both describe the same current state of Hermes provider setup, overriding older configs."
+  },
+  {
+   "a": 992,
+   "b": 993,
+   "label": "same",
+   "same": true,
+   "reason": "Same roster, different models"
+  },
+  {
+   "a": 1003,
+   "b": 1006,
+   "label": "same",
+   "same": true,
+   "reason": "Same false alarm pattern"
+  },
+  {
+   "a": 1096,
+   "b": 1100,
+   "label": "diff",
+   "same": false,
+   "reason": "Different aspects of Portal"
+  },
+  {
+   "a": 854,
+   "b": 855,
+   "label": "same",
+   "same": true,
+   "reason": "Same pipeline, different provider"
+  },
+  {
+   "a": 587,
+   "b": 588,
+   "label": "diff",
+   "same": true,
+   "reason": "Both notes describe Hermes setup"
+  },
+  {
+   "a": 879,
+   "b": 886,
+   "label": "diff",
+   "same": true,
+   "reason": "Both notes describe branch display"
+  },
+  {
+   "a": 1078,
+   "b": 1083,
+   "label": "same",
+   "same": false,
+   "reason": "Different aspects of OpenCode"
+  },
+  {
+   "a": 1064,
+   "b": 1065,
+   "label": "diff",
+   "same": true,
+   "reason": "Both notes describe collage port"
+  },
+  {
+   "a": 848,
+   "b": 849,
+   "label": "same",
+   "same": true,
+   "reason": "Correction of Vercel AI Gateway free promos"
+  },
+  {
+   "a": 1099,
+   "b": 1100,
+   "label": "diff",
+   "same": true,
+   "reason": "E2E login validates prior migration"
+  },
+  {
+   "a": 934,
+   "b": 935,
+   "label": "diff",
+   "same": false,
+   "reason": "Crash vs recovery recipe"
+  },
+  {
+   "a": 881,
+   "b": 999,
+   "label": "same",
+   "same": true,
+   "reason": "sup wrapper updates and clarifies"
+  },
+  {
+   "a": 841,
+   "b": 846,
+   "label": "same",
+   "same": true,
+   "reason": "Same task-tracking system, renamed"
+  },
+  {
+   "a": 1064,
+   "b": 1066,
+   "label": "diff",
+   "same": true,
+   "reason": "Same collage deployment, later state"
+  },
+  {
+   "a": 844,
+   "b": 862,
+   "label": "same",
+   "same": true,
+   "reason": "Same logfare media outage, updated"
+  },
+  {
+   "a": 793,
+   "b": 796,
+   "label": "diff",
+   "same": true,
+   "reason": "Same audit batch, SHAs rewritten"
+  },
+  {
+   "a": 1063,
+   "b": 1065,
+   "label": "diff",
+   "same": true,
+   "reason": "Same collage deployment, promoted"
+  },
+  {
+   "a": 948,
+   "b": 949,
+   "label": "same",
+   "same": true,
+   "reason": "Same truck cutover, pushed"
+  },
+  {
+   "a": 1091,
+   "b": 1093,
+   "label": "diff",
+   "same": false,
+   "reason": "Dependency upgrade vs migration"
+  },
+  {
+   "a": 1065,
+   "b": 1066,
+   "label": "same",
+   "same": true,
+   "reason": "Same collage deployment, merged"
+  },
+  {
+   "a": 1093,
+   "b": 1100,
+   "label": "diff",
+   "same": true,
+   "reason": "Same migration, E2E verified"
+  },
+  {
+   "a": 924,
+   "b": 935,
+   "label": "diff",
+   "same": false,
+   "reason": "Different services (opencode vs openchamber)"
+  },
+  {
+   "a": 884,
+   "b": 886,
+   "label": "diff",
+   "same": false,
+   "reason": "Display vs copy format"
+  },
+  {
+   "a": 878,
+   "b": 884,
+   "label": "diff",
+   "same": false,
+   "reason": "Schema vs display format"
+  },
+  {
+   "a": 907,
+   "b": 916,
+   "label": "same",
+   "same": true,
+   "reason": "B supersedes A, updating same cold‑start optimization details."
+  },
+  {
+   "a": 879,
+   "b": 880,
+   "label": "diff",
+   "same": false,
+   "reason": "Different features: branch display vs customer‑name label format."
+  },
+  {
+   "a": 714,
+   "b": 720,
+   "label": "diff",
+   "same": false,
+   "reason": "Different topics: memory policy vs vault rules."
+  },
+  {
+   "a": 1093,
+   "b": 1099,
+   "label": "diff",
+   "same": true,
+   "reason": "B reports later status of same portal migration."
+  },
+  {
+   "a": 890,
+   "b": 891,
+   "label": "diff",
+   "same": false,
+   "reason": "Different aspects: classification defaults vs API re‑test."
+  },
+  {
+   "a": 1072,
+   "b": 1073,
+   "label": "diff",
+   "same": true,
+   "reason": "B updates LIFF flow behavior described in A."
+  },
+  {
+   "a": 803,
+   "b": 810,
+   "label": "diff",
+   "same": false,
+   "reason": "Separate UI changes: Thai marks fix vs compacted rows & Maps."
+  }
+ ]
+}

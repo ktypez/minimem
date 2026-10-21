@@ -1,0 +1,391 @@
+{
+ "arm": "D",
+ "note": "production, judge also sees is_update",
+ "verdicts": [
+  {
+   "a": 729,
+   "b": 731,
+   "label": "same",
+   "same": true,
+   "reason": "B updates A with a canonical note reference."
+  },
+  {
+   "a": 970,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Two screenshots of different views."
+  },
+  {
+   "a": 970,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Two screenshots of different views."
+  },
+  {
+   "a": 971,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Two screenshots of different views."
+  },
+  {
+   "a": 969,
+   "b": 971,
+   "label": "diff",
+   "same": false,
+   "reason": "Two screenshots of different views."
+  },
+  {
+   "a": 970,
+   "b": 971,
+   "label": "diff",
+   "same": false,
+   "reason": "Two screenshots of different views."
+  },
+  {
+   "a": 1096,
+   "b": 1099,
+   "label": "same",
+   "same": true,
+   "reason": "B updates A with a pushed migration and login test."
+  },
+  {
+   "a": 655,
+   "b": 729,
+   "label": "same",
+   "same": true,
+   "reason": "Same information, different wording."
+  },
+  {
+   "a": 969,
+   "b": 972,
+   "label": "diff",
+   "same": false,
+   "reason": "Two screenshots of different views."
+  },
+  {
+   "a": 969,
+   "b": 970,
+   "label": "diff",
+   "same": false,
+   "reason": "Two screenshots of different views."
+  },
+  {
+   "a": 655,
+   "b": 731,
+   "label": "same",
+   "same": true,
+   "reason": "B updates A with a canonical note reference."
+  },
+  {
+   "a": 591,
+   "b": 595,
+   "label": "same",
+   "same": false,
+   "reason": "Two notes about the same session, different aspects."
+  },
+  {
+   "a": 972,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots: swiss-tags.png vs swiss-mobile-dash.png."
+  },
+  {
+   "a": 971,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots: swiss-recent.png vs swiss-mobile-dash.png."
+  },
+  {
+   "a": 4,
+   "b": 716,
+   "label": "same",
+   "same": true,
+   "reason": "B refines A with specific config paths and sync details for the same agent."
+  },
+  {
+   "a": 588,
+   "b": 647,
+   "label": "same",
+   "same": true,
+   "reason": "Both describe the same current Hermes provider setup (9router primary, no fallback)."
+  },
+  {
+   "a": 1079,
+   "b": 1081,
+   "label": "same",
+   "same": true,
+   "reason": "Sequential updates of the same version line; B is the final state of the upgrade process."
+  },
+  {
+   "a": 969,
+   "b": 973,
+   "label": "diff",
+   "same": false,
+   "reason": "Different screenshots: swiss-gate.png vs swiss-mobile-dash.png."
+  },
+  {
+   "a": 651,
+   "b": 746,
+   "label": "same",
+   "same": true,
+   "reason": "B adds operational rules to the existing configuration facts in A."
+  },
+  {
+   "a": 879,
+   "b": 885,
+   "label": "diff",
+   "same": true,
+   "reason": "B updates the branch display format described in A (icon removal)."
+  },
+  {
+   "a": 853,
+   "b": 891,
+   "label": "diff",
+   "same": true,
+   "reason": "B re-tests the routing capability established in A, refining behavior specifics."
+  },
+  {
+   "a": 647,
+   "b": 894,
+   "label": "same",
+   "same": true,
+   "reason": "Both confirm the same 9router-primary topology; dates differ but state is identical."
+  },
+  {
+   "a": 1093,
+   "b": 1096,
+   "label": "same",
+   "same": true,
+   "reason": "B updates the push status of the migration commit mentioned in A."
+  },
+  {
+   "a": 588,
+   "b": 894,
+   "label": "same",
+   "same": true,
+   "reason": "Both record the same Hermes provider topology fact, just at different verification times."
+  },
+  {
+   "a": 992,
+   "b": 993,
+   "label": "same",
+   "same": true,
+   "reason": "Same subject, different claim details"
+  },
+  {
+   "a": 1003,
+   "b": 1006,
+   "label": "same",
+   "same": true,
+   "reason": "Same subject, different claim details"
+  },
+  {
+   "a": 1096,
+   "b": 1100,
+   "label": "diff",
+   "same": false,
+   "reason": "Different aspects of the same project"
+  },
+  {
+   "a": 854,
+   "b": 855,
+   "label": "same",
+   "same": true,
+   "reason": "Same subject, different claim details"
+  },
+  {
+   "a": 587,
+   "b": 588,
+   "label": "diff",
+   "same": true,
+   "reason": "Both notes describe Hermes setup and status"
+  },
+  {
+   "a": 879,
+   "b": 886,
+   "label": "diff",
+   "same": true,
+   "reason": "Both notes describe branch display in data.mcky.space"
+  },
+  {
+   "a": 1078,
+   "b": 1083,
+   "label": "same",
+   "same": false,
+   "reason": "One note describes model fix, the other pruning"
+  },
+  {
+   "a": 1064,
+   "b": 1065,
+   "label": "diff",
+   "same": true,
+   "reason": "Both notes describe collage SvelteKit port and cutover"
+  },
+  {
+   "a": 848,
+   "b": 849,
+   "label": "same",
+   "same": false,
+   "reason": "Different aspects: model vs. promo correction"
+  },
+  {
+   "a": 1099,
+   "b": 1100,
+   "label": "diff",
+   "same": false,
+   "reason": "Migration status vs. E2E verification"
+  },
+  {
+   "a": 934,
+   "b": 935,
+   "label": "diff",
+   "same": false,
+   "reason": "Crash report vs. recovery recipe"
+  },
+  {
+   "a": 881,
+   "b": 999,
+   "label": "same",
+   "same": false,
+   "reason": "Sudo wrapper change vs. usage clarification"
+  },
+  {
+   "a": 841,
+   "b": 846,
+   "label": "same",
+   "same": true,
+   "reason": "Same task-tracking system evolution"
+  },
+  {
+   "a": 1064,
+   "b": 1066,
+   "label": "diff",
+   "same": true,
+   "reason": "Same collage deployment progression"
+  },
+  {
+   "a": 844,
+   "b": 862,
+   "label": "same",
+   "same": true,
+   "reason": "Same logfare media outage status"
+  },
+  {
+   "a": 793,
+   "b": 796,
+   "label": "diff",
+   "same": true,
+   "reason": "Same mcky.space audit batch history"
+  },
+  {
+   "a": 1063,
+   "b": 1065,
+   "label": "diff",
+   "same": true,
+   "reason": "Same collage SvelteKit deployment"
+  },
+  {
+   "a": 948,
+   "b": 949,
+   "label": "same",
+   "same": true,
+   "reason": "Same truck Svelte cutover progression"
+  },
+  {
+   "a": 1091,
+   "b": 1093,
+   "label": "diff",
+   "same": false,
+   "reason": "Dependency upgrade vs Clerk migration"
+  },
+  {
+   "a": 1065,
+   "b": 1066,
+   "label": "same",
+   "same": true,
+   "reason": "Same collage deployment progression"
+  },
+  {
+   "a": 1093,
+   "b": 1100,
+   "label": "diff",
+   "same": true,
+   "reason": "Same Clerk Core 3 migration progression"
+  },
+  {
+   "a": 924,
+   "b": 935,
+   "label": "diff",
+   "same": false,
+   "reason": "Different opencode services (opencode vs openchamber)"
+  },
+  {
+   "a": 884,
+   "b": 886,
+   "label": "diff",
+   "same": false,
+   "reason": "Display format vs copy format"
+  },
+  {
+   "a": 878,
+   "b": 884,
+   "label": "diff",
+   "same": false,
+   "reason": "Schema addition vs display format"
+  },
+  {
+   "a": 907,
+   "b": 916,
+   "label": "same",
+   "same": true,
+   "reason": "B supersedes A, updating status of cold‑start optimizations (two done, one remains)."
+  },
+  {
+   "a": 879,
+   "b": 880,
+   "label": "diff",
+   "same": false,
+   "reason": "Different aspects: branch display vs customer‑name label format."
+  },
+  {
+   "a": 714,
+   "b": 720,
+   "label": "diff",
+   "same": false,
+   "reason": "Different subjects: memory policy vs vault rules."
+  },
+  {
+   "a": 1093,
+   "b": 1099,
+   "label": "diff",
+   "same": true,
+   "reason": "B updates A, confirming Signal API migration merged and pushed."
+  },
+  {
+   "a": 890,
+   "b": 891,
+   "label": "diff",
+   "same": false,
+   "reason": "Different focus: provider config vs API re‑test via 9router."
+  },
+  {
+   "a": 1072,
+   "b": 1073,
+   "label": "diff",
+   "same": true,
+   "reason": "B adds dual upload details, same Collage LIFF R2 flow."
+  },
+  {
+   "a": 803,
+   "b": 810,
+   "label": "diff",
+   "same": false,
+   "reason": "Different aspects: Thai marks fix vs row compaction & Maps layout."
+  }
+ ]
+}
