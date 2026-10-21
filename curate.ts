@@ -150,6 +150,12 @@ if (need.length) {
 // ---------- stage 2: pairwise merge test ----------
 let decided = 0;
 let same = 0;
+// A run that gets no verdict at all is NOT the same as a run with nothing to
+// do: the first means the model was unreachable. Silently printing
+// "decided 0" made a provider outage look like a finished job, so these are
+// counted and the run exits non-zero when the model answered nothing.
+let noVerdict = 0;
+let failedBatches = 0;
 for (let i = 0; i < pending.length; i += BATCH) {
   const slice = pending.slice(i, i + BATCH);
   const pairs = slice
@@ -166,12 +172,14 @@ for (let i = 0; i < pending.length; i += BATCH) {
   }
   const verdicts = await judgePairs(pairs, MODEL, VOTES, STYLE);
   if (!verdicts) {
+    failedBatches++;
     console.error(`batch at ${i}: model failed, skipped`);
     continue;
   }
   for (const p of slice) {
     const v = verdicts.get(pairKey(p.aId, p.bId));
     if (!v) {
+      noVerdict++;
       console.error(`no verdict for ${p.aId}/${p.bId}`);
       continue;
     }
@@ -202,7 +210,24 @@ function memMeta(id: number): { id: number; updated: string } {
   return { id, updated: r?.updated_at ?? "" };
 }
 
-console.log(`\ndecided ${decided} | same ${same} | different ${decided - same}`);
+console.log(
+  `\ndecided ${decided} | same ${same} | different ${decided - same}` +
+    ` | no verdict ${noVerdict} | failed batches ${failedBatches}`,
+);
 if (APPLY) console.log("relations written (--apply)");
 else console.log("DRY RUN — pass --apply to write");
+if (pending.length > 0 && decided === 0) {
+  console.error(
+    "\nNO VERDICTS AT ALL: the model answered none of the " +
+      `${pending.length} candidate pairs (${failedBatches} batch(es) failed outright). ` +
+      "This is a provider/routing failure, not an empty job — nothing was decided and nothing was written.",
+  );
+  db.close();
+  process.exit(1);
+}
+if (noVerdict > 0) {
+  console.error(
+    `\nWARNING: ${noVerdict} pair(s) got no verdict and were left alone (a no-verdict is never read as "different").`,
+  );
+}
 db.close();
