@@ -95,10 +95,19 @@ export const ADJUDICATE_MODEL = env("ADJUDICATE_MODEL") ?? "hyper/glm-5.3-flash"
  * hyper provider on this lab did exactly that mid-run — and the curator must
  * not silently stop producing verdicts. Each model is tried in turn until one
  * answers.
+ *
+ * The order matters more than it looks. "auto" is NOT a model: on this router
+ * it is a lottery, and eight consecutive calls to it were served by eight
+ * different free models (mistralai, cohere, qwen), while a later run of the
+ * same experiment was served by gemini-3.8-flash-low. A run that falls through
+ * to "auto" therefore produces verdicts from a mixture, and the same pair can
+ * get a different answer on a re-run — measured: 14 to 16 of 55 pairs flipped
+ * between two identical runs. So the pinned models come first and "auto" is
+ * the last resort, not the second.
  */
 const FALLBACK_MODELS = (
   env("ADJUDICATE_FALLBACK_MODELS") ??
-  "hyper/glm-5.3-flash,hyper/qwen3.8-flash,auto,ag/gemini-3.8-flash-high"
+  "hyper/glm-5.3-flash,hyper/qwen3.8-flash,ag/gemini-3.8-flash-high,ag/gemini-3.8-flash-low,auto",
 )
   .split(",")
   .map((s) => s.trim())
