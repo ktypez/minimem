@@ -19,19 +19,29 @@ bge-m3 embeddings sat at cosine >= 0.78.
 
 Cosine measures **topical similarity**, not **factual identity**. Two notes
 about the same project that assert different things land very close together.
-Measured on the live corpus at 0.78:
+Measured on the live corpus at 0.78, against the corrected labels:
 
 | | count |
 |---|---|
 | candidate pairs | 67 |
-| really the same fact (collapse was right) | 28 |
-| **different facts (collapse was wrong)** | **27** |
+| really the same fact (collapse was right) | 23 |
+| **different facts (collapse was wrong)** | **32** |
 | borderline | 12 |
+
+| threshold | precision | recall | F1 |
+|---|---|---|---|
+| cosine >= 0.78 | 0.418 | 1.000 | 0.590 |
+
+Every one of the 23 same-fact pairs is above the threshold — the lowest true
+cosine is 0.882 — and so is every one of the 32 different-fact pairs. A
+single cut collapses **all 55** of them, which is not a threshold with a bad
+setting, it is a threshold with no information in it.
 
 And the false ones were not the marginal ones. The corpus holds five
 `swiss-redesign screenshot: /tmp/opencode/swiss-<page>.png` notes — five
-*different* screenshots — and they sat at **0.90 to 0.96** against each other,
-above most of the genuine revision pairs.
+*different* screenshots — and they sat at **0.91 to 0.96** against each other,
+above most of the genuine revision pairs. The highest true pair, #729/#731,
+is at 0.981; the screenshot family is 0.964, 0.916, 0.914, 0.913, 0.912.
 
 A false collapse is not cosmetic. It deletes a distinct fact from the recall of
 every query that would have found it. The recall for "how do I check the lab
@@ -55,6 +65,12 @@ deterministic features over the same 67 hand-labelled pairs:
 None of them beats guessing. The two populations overlap almost completely:
 there is no threshold on any of these that separates them.
 
+This table was measured against the labels *before* the fourth label pass,
+and the correction only makes the separation harder: the same-fact
+population shrank from 28 pairs to 23 and the different-fact population grew
+from 27 to 32, so the "always collapse" baseline falls from 0.68 to 0.59. The
+numbers above are the generous ones.
+
 Chunk-level claim coverage was measured a second time, more carefully, because
 it is the most plausible of the five: split each document into its claims,
 embed every claim, and call two documents the same fact when every claim of
@@ -66,10 +82,30 @@ one is matched by a claim of the other at cosine 0.80. It is *precise* and
 | chunk coverage, every claim matched | 0.92 | 0.61 | 0.73 |
 | merge test + stored relations | 0.86 | 0.68 | **0.76** |
 
-Seven of the eighteen genuine revision pairs share no claim at all — a
-reworded note and its correction have no common sentence — so coverage
-cannot see them however the threshold is set. It is a good *precision* signal
-and a poor *identity* test, which is the opposite of what this feature needs.
+(Also measured before the fourth pass, on the same pairs.)
+
+Both of those were measured with a script that is no longer on disk, so they
+cannot be re-run. Re-measuring the coverage rule with an explicitly stated
+splitting — a claim is a line, a bullet or a sentence, pieces under 40
+characters dropped, coverage required in *both* directions at cosine 0.80 —
+against the corrected labels gives:
+
+| rule | precision | recall | F1 |
+|---|---|---|---|
+| chunk coverage, every claim matched (re-measured) | 0.25 | 0.17 | 0.21 |
+
+That is far below the original 0.73, and the difference is the method: the
+splitting is coarser and the rule is symmetric. It also collapses the
+screenshot family — ten of its twelve false positives are the five
+`swiss-redesign` screenshots against each other. The direction of the
+original result is confirmed and then some; the exact number is a property
+of the splitting, not of the corpus.
+
+What does reproduce, and is the point of the feature, is this: **eight of the
+twenty-three genuine revision pairs share no claim at all** — a reworded note
+and its correction have no common sentence — so coverage cannot see them
+however the threshold is set. It is a good *precision* signal and a poor
+*identity* test, which is the opposite of what this feature needs.
 
 ## What is done instead
 
