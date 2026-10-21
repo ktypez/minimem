@@ -37,6 +37,7 @@
  */
 
 import { Database } from "bun:sqlite";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ADJUDICATE_MODEL, ADJUDICATE_STYLE, extractClaims, judgePairs, pairKey, type Claim } from "./adjudicate";
 import { cosine, EMBED_MODEL } from "./embed";
@@ -49,6 +50,7 @@ const flag = (name: string, dflt?: string) => {
 const has = (name: string) => argv.includes(`--${name}`);
 
 const APPLY = has("apply");
+const IGNORE_LABELS = has("ignore-labels");
 const THRESHOLD = Number(flag("threshold", "0.78"));
 const BATCH = Math.max(1, Number(flag("batch", "10")));
 const VOTES = Math.max(1, Number(flag("votes", process.env.ADJUDICATE_VOTES ?? "1")));
@@ -147,9 +149,31 @@ if (need.length) {
   }
 }
 
+// ---------- the hand labels are the authority ----------
+// docs/hand-labels.json is the audited ground truth (nine corrections so
+// far). A model that says SAME for a pair the labels call "different" is
+// wrong, and writing that relation hides one of the two memories. Measured
+// on the last full curator run: every one of the relations it wanted to ADD
+// was a pair the labels call different (8 of 8) and none of them was right.
+// So the label wins, the write is skipped, and the reason is printed. A
+// human who believes the model can pass --ignore-labels (and then fix the
+// label file, which is where the disagreement belongs).
+const LABEL_FILE = resolve(import.meta.dir, "docs/hand-labels.json");
+const handLabels = new Map<string, string>();
+try {
+  const raw = JSON.parse(readFileSync(LABEL_FILE, "utf8")) as { labels?: [number, number, string][] };
+  for (const [a, b, l] of raw.labels ?? []) handLabels.set(`${Math.min(a, b)}|${Math.max(a, b)}`, l);
+} catch {
+  console.error(`no hand labels at ${LABEL_FILE} — the label guard is off`);
+}
+if (handLabels.size && !IGNORE_LABELS) {
+  console.log(`hand labels: ${handLabels.size} pairs — a SAME verdict on a pair labelled "different" will not be written`);
+}
+
 // ---------- stage 2: pairwise merge test ----------
 let decided = 0;
 let same = 0;
+let blocked = 0;
 // A run that gets no verdict at all is NOT the same as a run with nothing to
 // do: the first means the model was unreachable. Silently printing
 // "decided 0" made a provider outage look like a finished job, so these are
@@ -196,6 +220,15 @@ for (let i = 0; i < pending.length; i += BATCH) {
     const current = aIsNewer ? p.aId : p.bId;
     const other = aIsNewer ? p.bId : p.aId;
     console.log(`  SAME  #${current} supersedes #${other}  cos=${p.cos.toFixed(3)}  — ${v.reason}`);
+    const label = handLabels.get(`${Math.min(current, other)}|${Math.max(current, other)}`);
+    if (label === "diff" && !IGNORE_LABELS) {
+      blocked++;
+      console.error(
+        `  BLOCKED #${current} supersedes #${other} — the hand labels call this pair DIFFERENT ` +
+          "(a relation here would hide one of the two memories; fix the label file if the model is right)",
+      );
+      continue;
+    }
     if (APPLY) {
       db.query("DELETE FROM supersedes WHERE id_a = ? AND id_b = ?").run(other, current);
       db
@@ -212,8 +245,15 @@ function memMeta(id: number): { id: number; updated: string } {
 
 console.log(
   `\ndecided ${decided} | same ${same} | different ${decided - same}` +
-    ` | no verdict ${noVerdict} | failed batches ${failedBatches}`,
+    ` | no verdict ${noVerdict} | failed batches ${failedBatches}` +
+    ` | blocked by the hand labels ${blocked}`,
 );
+if (blocked) {
+  console.error(
+    `\n${blocked} relation(s) were NOT written: the hand labels call those pairs different. ` +
+      "Re-read those pairs; if the model is right, correct docs/hand-labels.json first.",
+  );
+}
 if (APPLY) console.log("relations written (--apply)");
 else console.log("DRY RUN — pass --apply to write");
 if (pending.length > 0 && decided === 0) {
