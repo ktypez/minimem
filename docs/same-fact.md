@@ -24,17 +24,17 @@ Measured on the live corpus at 0.78, against the corrected labels:
 | | count |
 |---|---|
 | candidate pairs | 67 |
-| really the same fact (collapse was right) | 25 |
-| **different facts (collapse was wrong)** | **31** |
+| really the same fact (collapse was right) | 24 |
+| **different facts (collapse was wrong)** | **32** |
 | borderline | 11 |
 
 | threshold | precision | recall | F1 |
 |---|---|---|---|
-| cosine >= 0.78 | 0.446 | 1.000 | 0.617 |
+| cosine >= 0.78 | 0.429 | 1.000 | 0.600 |
 
-Every one of the 25 same-fact pairs is above the threshold — the lowest true
+Every one of the 24 same-fact pairs is above the threshold — the lowest true
 cosine is 0.782, the Portal status pair #1093/#1099 — and so is every one of
-the 31 different-fact pairs. A single cut collapses **all 56** of them, which
+the 32 different-fact pairs. A single cut collapses **all 56** of them, which
 is not a threshold with a bad setting, it is a threshold with no information
 in it.
 
@@ -66,11 +66,11 @@ deterministic features over the same 67 hand-labelled pairs:
 None of them beats guessing. The two populations overlap almost completely:
 there is no threshold on any of these that separates them.
 
-This table is measured against the labels as of the fifth pass: the
-same-fact population is 25 pairs (28 at the first pass, 23 after the fourth,
-25 after the fifth) and the different-fact population 31, so the "always
-collapse" baseline is **0.617**. The best cut anywhere in the range reaches
-F1 **0.657** (t = 0.797) — far below the adjudicator, and the numbers above
+This table is measured against the labels as of the sixth pass: the
+same-fact population is 24 pairs (28 at the first pass, 23 after the fourth,
+25 after the fifth, 24 after the sixth) and the different-fact population 32,
+so the "always collapse" baseline is **0.600**. The best cut anywhere in the
+range reaches F1 **0.638** (t = 0.795) — far below the adjudicator, and the numbers above
 are the generous ones.
 
 Chunk-level claim coverage was measured a second time, more carefully, because
@@ -313,8 +313,35 @@ restates #1096 in full. So the rule reads the same from both sides:
 > its state. A note that shares only a topic, or that replaces A's
 > substance with a different assertion, is a different fact.**
 
-The relation was restored. The live set is now 33 relations, 23 of 23
-confirmed-same present, 0 wrong.
+The relation was restored.
+
+**The eighth wrong label was the same mistake one step down a chain.**
+#1093 and #1099 had been labelled *diff*, but the relation graph already
+declared #1093 a stale vintage of #1099 — through #1096, which is itself a
+vintage of #1099. The label contradicted the store's own data: the two ends
+of a chain cannot be different facts. The adjudicator said SAME, the merge
+test agreed (merging the two notes gives one coherent statement), and the
+symptom had been visible in the answers rather than in the scores — a recall
+for the Portal status returned #1093 ("NOT pushed") and #1099 ("MERGED and
+PUSHED") in the same result, because a chain only shadowed its root when the
+middle vintage happened to be in the result set. The label became *same* and
+the chain is now closed in one pass.
+
+**The ninth wrong label was found by the models, twice, and the operational
+test settled it.** #591 (the 2026-08-27 daily note) and #595 (the session
+note for the same rebuild) had been labelled *same* — one event, two
+records. But they assert different things: #591 carries what was still
+pending (the creds path, the backup path, the Obsidian plugin list), #595
+carries the architecture decisions. A supersede relation says "the older note
+is a stale vintage of the newer one", and #595 neither re-states #591's
+substance nor advances it — so hiding #591 would have deleted three facts
+the newer note does not have. The adjudicator called it DIFF on both the
+3-vote run and the curator run, and reading the two notes confirmed it. This
+is the one label in the set that moved because the *operational* test
+disagreed with the merge test: a pair can be about the same event and still
+be two facts. The label became *diff* and the relation was deleted.
+
+The live set is now 36 relations, 24 of 24 confirmed-same present, 0 wrong.
 
 An audit that only looks for labels the model got wrong will find the
 model's false positives, and stop. The seventh label was a false *negative*
@@ -337,7 +364,7 @@ the same votes:
 It was read as: the sharpened prompt does what it was designed to do — false
 negatives fall from 2 to 1 — and is still a net loss, because false positives
 rise from 15 to 19. The trade is asymmetric and the reason is structural: the
-corpus holds more distinct pairs (31) than same-fact pairs (25), and a false
+corpus holds more distinct pairs (32) than same-fact pairs (24), and a false
 collapse is not a wrong answer, it is a *deletion* — the distinct fact stops
 being recalled for every query that would have found it. Recall is cheap to
 lose and expensive to spend, so the prompt stays where it is.
@@ -381,12 +408,12 @@ becomes repeatable, and the verdict stability is completely different:
 
 | arm | F1 per run | mean | spread | P mean | R mean | pairs that flip between runs |
 |---|---|---|---|---|---|---|
-| production | 0.818 / 0.791 / 0.818 | 0.809 | 0.027 | 0.898 | 0.736 | 2 of 56 |
-| sharpened | 0.851 / 0.851 / 0.870 | **0.857** | 0.019 | 0.883 | 0.833 | 1 of 56 |
-| production + replacement-wording rule only | 0.800 / 0.809 / 0.766 | 0.791 | 0.043 | 0.822 | 0.764 | 4 of 56 |
+| production | 0.837 / 0.810 / 0.837 | 0.828 | 0.027 | 0.898 | 0.768 | 2 of 56 |
+| sharpened | 0.870 / 0.870 / 0.889 | **0.876** | 0.019 | 0.883 | 0.870 | 1 of 56 |
+| production + replacement-wording rule only | 0.818 / 0.826 / 0.783 | 0.809 | 0.043 | 0.822 | 0.797 | 4 of 56 |
 
-(Re-scored against the fifth-pass labels; the same nine runs against the
-fourth-pass labels scored 0.781 / 0.832 / 0.765.)
+(Re-scored against the sixth-pass labels; the same nine runs against the
+fifth-pass labels scored 0.818 / 0.857 / 0.791.)
 
 Pinned, the judge is stable (one to four pairs flip between two runs of the
 same arm, against fourteen to sixteen unpinned) and the precision is far
@@ -394,7 +421,7 @@ higher than the lottery ever managed (0.90 against 0.57-0.64) — the free
 models were the weak part, not the prompt.
 
 On those numbers the sharpened prompt looks like a clear win: +0.05 F1, and
-nearly all of the difference is recall (0.833 against 0.736) at a precision
+nearly all of the difference is recall (0.870 against 0.768) at a precision
 within a point (0.883 against 0.898).
 **It is still not a reason to change the prompt**, because the comparison is
 contaminated. Both prompts carry worked examples that are *labelled pairs in
@@ -446,8 +473,8 @@ says the opposite:
 
 | | subject overlap |
 |---|---|
-| same-fact pairs (25) | mean 0.373 |
-| different-fact pairs (31) | mean **0.460** |
+| same-fact pairs (24) | mean 0.381 |
+| different-fact pairs (32) | mean **0.451** |
 
 The overlap is *higher* for the pairs that are not the same fact. And the
 subject does not settle it in either direction: ten different-fact pairs
@@ -476,7 +503,7 @@ Scored against the 56 unambiguous hand-labelled pairs of the live corpus:
 
 | rule | precision | recall | F1 | false collapses |
 |---|---|---|---|---|
-| cosine >= 0.78 (the old rule) | 0.45 | 1.00 | **0.62** | **31** |
+| cosine >= 0.78 (the old rule) | 0.43 | 1.00 | **0.60** | **32** |
 | merge test + stored relations | 1.00 | 1.00 | **1.00** | **0** |
 
 The second row is the live relation set measured against the labels, and it
