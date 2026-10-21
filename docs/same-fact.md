@@ -295,28 +295,55 @@ ground truth was the thing under test. Every model in the table called that
 pair SAME and the label called it DIFF; two models still had their
 per-pair verdicts on disk, and both had it right.
 
-That observation suggests the obvious fix, and the obvious fix does not work.
-A prompt that says "extra detail does not make a pair DIFFERENT" and "wording
-that announces replacement is strong evidence of SAME" was measured against
-the production prompt on the same claims, the same model and the same votes:
+That observation suggests the obvious fix, and the first attempt to measure it
+was invalid. A prompt that says "extra detail does not make a pair DIFFERENT"
+and "wording that announces replacement is strong evidence of SAME" was
+measured against the production prompt on the same claims, the same model and
+the same votes:
 
 | prompt | precision | recall | F1 |
 |---|---|---|---|
 | **production (merge test)** | 0.571 | 0.909 | **0.702** |
 | sharpened | 0.525 | 0.955 | 0.677 |
 
-It does exactly what it was designed to do — false negatives fall from 2 to 1
-— and it is still a net loss, because false positives rise from 15 to 19. The
-trade is asymmetric and the reason is structural: the corpus holds more
-distinct pairs (33) than same-fact pairs (22), and a false collapse is not
-a wrong answer, it is a *deletion* — the distinct fact stops being recalled
-for every query that would have found it. Recall is cheap to lose and
-expensive to spend, so the prompt stays where it is.
+It was read as: the sharpened prompt does what it was designed to do — false
+negatives fall from 2 to 1 — and is still a net loss, because false positives
+rise from 15 to 19. The trade is asymmetric and the reason is structural: the
+corpus holds more distinct pairs (32) than same-fact pairs (23), and a false
+collapse is not a wrong answer, it is a *deletion* — the distinct fact stops
+being recalled for every query that would have found it. Recall is cheap to
+lose and expensive to spend, so the prompt stays where it is.
 
-(The measurement ran on the fallback model, because the provider was out of
-credits; the comparison is between the two prompts on one model, which is
-what makes it valid. `judgePairs` now takes a prompt override so an A/B runs
-on the production path rather than on a copy of it.)
+**That measurement was a mixture of models, and the conclusion drawn from it
+was wrong.** "The same model" was `auto`, and `auto` on this router is not a
+model — it is a lottery. Eight consecutive calls to `auto` were served by
+`mistralai/codestral-2508`, `mistralai/devstral-medium`,
+`mistralai/mistral-medium-3.5`, `cohere/command-r-plus-08-2024`,
+`cohere/command-a-plus`, `cohere/north-mini-code`,
+`qwen/qwen3.8-omni-flash:free` and `mistralai/mistral-large-4-0`, one per
+call; a later run of the same comparison was served by
+`gemini-3.8-flash-low` instead. The pool changes with what is available, so
+"the same model" was not the same model, and neither was the same pool twice.
+
+Repeating the experiment three times per arm, unchanged, on the same claims
+and the same labels, shows what that does to a number:
+
+| arm | F1 per run | mean | spread | P spread | R spread |
+|---|---|---|---|---|---|
+| production | 0.723 / 0.667 / 0.691 | 0.694 | 0.057 | 0.115 | 0.087 |
+| sharpened | 0.769 / 0.824 / 0.846 | 0.813 | 0.077 | 0.069 | 0.087 |
+| production + replacement rule | 0.750 / 0.704 / 0.769 | 0.741 | 0.066 | 0.077 | 0.087 |
+
+And the reason the spread is so large is not the temperature: **between two
+runs of the same arm, 14 to 16 of the 55 pairs change their verdict.** A
+quarter of the corpus flips on a re-run, including pairs like #1093/#1096 and
+#1064/#1065 that every other measurement agrees on. The spread of the
+measurement is larger than the difference between the prompts, so the
+comparison above cannot decide anything — in either direction.
+
+(And the earlier reading of it, "the sharpened prompt is a net loss", is not
+supported: on these three runs the sharpened arm has the *higher* mean. The
+0.025 gap it was rejected on is inside the noise.)
 
 The obvious next move would be to fix the *extraction*, on the theory that the
 judge is being misled by the `subject` field: for the pair that every model
