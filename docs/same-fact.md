@@ -147,6 +147,19 @@ the pairs it quietly omitted, so `hyper/glm-5.3-flash` is scored on the 48
 pairs it answered and the other two on all 55. Its rate of answering every
 pair at all was part of why it won.
 
+The table also predates the fourth label pass. Only one label changed in
+that pass — #1096/#1099, from *diff* to *same* — and it was a false
+positive for every model whose per-pair verdicts were kept
+(`hyper/glm-5.3-flash` and `hyper/qwen3.8-flash` both called it SAME), so
+those two rows are if anything understated: that pair now counts as a true
+positive. Re-running the sweep to refresh the table needs hyper credits;
+until then the numbers here are the ones that were measured, and the
+per-pair verdicts that produced them are not on disk.
+
+The labels themselves are in `docs/hand-labels.json`, with the reasoning for
+each correction in the `notes` field. They used to live in a temp directory,
+which is a bad place for the ground truth of a measurement.
+
 `hyper/glm-5.3-flash` wins on every axis that matters and is also the
 fastest — seven times quicker than the route `auto` happened to pick, so the
 better model is the cheaper one. It is the default. `auto` is a fallback
@@ -170,12 +183,11 @@ hand-labelled corpus the live set now scores:
 | | relations | correct | wrong | precision | recall | F1 |
 |---|---|---|---|---|---|---|
 | before | 32 | 19 | 3 | 0.86 | 0.68 | 0.76 |
-| **after** | **32** | **22** | **0** | **1.00** | **1.00** | **1.00** |
+| **after** | **33** | **23** | **0** | **1.00** | **1.00** | **1.00** |
 
 Every relation the model proposed was checked against the labels before it
-was written, and the ones it got wrong — a *branch display* note collapsed
-into a *copy format* note, and a *Signal API migration* collapsed into two
-*Clerk Core 3 migration* notes — were removed. The one relation a human
+was written, and the one that got it wrong — a *branch display* note
+collapsed into a *copy format* note — was removed. The one relation a human
 made is still marked as such and was left alone.
 
 The last row is not a model score: it is a hand-checked set. Every relation
@@ -211,9 +223,41 @@ change). The criterion is now written down and applies to all of them:
 
 A later note that *explicitly replaces* the earlier one is the same fact by
 definition: #855 "Removed CF Workers AI code", #849 "Correction 2026-09-26",
-#810 "after the first spacing pass", #1096 "was PUSHED". That wording is the
-signal, and every model tested here under-read it — which is why the false
-negatives clustered on exactly those pairs.
+#810 "after the first spacing pass". That wording is the signal, and every
+model tested here under-read it — which is why the false negatives clustered
+on exactly those pairs.
+
+**The seventh wrong label was the opposite mistake, and it was found by
+*agreeing* with the model.** #1096 and #1099 had been labelled *diff* — two
+records, one a later vintage. But #1099 is #1096 **refreshed**: it restates
+every technical detail of #1096 (`SignInForm` using `useSignIn`
+create/password/finalize, LINE's `signIn.sso` with `redirectCallbackUrl`,
+`<HandleSSOCallback>` at `?sso_callback=1`, the App split into wrapper +
+`PortalApp`) and advances the state from "branch `clerk-signal-api` 29b9cf3
+NOT pushed/merged" to "MERGED to main (fast-forward 91dce00..29b9cf3) and
+PUSHED → deployed". Both carry the same "real E2E login not run" caveat and
+both are dated 2026-10-16. Three models independently called it SAME; the
+label called it DIFF, and the relation the model had proposed was removed
+along with it.
+
+The discriminator from the sixth correction still holds, running the other
+way: #1063/#1065 is *diff* because #1065 does **not** restate #1063's
+substance — it drops the project choice and every gotcha — whereas #1099
+restates #1096 in full. So the rule reads the same from both sides:
+
+> **B is a later vintage of A when B re-states A's substance and advances
+> its state. A note that shares only a topic, or that replaces A's
+> substance with a different assertion, is a different fact.**
+
+The relation was restored. The live set is now 33 relations, 23 of 23
+confirmed-same present, 0 wrong.
+
+An audit that only looks for labels the model got wrong will find the
+model's false positives, and stop. The seventh label was a false *negative*
+of the model that the audit had been treating as ground truth — so the
+ground truth was the thing under test. Every model in the table called that
+pair SAME and the label called it DIFF; two models still had their
+per-pair verdicts on disk, and both had it right.
 
 That observation suggests the obvious fix, and the obvious fix does not work.
 A prompt that says "extra detail does not make a pair DIFFERENT" and "wording
