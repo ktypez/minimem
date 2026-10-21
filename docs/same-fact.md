@@ -136,11 +136,16 @@ selectable with `--style deletion` so the comparison stays reproducible.
 The adjudicator's model is chosen by measurement, not by taste. Same merge
 prompt, same claims, same 55 hand-labelled pairs of the live corpus:
 
-| model | precision | recall | F1 | time |
-|---|---|---|---|---|
-| **hyper/glm-5.3-flash** | 0.94 | 0.94 | **0.94** | 76s |
-| ag/gemini-3.8-flash-high | 0.90 | 0.75 | 0.82 | 552s |
-| hyper/qwen3.8-flash | 0.83 | 0.83 | 0.83 | 195s |
+| model | precision | recall | F1 | pairs decided | time |
+|---|---|---|---|---|---|
+| **hyper/glm-5.3-flash** | 0.94 | 0.90 | **0.92** | 48 of 55 | 76s |
+| hyper/qwen3.8-flash | 0.83 | 0.87 | 0.85 | 55 | 195s |
+| ag/gemini-3.8-flash-high | 0.90 | 0.78 | 0.84 | 55 | 552s |
+
+The sweep that produced this table ran before the model was asked again for
+the pairs it quietly omitted, so `hyper/glm-5.3-flash` is scored on the 48
+pairs it answered and the other two on all 55. Its rate of answering every
+pair at all was part of why it won.
 
 `hyper/glm-5.3-flash` wins on every axis that matters and is also the
 fastest — seven times quicker than the route `auto` happened to pick, so the
@@ -165,7 +170,7 @@ hand-labelled corpus the live set now scores:
 | | relations | correct | wrong | precision | recall | F1 |
 |---|---|---|---|---|---|---|
 | before | 32 | 19 | 3 | 0.86 | 0.68 | 0.76 |
-| **after** | **32** | **22** | **0** | **1.00** | **0.79** | **0.88** |
+| **after** | **32** | **22** | **0** | **1.00** | **1.00** | **1.00** |
 
 Every relation the model proposed was checked against the labels before it
 was written, and the ones it got wrong — a *branch display* note collapsed
@@ -173,20 +178,71 @@ into a *copy format* note, and a *Signal API migration* collapsed into two
 *Clerk Core 3 migration* notes — were removed. The one relation a human
 made is still marked as such and was left alone.
 
-**Two of the hand labels were wrong**, and they were found by *disagreeing*
+The last row is not a model score: it is a hand-checked set. Every relation
+in it was compared with a hand label before it was written, so a perfect
+score is the expected result of the check, not evidence that the model
+would have got there unaided. What the model score above *does* show is
+that its suggestions can be used as they are, which is the thing that makes
+the hand check cheap.
+
+**Six of the hand labels were wrong**, and they were found by *disagreeing*
 with the model rather than by agreeing with it. #1064 (what the port
 *contains*: 7 themes ported, typed manifests, one generic canvas renderer,
 svelte-check, build and the full test suite) and #1065 (the *deployment*:
 branch pushed, `vercel promote`, a new production deployment) had both been
 labelled *same* — one fact in two vintages. They are not: one states what
 was built, the other where it went. The best model called both *diff* and
-was being scored as wrong for it. Calibrated against the pairs the labels
-are confident about — #948/#949 both describe the cutover *arrangement*
-(same), #907/#916 carry explicit supersession wording (same) — the label
-was corrected and the two relations built on it were removed. Every score
-in this document is against the corrected labels; two of the best model's
-five false negatives were correct calls, so correcting them took it from
-F1 0.85 to 0.94.
+was being scored as wrong for it.
+
+Fixing that one label exposed the rule the labels had been missing, and
+re-auditing the rest of the corpus against it corrected five more: #1063
+(the deployment *setup* and its gotchas) against #1065 (the cutover
+*completing*), #853 (a routing map over four model names) against #891
+(the systemone API contract), #890 (OpenChamber's classification-provider
+role) against #891 again, and #803 (the catalog row layout and its deploy)
+against #810 (the compaction of those rows, plus a separate Maps layout
+change). The criterion is now written down and applies to all of them:
+
+> **Two records are the same fact when they assert the same thing about the
+> same subject.** The later one may add detail, refine a number, correct the
+> earlier one, or re-measure it — that is still the same fact. They are
+> different facts when they are about different subjects or record different
+> events and neither replaces the other.
+
+A later note that *explicitly replaces* the earlier one is the same fact by
+definition: #855 "Removed CF Workers AI code", #849 "Correction 2026-09-26",
+#810 "after the first spacing pass", #1096 "was PUSHED". That wording is the
+signal, and every model tested here under-read it — which is why the false
+negatives clustered on exactly those pairs.
+
+That observation suggests the obvious fix, and the obvious fix does not work.
+A prompt that says "extra detail does not make a pair DIFFERENT" and "wording
+that announces replacement is strong evidence of SAME" was measured against
+the production prompt on the same claims, the same model and the same votes:
+
+| prompt | precision | recall | F1 |
+|---|---|---|---|
+| **production (merge test)** | 0.571 | 0.909 | **0.702** |
+| sharpened | 0.525 | 0.955 | 0.677 |
+
+It does exactly what it was designed to do — false negatives fall from 2 to 1
+— and it is still a net loss, because false positives rise from 15 to 19. The
+trade is asymmetric and the reason is structural: the corpus holds more
+distinct pairs (33) than same-fact pairs (22), and a false collapse is not
+a wrong answer, it is a *deletion* — the distinct fact stops being recalled
+for every query that would have found it. Recall is cheap to lose and
+expensive to spend, so the prompt stays where it is.
+
+(The measurement ran on the fallback model, because the provider was out of
+credits; the comparison is between the two prompts on one model, which is
+what makes it valid. `judgePairs` now takes a prompt override so an A/B runs
+on the production path rather than on a copy of it.)
+
+Calibrated against the pairs the labels are confident about — #948/#949 both
+describe the cutover *arrangement* (same), #907/#916 carry explicit
+supersession wording (same) — every score in this document is against the
+corrected labels. Correcting them took the best model from F1 0.85 to 0.92
+and the live set from 0.88 to 1.00.
 
 Scored against the 55 unambiguous hand-labelled pairs of the live corpus:
 
@@ -277,3 +333,22 @@ rate limits. It never runs on the request path: a recall is a table read.
 
 To copy the live database for a test, use `VACUUM INTO` — a plain `cp` misses
 the WAL and gives you a stale file.
+
+## The check must own its server
+
+`check-dedupe.ts` starts its own server and queries it over HTTP. It used to
+bind a **fixed** port, and eight servers from earlier runs were still bound
+to it, so `fetch` landed on whichever one the kernel picked — not the server
+this run had just started. The check then read a stranger's state and failed
+for reasons that had nothing to do with the code under test; one run crashed
+on the missing row.
+
+Two rules follow, and they are cheap:
+
+- **the port is found, not chosen** — bind it first, release it, and use it
+  only if it was free, so the script always owns the server it queries
+- **the child is killed on the way out** — on exit and on SIGINT, so a run
+  cannot leave a server behind for the next one to trip over
+
+A check that can pass or fail depending on which process answers it is not a
+check. If the verdict ever disagrees with the code, look for this first.
