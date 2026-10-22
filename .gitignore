@@ -15,3 +15,7 @@ test/ui/out/
 .bun/
 dist/
 *.log
+
+# agent scratch and eval dumps never travel with the code
+.commandcode/
+.hermes-eval/

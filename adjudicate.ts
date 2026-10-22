@@ -48,7 +48,7 @@
  * it stays reachable when the public gateways are throttling.
  */
 
-import { readFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 
 export type Adjudication = {
@@ -107,7 +107,9 @@ export const ADJUDICATE_MODEL = env("ADJUDICATE_MODEL") ?? "hyper/glm-5.3-flash"
  */
 const FALLBACK_MODELS = (
   env("ADJUDICATE_FALLBACK_MODELS") ??
-  "hyper/glm-5.3-flash,hyper/qwen3.8-flash,ag/gemini-3.8-flash-low,ag/gemini-3.8-flash-high,auto",
+  // ag/* removed: the antigravity pair shares one quota and the default chain
+  // drained it (376 gemini calls, ~152h lockout). Re-add only deliberately via env.
+  "hyper/glm-5.3-flash,hyper/qwen3.8-flash,auto",
 )
   .split(",")
   .map((s) => s.trim())
@@ -172,6 +174,19 @@ export async function chat(
   return null;
 }
 
+// Hard ceiling on outbound calls per minute (all models, this process).
+// Default 10. Set ADJUDICATE_MAX_CALLS_PER_MIN=0 to disable (don't, for evals).
+const MAX_CALLS_PER_MIN = Number(env("ADJUDICATE_MAX_CALLS_PER_MIN") ?? "10");
+let nextCallAt = 0;
+async function throttle(): Promise<void> {
+  if (!(MAX_CALLS_PER_MIN > 0)) return;
+  const gap = 60_000 / MAX_CALLS_PER_MIN;
+  const now = Date.now();
+  const at = Math.max(now, nextCallAt);
+  nextCallAt = at + gap;
+  if (at > now) await new Promise((r) => setTimeout(r, at - now));
+}
+
 async function chatOne(
   model: string,
   key: string,
@@ -179,6 +194,30 @@ async function chatOne(
   prompt: string,
   opts: { maxTokens?: number; temperature?: number },
 ): Promise<ChatReply | null> {
+  await throttle();
+  // Raw-reply tracing for the eval harness: when ADJUDICATE_TRACE names a file,
+  // every call is appended as one JSON line (model, prompt hash, params, the
+  // UNPARSED reply). Without the raw text a missing verdict is undebuggable —
+  // you cannot tell "the model said NONE" from "the model dropped the pair" —
+  // and the retry count, which is what makes the call count non-constant, is
+  // invisible. Off unless set, so nothing is written during normal runs.
+  const tracePath = process.env.ADJUDICATE_TRACE;
+  const trace = (rec: Record<string, unknown>) => {
+    if (!tracePath) return;
+    const line = JSON.stringify({
+      ts: new Date().toISOString(),
+      model,
+      temperature: opts.temperature ?? 0,
+      max_tokens: opts.maxTokens ?? 1500,
+      prompt_hash: new Bun.CryptoHasher("sha256").update(`${system}\u0000${prompt}`).digest("hex"),
+      ...rec,
+    });
+    try {
+      appendFileSync(tracePath, `${line}\n`);
+    } catch {
+      /* tracing must never break a run */
+    }
+  };
   try {
     const res = await fetch(`${ADJUDICATE_BASE}/chat/completions`, {
       method: "POST",
@@ -197,6 +236,7 @@ async function chatOne(
     if (!res.ok) {
       const body = (await res.text()).slice(0, 200);
       console.error(`[adjudicate] ${model}: http ${res.status}: ${body}`);
+      trace({ http_status: res.status, http_body: body, reply: null });
       if (looksDead(res.status, body)) {
         deadModels.add(model);
         console.error(`[adjudicate] ${model} is out of service for this run — skipping it from now on`);
@@ -218,6 +258,7 @@ async function chatOne(
           /* keep going */
         }
       }
+      trace({ http_status: res.status, reply: out || null, sse: true });
       return out || null;
     }
     let json: any;
@@ -232,11 +273,15 @@ async function chatOne(
         json = s >= 0 && e > s ? JSON.parse(raw.slice(s, e + 1)) : null;
       } catch {
         console.error(`[adjudicate] ${model}: unparsable body: ${raw.slice(0, 200)}`);
+        trace({ http_status: res.status, reply: null, unparsable: raw.slice(0, 2000) });
         return null;
       }
     }
-    return json?.choices?.[0]?.message?.content ?? null;
+    const content = json?.choices?.[0]?.message?.content ?? null;
+    trace({ http_status: res.status, reply: content });
+    return content;
   } catch (e) {
+    trace({ error: e instanceof Error ? e.message : String(e), reply: null });
     console.error(`[adjudicate] ${model}: ${e instanceof Error ? e.message : e}`);
     return null;
   }

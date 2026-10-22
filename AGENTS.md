@@ -56,8 +56,11 @@ bun test keyword-only.test.ts                # the no-embeddings configuration
 - Hermes plugin: `~/.hermes/plugins/minimem/` (plugin.yaml + __init__.py, MCP tools `minimem_*`)
 - Hermes MCP entry: `~/.hermes/config.yaml` → `mcp_servers.minimem` (token in `~/.hermes/.env`
   as `MCP_MINIMEM_API_KEY`)
-- Web UI: `public/index.html` — one hand-written file, **no build step / no bundler**; served
+- Web UI: `public/index.html` — one hand-written file, no build step / no bundler; served
   `no-store` via `Bun.file`, so editing it is live without a restart. Themes: `data-theme="day|night"`.
+  Brand direction and the design rules live in `DESIGN.md` (read it before touching the UI).
+  Pages: Home (dashboard), Recent, Tags, Add, Extract, Trash, Relay, Docs (how to use it),
+  Info (the long version: measurements, endpoint surface, escalation, latency, accuracy).
 - UI checks: `sh test/ui/run.sh` — headless chromium over CDP (node ≥22, no deps), throwaway
   instances on :3311 (auth off) / :3312 (auth on), never touches :3100. See `test/ui/README.md`.
 - Copied legacy: `~/projects/memory-service/` — the ORIGINAL minimem (same schema); **stopped/legacy, do not run it**.

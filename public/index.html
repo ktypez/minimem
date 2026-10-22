@@ -3,147 +3,158 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#8fd6ff">
-<title>minimem</title>
+<meta name="theme-color" content="#FFFBEA">
+<title>minimem: the memory layer for agents that act</title>
 <link rel="icon" href="./favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 8C48 8 58 22 58 38 58 52 48 58 32 58 16 58 6 52 6 38 6 22 16 8 32 8Z' fill='%236fdcff' stroke='%232b2358' stroke-width='4'/%3E%3Ccircle cx='22' cy='36' r='4' fill='%232b2358'/%3E%3Ccircle cx='42' cy='36' r='4' fill='%232b2358'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='6' width='20' height='20' fill='%231557F5' stroke='%23111111' stroke-width='3'/%3E%3Crect x='10' y='12' width='12' height='4' fill='%23FFD400'/%3E%3Crect x='10' y='19' width='12' height='3' fill='%23ffffff'/%3E%3Crect x='0' y='12' width='5' height='3' fill='%23111111'/%3E%3Crect x='0' y='18' width='5' height='3' fill='%23111111'/%3E%3Crect x='27' y='12' width='5' height='3' fill='%23111111'/%3E%3Crect x='27' y='18' width='5' height='3' fill='%23111111'/%3E%3C/svg%3E">
 <script>/* set theme before first paint; fall back to the OS preference, not to a flash */
 try{var t=localStorage.getItem('minimem_theme');
 if(t!=='day'&&t!=='night')t=matchMedia('(prefers-color-scheme: dark)').matches?'night':'day';
 document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Mali:wght@600;700&family=Mochiy+Pop+One&family=Noto+Sans+Thai+Looped:wght@400;500;700&family=Pixelify+Sans:wght@400;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bai+Jamjuree:wght@400;600;800&family=Chakra+Petch:wght@400;600&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+Thai+Looped:wght@400;600&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════════════════
-   minimem — "Mimi's Guild Hall"
-   A cheerful JRPG guild hall for a memory service. Sticker-style UI
-   (thick outline, hard offset shadow), RPG-class colours, a jelly-slime
-   mascot (Mimi) who reacts to everything you do.
-   day = sunny meadow · night = starlight
+   minimem. A printed lab notebook: ruled ground, ink outlines, one
+   stamped display face against one machine voice. The page opens short
+   (hero, the idea, the counters, a live console) and the long form
+   sits behind a disclosure, because this is a working tool first.
+   Direction and reasons: DESIGN.md.
    ═══════════════════════════════════════════════════════════════════ */
+:root{
+  /* ink and paper */
+  --ink:#111111; --print:#111111; --line:#111111;
+  --paper:#FFFFFF; --panel:#FFFFFF; --panel2:#F1EFE6;
+  /* the product and its one accent */
+  --blue:#1557F5; --yellow:#FFD400;
+  /* state colours: used only where the meaning demands them */
+  --green:#64D982; --pink:#E94B85; --cyan:#12A9E8; --lav:#B79BE9; --orange:#FFA35C;
+  /* plate grounds: surfaces, not accents */
+  --cream:#FFFBEA; --pale-yellow:#FFF3A6; --pale-blue:#BDE7FA; --lilac:#EACCF5; --pale-pink:#F9C8D8;
+  --on-yellow:#111111; --on-blue:#FFFFFF; --on-pink:#111111; --on-green:#111111; --on-cyan:#111111; --on-lav:#111111;
+  --display:'Archivo Black','Bai Jamjuree','Noto Sans Thai Looped',system-ui,sans-serif;
+  --sans:'Bai Jamjuree','Noto Sans Thai Looped',ui-sans-serif,system-ui,sans-serif;
+  --mono:'JetBrains Mono','Chakra Petch','Noto Sans Thai Looped',ui-monospace,monospace;
+  --grid:26px; --bw:2.5px; --bw2:3px;
+}
 :root,[data-theme=day]{
-  --sky0:#8fd6ff; --sky1:#c4efff; --sky2:#e4fbe6;
-  --paper:#ffffff; --paper2:#f2eeff; --field:#ffffff;
-  --line:#2b2358; --shade:#2b2358;
-  --tx:#2b2358; --tx2:#5a5291; --tx3:#6b64a0;
-  --p0:#ffd23f; --p1:#ff7aa8; --p2:#47dba5; --p3:#59bdff; --p4:#a98cff; --p5:#ffa35c; --p6:#52e0d9;
-  --on-p:#2b2358; --ink:#2b2358;
-  --danger:#e8366d; --ok:#0f9a68; --hl:rgba(255,210,63,.6);
-  --veil:rgba(206,239,255,.86);
-  --hill1:#86e3ac; --hill2:#52cf95; --cloud:#ffffff; --star:rgba(255,255,255,0);
+  --tx:#111111; --tx2:#4A4A4A; --tx3:#636363; --shade:#111111;
+  --gridline:rgba(17,17,17,.085);
+  --blue-text:#1557F5; --pink-text:#C62A63; --cyan-text:#0A7FB4;
+  --pl-cream:#FFFBEA; --pl-yellow:#FFF3A6; --pl-blue:#BDE7FA; --pl-lilac:#EACCF5; --pl-pink:#F9C8D8;
   color-scheme:light;
 }
 [data-theme=night]{
-  --sky0:#171244; --sky1:#2f1d78; --sky2:#57308f;
-  --paper:#2a2378; --paper2:#352d8e; --field:#1b1552;
-  --line:#e9e1ff; --shade:#0b0628;
-  --tx:#f4efff; --tx2:#cdc4f6; --tx3:#aba1e2;
-  --danger:#ff6f96; --ok:#6ff0c0; --hl:rgba(255,210,63,.45);
-  --veil:rgba(28,20,74,.86);
-  --hill1:#3a2a88; --hill2:#2a1f6e; --cloud:#9a8cf0; --star:rgba(255,255,255,.95);
+  --paper:#121212; --panel:#1A1A1A; --panel2:#232323;
+  --tx:#F2F2F2; --tx2:#BDBDBD; --tx3:#8E8E8E; --shade:#000000; --line:#3C3C3C;
+  --gridline:rgba(255,255,255,.07);
+  --blue-text:#7BA6FF; --pink-text:#F582AE; --cyan-text:#5FCBF5;
+  --pl-cream:#171717; --pl-yellow:#2C2611; --pl-blue:#102B37; --pl-lilac:#2C2036; --pl-pink:#391C28;
   color-scheme:dark;
 }
-:root{
-  --display:'Mochiy Pop One','Mali','Noto Sans Thai Looped',sans-serif;
-  --sans:'Zen Maru Gothic','Noto Sans Thai Looped',ui-sans-serif,system-ui,sans-serif;
-  --pixel:'Pixelify Sans','Zen Maru Gothic','Noto Sans Thai Looped',ui-monospace,monospace;
-  --boing:cubic-bezier(.34,1.56,.64,1);
-  --r:22px;
-}
 *{box-sizing:border-box;margin:0;padding:0}
-html{scrollbar-width:thin;scrollbar-color:var(--p4) transparent;scrollbar-gutter:stable}
-::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--p4);border-radius:6px;border:2px solid var(--line)}
-body{font-family:var(--sans);font-size:15.5px;color:var(--tx);min-height:100dvh;overflow-x:hidden;-webkit-text-size-adjust:100%;
-  background:linear-gradient(180deg,var(--sky0) 0%,var(--sky1) 58%,var(--sky2) 100%) fixed}
-/* a dialog owns the screen: the page behind it must not scroll on touch.
-   <html> is the scrolling element, so body alone does not stop a drag. */
+html{scrollbar-width:thin;scrollbar-color:var(--tx3) transparent;scrollbar-gutter:stable}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--tx3)}
+body{font-family:var(--sans);font-size:15px;color:var(--tx);min-height:100dvh;overflow-x:hidden;-webkit-text-size-adjust:100%;background:var(--pl-cream)}
 html.lock,body.lock{overflow:hidden}
-::selection{background:var(--p0);color:#2b2358}
+::selection{background:var(--yellow);color:#111}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
-/* no 300ms tap delay, no grey flash — the press states are the feedback here */
-button,input,textarea,label,summary{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-input,textarea{font:inherit;color:var(--tx);background:var(--field);border:3px solid var(--line);border-radius:16px;outline:none}
+button,input,textarea,label,summary,a{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input,textarea{font:inherit;color:var(--tx);background:var(--panel);border:var(--bw2) solid var(--line);outline:none;border-radius:0}
 input::placeholder,textarea::placeholder{color:var(--tx3)}
-input:focus,textarea:focus{box-shadow:0 0 0 4px var(--p3)}
-:focus-visible{outline:3px solid var(--p4);outline-offset:3px}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 [hidden]{display:none!important}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.c0{--c:var(--p0)}.c1{--c:var(--p1)}.c2{--c:var(--p2)}.c3{--c:var(--p3)}.c4{--c:var(--p4)}.c5{--c:var(--p5)}.c6{--c:var(--p6)}
+.c0{--c:var(--yellow)}.c1{--c:var(--pink)}.c2{--c:var(--green)}.c3{--c:var(--cyan)}.c4{--c:var(--lav)}.c5{--c:var(--orange)}.c6{--c:var(--cream)}
+.pill{display:inline-flex;align-items:center;padding:1px 7px;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;border:1.5px solid var(--print);background:var(--c,var(--panel2));color:var(--on-yellow)}
+.pill.g{background:var(--green);color:var(--on-green)}
+.pill.y{background:var(--yellow);color:var(--on-yellow)}
+.pill.c{background:var(--cyan);color:var(--on-cyan)}
+.pill.l{background:var(--lav);color:var(--on-lav)}
+.pill.p{background:var(--pink);color:var(--on-pink)}
 
-/* ─── the world: sky, clouds, sun/moon, hills ─── */
-.world{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.world::before{content:"";position:absolute;inset:0;
-  background-image:radial-gradient(1.6px 1.6px at 12% 14%,var(--star),transparent),radial-gradient(1.2px 1.2px at 30% 40%,var(--star),transparent),
-    radial-gradient(2px 2px at 46% 10%,var(--star),transparent),radial-gradient(1.2px 1.2px at 64% 34%,var(--star),transparent),
-    radial-gradient(1.6px 1.6px at 80% 18%,var(--star),transparent),radial-gradient(1.2px 1.2px at 92% 46%,var(--star),transparent),
-    radial-gradient(1.4px 1.4px at 8% 58%,var(--star),transparent),radial-gradient(1.8px 1.8px at 56% 62%,var(--star),transparent);
-  background-size:560px 560px;animation:twinkle 4s ease-in-out infinite alternate}
-@keyframes twinkle{from{opacity:.4}to{opacity:1}}
-.orb{position:absolute;right:14%;bottom:13vh;width:84px;height:84px;border-radius:50%;background:var(--p0);border:4px solid var(--line);box-shadow:0 0 0 12px rgba(255,210,63,.28),4px 5px 0 var(--shade);animation:floaty 6s ease-in-out infinite}
-[data-theme=night] .orb{background:#fff3b8;box-shadow:0 0 38px 8px rgba(255,243,184,.4),4px 5px 0 var(--shade)}
-[data-theme=night] .orb::after{content:"";position:absolute;width:68px;height:68px;border-radius:50%;background:var(--sky2);right:-16px;top:-12px;border:0}
-.cloud{position:absolute;left:-220px;height:44px;width:130px;background:var(--cloud);border-radius:44px;border:3px solid var(--line);opacity:.62;
-  transform:translateX(0) scale(var(--sc,1));animation:drift linear infinite will-change:transform}
-[data-theme=night] .cloud{opacity:.22}
-[data-theme=night] .cloud{border-color:transparent}
-.cloud::before,.cloud::after{content:"";position:absolute;background:var(--cloud);border:3px solid var(--line);border-bottom:0;border-radius:50% 50% 0 0}
-.cloud::before{width:56px;height:40px;left:18px;top:-26px}
-.cloud::after{width:44px;height:30px;left:62px;top:-18px}
-[data-theme=night] .cloud::before,[data-theme=night] .cloud::after{border-color:transparent}
-.cloud.a{top:6%;animation-duration:110s;animation-delay:-30s}
-.cloud.b{top:30%;--sc:.7;animation-duration:150s;animation-delay:-90s}
-.cloud.c{top:52%;--sc:1.2;animation-duration:190s;animation-delay:-10s}
-/* transform-only drift: animating `left` relayouts the world every frame, which
-   is exactly the kind of thing that stutters on a phone */
-@keyframes drift{from{transform:translateX(0) scale(var(--sc,1))}to{transform:translateX(calc(100vw + 320px)) scale(var(--sc,1))}}
-@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.hills{position:absolute;left:0;right:0;bottom:0;width:100%;height:24vh;min-height:150px}
-.hills .h1{fill:var(--hill1);stroke:var(--line);stroke-width:3}
-.hills .h2{fill:var(--hill2);stroke:var(--line);stroke-width:3}
-[data-theme=night] .hills path{stroke:none}
-#fx,#fx0{position:fixed;inset:0;width:100%;height:100%;z-index:60;pointer-events:none}
-#fx0{z-index:0}
+/* ─── the ruled ground ─── */
+.world{position:fixed;inset:0;z-index:-1;pointer-events:none;background-color:var(--pl-cream);
+  background-image:linear-gradient(to right,var(--gridline) 1px,transparent 1px),linear-gradient(to bottom,var(--gridline) 1px,transparent 1px);
+  background-size:var(--grid) var(--grid)}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:60;pointer-events:none}
 
-/* ─── sticker: thick outline + hard shadow. every panel is one ─── */
-.st{background:var(--paper);border:3px solid var(--line);border-radius:var(--r);box-shadow:4px 5px 0 var(--shade)}
+/* ─── plates: every section is its own printed page ─── */
+.plate{position:relative;background-color:var(--pl-cream)}
+.plate::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(to right,var(--gridline) 1px,transparent 1px),linear-gradient(to bottom,var(--gridline) 1px,transparent 1px);
+  background-size:var(--grid) var(--grid)}
+.plate>*{position:relative;z-index:1}
+.pl-yellow{background-color:var(--pl-yellow)}
+.pl-blue{background-color:var(--pl-blue)}
+.pl-lilac{background-color:var(--pl-lilac)}
+.pl-pink{background-color:var(--pl-pink)}
+.pl-paper{background-color:var(--paper)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
 
-/* ─── buttons: chunky, squish when pressed ─── */
-.btn{position:relative;min-height:48px;padding:0 26px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  font-family:var(--sans);font-weight:700;font-size:15px;white-space:nowrap;color:var(--on-p);
-  background:var(--p0);border:3px solid var(--line);border-radius:999px;box-shadow:0 5px 0 var(--shade);
-  transition:transform .16s var(--boing),box-shadow .16s,filter .15s}
-.btn:hover{transform:translateY(-2px) rotate(-1deg);box-shadow:0 7px 0 var(--shade)}
-.btn:active{transform:translateY(5px);box-shadow:0 0 0 var(--shade)}
-.btn.ghost{background:var(--paper);color:var(--tx)}
-.btn.pink,.btn.danger{background:var(--p1);color:#2b2358}
-.btn:disabled{opacity:.55;cursor:wait;filter:grayscale(.5)}
-.ia{min-height:34px;padding:0 15px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;
-  background:var(--paper2);color:var(--tx);border:2.5px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade);
-  transition:transform .15s var(--boing),box-shadow .15s}
-.ia.c{background:var(--c);color:var(--on-p)}
-.ia:hover{transform:translateY(-2px) rotate(-2deg);box-shadow:0 5px 0 var(--shade)}
-.ia:active{transform:translateY(3px);box-shadow:0 0 0 var(--shade)}
-.ia .ic{width:15px;height:15px}
+/* ─── type ─── */
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--tx3)}
+.eyebrow.on-dark{color:rgba(255,255,255,.75)}
+.h2{font-family:var(--display);font-size:clamp(24px,3.2vw,40px);line-height:1.02;letter-spacing:-.02em}
+.h3{font-family:var(--display);font-size:clamp(15px,1.8vw,19px);line-height:1.2;letter-spacing:-.01em}
+.lede{max-width:60ch;font-size:15px;line-height:1.72;color:var(--tx2)}
+.lede.on-dark{color:rgba(255,255,255,.85)}
+.mono{font-family:var(--mono)}
+.tiny{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3)}
+.sec{padding:clamp(44px,6vw,80px) 0}
+.sec-head{text-align:center;max-width:70ch;margin:0 auto clamp(26px,3.4vw,44px)}
+.sec-head .eyebrow{margin-bottom:12px}
+.sec-head .h2{margin-bottom:14px}
+.sec-head .lede{margin:0 auto}
+.note{border:2px dashed var(--line);padding:13px 16px;font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--tx2);background:var(--panel)}
+.note b{color:var(--tx)}
+code,.code{font-family:var(--mono);font-size:12.5px;background:var(--panel2);border:1.5px solid var(--line);padding:1px 6px}
 
-/* ─── Mimi, the jelly guild mascot ─── */
+/* ─── printed objects ─── */
+.box{background:var(--panel);border:var(--bw2) solid var(--line);box-shadow:5px 5px 0 var(--shade)}
+.btn{position:relative;min-height:42px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;
+  color:var(--on-yellow);background:var(--yellow);border:var(--bw) solid var(--print);box-shadow:4px 4px 0 var(--print);
+  transition:transform .13s,box-shadow .13s}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--print)}
+.btn:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--print)}
+.btn.blue{background:var(--blue);color:var(--on-blue)}
+.btn.pink{background:var(--pink);color:var(--on-pink)}
+.btn.ghost{background:var(--panel);color:var(--tx);border-color:var(--line);box-shadow:4px 4px 0 var(--shade)}
+.btn.ghost:hover{box-shadow:6px 6px 0 var(--shade)}
+.btn.ghost:active{box-shadow:0 0 0 var(--shade)}
+.btn.ondark{background:transparent;color:#fff;border-color:#fff;box-shadow:4px 4px 0 rgba(0,0,0,.4)}
+.btn:disabled{opacity:.5;cursor:wait}
+.ia{min-height:32px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;background:var(--panel2);color:var(--tx);border:2px solid var(--line);box-shadow:3px 3px 0 var(--shade);
+  transition:transform .13s,box-shadow .13s}
+.ia.c{background:var(--c);color:var(--on-yellow)}
+.ia.c1{color:var(--on-pink)}.ia.c2{color:var(--on-green)}.ia.c3{color:var(--on-cyan)}.ia.c4{color:var(--on-lav)}
+.ia:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--shade)}
+.ia:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--shade)}
+.ia .ic{width:14px;height:14px}
+
+/* ─── Bit, the memory chip. The mascot and the mark are one object ─── */
 .mimi{display:block;width:100%;height:auto;overflow:visible}
-.mimi .m-sh{fill:rgba(43,35,88,.2)}
-.mimi .m-b{fill:url(#mimi-g);stroke:#2b2358;stroke-width:3.5;stroke-linejoin:round}
-.mimi .m-hl{fill:#fff;opacity:.75}
-.mimi .m-gem{fill:#ffd23f;stroke:#2b2358;stroke-width:3;stroke-linejoin:round}
-.mimi .m-gemhl{fill:#fff;opacity:.8}
-.mimi .m-bl{fill:#ff8fb3;opacity:.75}
+.mimi .m-sh{fill:rgba(17,17,17,.18)}
+.mimi .m-b{fill:var(--cyan);stroke:var(--print);stroke-width:4}
+.mimi .m-face{fill:#FFFFFF;stroke:var(--print);stroke-width:3.5}
+.mimi .m-pin{fill:var(--yellow);stroke:var(--print);stroke-width:3.5}
+.mimi .m-flag{fill:var(--yellow);stroke:var(--print);stroke-width:3.5}
+.mimi .m-ant{fill:#FFFFFF;stroke:var(--print);stroke-width:3}
+.mimi .m-slot{fill:var(--pink);stroke:var(--print);stroke-width:2.5}
+.mimi .m-eye{fill:var(--print);stroke:none}
+.mimi .m-tear{fill:var(--cyan);stroke:var(--print);stroke-width:2}
 .mimi .e,.mimi .mo{display:none}
-.mimi .e ellipse{fill:#2b2358}.mimi .e .w{fill:#fff}
-.mimi .e path{fill:none;stroke:#2b2358;stroke-width:3.8;stroke-linecap:round;stroke-linejoin:round}
-.mimi .mo{fill:none;stroke:#2b2358;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
-.mimi .mo-happy{fill:#2b2358}.mimi .mo-wow{fill:#2b2358}
-.mimi .mo.tg{fill:#ff8fb3;stroke:none}
-.mimi .tear{fill:#59bdff;stroke:#2b2358;stroke-width:2}
+.mimi .e path{fill:none;stroke:var(--print);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round}
+.mimi .mo{fill:none;stroke:var(--print);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round}
+.mimi .mo-happy,.mimi .mo-wow{fill:var(--print);stroke:none}
+.mimi .m-glint{fill:#FFFFFF;stroke:none}
 .mimi[data-mood=idle] .e-idle,.mimi[data-mood=idle] .mo-idle,
 .mimi[data-mood=happy] .e-happy,.mimi[data-mood=happy] .mo-happy,
 .mimi[data-mood=sad] .e-sad,.mimi[data-mood=sad] .mo-sad,
@@ -151,387 +162,591 @@ input:focus,textarea:focus{box-shadow:0 0 0 4px var(--p3)}
 .mimi[data-mood=wow] .e-wow,.mimi[data-mood=wow] .mo-wow{display:inline}
 .mimi .e-idle{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
 .mimi .m-body{transform-box:fill-box;transform-origin:50% 100%;animation:squish 3.2s ease-in-out infinite}
-.mimi.hop{animation:hop .62s var(--boing)}
+.mimi.hop{animation:hop .62s cubic-bezier(.34,1.56,.64,1)}
 @keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
 @keyframes squish{0%,100%{transform:scale(1,1)}50%{transform:scale(1.04,.95)}}
 @keyframes hop{0%{transform:translateY(0) scale(1,1)}25%{transform:translateY(4px) scale(1.12,.84)}60%{transform:translateY(-30px) scale(.92,1.1)}100%{transform:translateY(0) scale(1,1)}}
+.mark{width:30px;height:30px;flex:none;display:block}
 
-/* speech bubble */
-.bubble{position:relative;padding:14px 18px;font-weight:500;line-height:1.6;background:var(--paper);border:3px solid var(--line);border-radius:22px;box-shadow:4px 5px 0 var(--shade)}
-.bubble::before,.bubble::after{content:"";position:absolute;left:-15px;bottom:22px;border:9px solid transparent;border-right-color:var(--line);border-left:0}
-.bubble::after{left:-9px;bottom:22px;border-right-color:var(--paper);transform:translateX(1px)}
-.bubble b{font-weight:700}
-.bubble.pop{animation:pop .5s var(--boing)}
-
-/* ─── layout ─── */
-.app{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:0 20px calc(150px + env(safe-area-inset-bottom))}
-.top{display:flex;align-items:center;gap:14px;padding:18px 0 10px}
-.logo{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
-.logo .lm{width:54px;flex:none}
-.wm{display:flex;font-family:var(--display);font-size:36px;line-height:1}
-.wm span{display:inline-block;color:var(--c);-webkit-text-stroke:4px var(--line);paint-order:stroke fill;text-shadow:0 4px 0 var(--shade);margin-right:2px}
-.logo:hover .wm span,.wm.go span{animation:wave .7s var(--boing) both;animation-delay:calc(var(--i)*60ms)}
-@keyframes wave{0%{transform:translateY(0)}40%{transform:translateY(-12px) rotate(-6deg)}100%{transform:translateY(0)}}
-.top-r{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-.chip-st{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 14px;font-family:var(--pixel);font-size:14px;background:var(--paper);border:2.5px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade)}
-.chip-st .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);border:2px solid var(--line);animation:pulse 2.2s infinite}
-.chip-st .dot.off{background:var(--danger);animation:none}
-@keyframes pulse{50%{transform:scale(.7);opacity:.6}}
-
-.navbar{position:sticky;top:8px;z-index:8;margin:6px -6px 14px;padding:8px 6px 10px;overflow-x:auto;scrollbar-width:none}
-.navbar::-webkit-scrollbar{display:none}
-.nav{display:flex;gap:10px;width:max-content;min-width:100%}
-.nav button{position:relative;display:inline-flex;align-items:center;gap:9px;min-height:50px;padding:0 18px 0 12px;font-weight:700;font-size:15px;color:var(--tx);
-  background:var(--paper);border:3px solid var(--line);border-radius:999px;box-shadow:0 4px 0 var(--shade);white-space:nowrap;
-  transition:transform .18s var(--boing),box-shadow .18s,background .15s}
-.nav button .ib{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:var(--on-p);border:2.5px solid var(--line)}
-.nav button .ib .ic{width:17px;height:17px}
-.nav button:hover{transform:translateY(-3px) rotate(-1.5deg);box-shadow:0 7px 0 var(--shade)}
-.nav button:active{transform:translateY(4px);box-shadow:0 0 0 var(--shade)}
-.nav button.active{background:var(--c);color:var(--on-p);transform:translateY(-3px);box-shadow:0 7px 0 var(--shade)}
-.nav button.active .ib{background:var(--paper);color:var(--tx)}
-.nav button.active::after{content:"✦";position:absolute;right:-6px;top:-12px;font-size:20px;color:var(--p0);-webkit-text-stroke:2px var(--line);animation:spinstar 2.4s linear infinite}
-@keyframes spinstar{to{transform:rotate(360deg) scale(1.1)}}
-.nav .count{font-family:var(--pixel);font-size:13px;padding:0 8px;min-width:26px;text-align:center;background:var(--paper2);color:var(--tx);border:2px solid var(--line);border-radius:999px;line-height:20px}
+/* ─── header: one row on a phone, a tab bar on a desk ─── */
+.hud{position:sticky;top:0;z-index:40;background:var(--paper);border-bottom:var(--bw2) solid var(--line)}
+.top{max-width:1180px;margin:0 auto;padding:9px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{order:0;display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+.wm{display:flex;font-family:var(--display);font-size:23px;line-height:1;letter-spacing:-.025em}
+.wm .a{color:var(--tx)}
+.wm .b{color:var(--blue-text)}
+.logo:hover .wm{animation:wave .7s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes wave{0%{transform:translateY(0)}40%{transform:translateY(-7px)}100%{transform:translateY(0)}}
+.searchrow{order:1;display:flex;align-items:center;gap:8px;flex:1 1 200px;min-width:0;max-width:420px}
+.search{flex:1;min-width:0;display:flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;background:var(--panel);border:2px solid var(--line);box-shadow:3px 3px 0 var(--shade);cursor:text}
+.search:focus-within{box-shadow:3px 3px 0 var(--shade),0 0 0 3px var(--blue)}
+.search .ic{stroke:var(--tx3);width:16px;height:16px}
+.search input{flex:1;min-width:0;background:none;border:none;outline:none!important;padding:9px 0;font-family:var(--mono);font-size:13px}
+.search kbd{font-family:var(--mono);font-size:10.5px;color:var(--tx3);border:1.5px solid var(--line);padding:1px 6px;background:var(--panel2)}
+.top-r{order:2;margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.chip-st{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+  text-transform:uppercase;background:var(--panel2);color:var(--tx);border:2px solid var(--line);box-shadow:3px 3px 0 var(--shade)}
+.chip-st .dot{width:9px;height:9px;background:var(--green);border:1.5px solid var(--print)}
+.chip-st .dot.off{background:var(--pink)}
+#menu-btn,#m-search{display:none}
+.navbar{max-width:1180px;margin:0 auto;padding:0 24px 9px;display:flex;align-items:center;gap:14px}
+.nav{display:flex;gap:8px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.nav::-webkit-scrollbar{display:none}
+.nav button{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 13px;font-family:var(--mono);font-size:11.5px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--tx);background:var(--panel);border:2px solid var(--line);box-shadow:3px 3px 0 var(--shade);white-space:nowrap;
+  transition:transform .13s,box-shadow .13s,background .13s}
+.nav button .ib{width:18px;height:18px;display:grid;place-items:center;background:var(--c);border:1.5px solid var(--print)}
+.nav button .ib .ic{width:12px;height:12px;stroke:#111;stroke-width:2.8}
+.nav button:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--shade)}
+.nav button:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--shade)}
+.nav button.active{background:var(--c);color:var(--on-yellow);box-shadow:4px 4px 0 var(--print)}
+.nav button.active .ib{background:var(--panel)}
+.nav .count{font-family:var(--mono);font-size:10px;padding:0 6px;min-width:22px;text-align:center;background:var(--panel2);color:var(--tx);border:1.5px solid var(--line);line-height:18px}
 .nav .count:empty{display:none}
-.nav button.active .count{background:var(--paper)}
+.nav button.active .count{background:var(--panel)}
+.drawer-head{display:none}
 
-.searchrow{display:flex;gap:12px;align-items:center;margin-bottom:26px}
-.search{flex:1;display:flex;align-items:center;gap:12px;min-height:58px;padding:0 20px;border-radius:999px;cursor:text;transition:box-shadow .2s,transform .2s var(--boing)}
-.search:focus-within{transform:translateY(-2px);box-shadow:4px 7px 0 var(--shade),0 0 0 5px var(--p3)}
-.search .ic{stroke:var(--tx2)}
-.search input{flex:1;min-width:0;background:none;border:none;box-shadow:none!important;border-radius:0;padding:14px 0;font-size:16px;font-weight:500;text-overflow:ellipsis}
-.search kbd{font-family:var(--pixel);font-size:14px;color:var(--tx2);border:2px solid var(--line);border-radius:8px;padding:0 9px;background:var(--paper2)}
+/* ─── hero ─── */
+.hero{position:relative;background:var(--blue);color:#fff;border-bottom:var(--bw2) solid var(--print);overflow:hidden}
+.hero-in{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:clamp(24px,4vw,52px);align-items:center;padding:clamp(40px,6vw,76px) 24px}
+.hero .eyebrow{color:rgba(255,255,255,.9)}
+.display{font-family:var(--display);font-size:clamp(34px,5.6vw,72px);line-height:.94;letter-spacing:-.03em;margin:16px 0 18px;text-shadow:4px 4px 0 rgba(0,0,0,.26)}
+.display em{font-style:normal;color:var(--yellow);-webkit-text-stroke:3px var(--print);paint-order:stroke fill}
+.hero .lede{color:rgba(255,255,255,.92);font-size:15.5px;max-width:48ch}
+.hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.hero-say{margin-top:20px;padding:10px 13px;background:rgba(0,0,0,.22);border:2px solid rgba(255,255,255,.4);font-family:var(--mono);font-size:12px;line-height:1.6;color:#fff}
+.hero-say b{color:var(--yellow)}
+.hero-live{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:22px}
+.hero-live div{display:flex;flex-direction:column;gap:1px;padding:10px 12px;background:rgba(0,0,0,.2);border:2px solid rgba(255,255,255,.32)}
+.hero-live b{font-family:var(--display);font-size:21px;line-height:1;color:var(--yellow)}
+.hero-live span{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.88)}
+.hero-bit{display:flex;flex-direction:column;align-items:center;gap:12px}
+.hero-bit .bit{width:min(100%,240px)}
+.hero-bit .cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.9);text-align:center}
 
-.view{animation:pop .5s var(--boing)}
-@keyframes pop{0%{opacity:0;transform:translateY(22px) scale(.94)}100%{opacity:1;transform:none}}
+/* ─── ticker ─── */
+.ticker{background:var(--print);color:var(--paper);border-top:var(--bw2) solid var(--print);border-bottom:var(--bw2) solid var(--print);overflow:hidden;padding:8px 0}
+.ticker.pink{background:var(--pink);color:var(--print)}
+.ticker .track{display:flex;width:max-content;animation:tick 40s linear infinite}
+.ticker .track span{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:0 16px;white-space:nowrap}
+.ticker .track span::after{content:"◆";margin-left:32px;opacity:.5}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
-/* section heading */
-.head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 24px}
-.head h1{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.2;
-  background:linear-gradient(transparent 64%,var(--hl) 64% 92%,transparent 92%);padding:0 6px}
-.head .sub{font-family:var(--pixel);font-size:15px;padding:2px 14px;background:var(--paper);border:2.5px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade)}
-.head .sub:empty{display:none}
+/* ─── the three layers: a scale, not three cards ─── */
+.layers-strip{border:var(--bw2) solid var(--print);box-shadow:6px 6px 0 var(--print);background:var(--panel)}
+.ls-row{display:grid;grid-template-columns:repeat(3,1fr)}
+.ls-cell{padding:18px 20px;border-right:1.5px dashed var(--line)}
+.ls-cell:last-child{border-right:0}
+.ls-cell .t{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--tx3)}
+.ls-cell h3{font-family:var(--display);font-size:16px;margin:6px 0 6px}
+.ls-cell p{font-size:13px;line-height:1.62;color:var(--tx2)}
+.ls-cell.mid{background:var(--yellow);color:var(--on-yellow)}
+.ls-cell.mid .t,.ls-cell.mid p{color:rgba(17,17,17,.72)}
+.ls-axis{display:flex;border-top:1.5px dashed var(--line)}
+.ls-axis span{flex:1;text-align:center;padding:9px 10px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
+.ls-axis span:first-child{text-align:left}
+.ls-axis span:last-child{text-align:right}
 
-/* ─── memory cards: collectible name-tag cards ─── */
-.cards{display:flex;flex-direction:column;gap:26px}
-.card{--rot:0deg;position:relative;padding:26px 22px 16px;transform:rotate(var(--rot));animation:cardIn .6s var(--boing) backwards;
-  transition:transform .22s var(--boing),box-shadow .22s}
-.card:nth-child(odd){--rot:-.35deg}.card:nth-child(even){--rot:.3deg}
-.card:hover{transform:translate(-2px,-4px) rotate(0);box-shadow:6px 9px 0 var(--shade)}
-.card .no{position:absolute;top:-15px;left:18px;padding:2px 14px;font-family:var(--pixel);font-weight:700;font-size:16px;color:var(--on-p);
-  background:var(--c);border:3px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade);transform:rotate(-3deg);transition:transform .25s var(--boing)}
-.card:hover .no{transform:rotate(2deg) scale(1.08)}
-@keyframes cardIn{0%{opacity:0;transform:translateY(34px) scale(.8) rotate(calc(var(--rot)*10 + 4deg))}100%{opacity:1;transform:rotate(var(--rot))}}
-.card.vanish{animation:vanish .36s ease-in forwards}
-@keyframes vanish{to{opacity:0;transform:translateY(-18px) scale(.7) rotate(8deg)}}
-.card .meta{display:flex;gap:12px;margin-bottom:6px;font-family:var(--pixel);font-size:14px;color:var(--tx3)}
-.card .meta .len{margin-left:auto}
-.card .txt{font-size:15.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
-.card .txt.clip{max-height:5.4em;overflow:hidden;cursor:pointer;-webkit-mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,.15));mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,.15))}
-.card .txt:not(.clip){cursor:pointer}
-.card .histbox{margin-top:12px;padding:10px 14px;background:var(--paper2);border:2.5px dashed var(--line);border-radius:14px;font-family:var(--pixel);font-size:14px;line-height:1.8;color:var(--tx2);max-height:220px;overflow:auto}
-.card .histbox .hhead{color:var(--tx);font-weight:700;margin-bottom:4px}
-.card .histbox .hrow b{color:var(--danger);font-weight:700}
-.card .histbox .hold{color:var(--tx3)}
-.card .row2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
-.card .acts{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;opacity:0;transform:translateY(6px);transition:opacity .15s,transform .2s var(--boing)}
-.card:hover .acts,.card:focus-within .acts{opacity:1;transform:none}
-@media (hover:none){.card .acts{opacity:1;transform:none}}
-mark{background:var(--p0);color:#2b2358;border-radius:6px;padding:0 4px}
-.more{margin:30px auto 0;display:flex}
-
-/* tag pills: colour by tag */
-.chip{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 13px;font-size:13px;font-weight:700;color:var(--on-p);background:var(--c);
-  border:2.5px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade);white-space:nowrap;transition:transform .15s var(--boing),box-shadow .15s}
-.chip:hover{transform:translateY(-2px) rotate(-2deg);box-shadow:0 5px 0 var(--shade)}
-.chip:active{transform:translateY(3px);box-shadow:none}
-.chip.on{background:var(--p0);outline:3px solid var(--p1);outline-offset:1px}
-.card .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.tagemore{font-family:var(--pixel);font-size:14px;color:var(--tx3);padding:3px 4px}
-.tagedit{display:flex;gap:10px;align-items:center}
-.tagedit label{font-weight:700;flex:0 0 auto}
-.tagedit input{flex:1;padding:11px 14px;font-size:15px}
-
-.empty{padding:34px 20px 20px;text-align:center;color:var(--tx2);font-size:16px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:14px}
-.empty .emimi{width:118px}
-
-/* ─── dashboard: the guild board ─── */
-.hero{display:flex;align-items:flex-end;gap:18px;margin:0 0 34px}
-.hero .hm{width:190px;flex:none;cursor:pointer}
-.hero .talk{flex:1;min-width:0;padding-bottom:16px}
-.hero .bubble{font-size:19px}
-.hero .meta-pill{display:inline-flex;margin-top:16px;font-family:var(--pixel);font-size:15px;padding:3px 14px;background:var(--paper);border:2.5px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade)}
-.group-title{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:400;font-size:19px;margin:0 0 18px}
-.group-title::before{content:"✦";color:var(--p0);-webkit-text-stroke:2px var(--line);font-size:22px}
-.stats{display:grid;gap:16px;margin-bottom:34px}
+/* ─── counters ─── */
+.group-title{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--tx3);margin:0 0 12px}
+.group-title::before{content:"";width:13px;height:13px;background:var(--c,var(--ink));border:2px solid var(--print);display:block;flex:none}
+.stats{display:grid;gap:10px;margin-bottom:26px}
 #stats-mem{grid-template-columns:repeat(4,1fr)}
 #stats-relay{grid-template-columns:repeat(5,1fr)}
-.stat{--rot:0deg;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:16px 16px 14px;text-align:left;color:var(--on-p);background:var(--c);
-  border:3px solid var(--line);border-radius:24px;box-shadow:4px 5px 0 var(--shade);transform:rotate(var(--rot));animation:cardIn .6s var(--boing) backwards;
-  transition:transform .22s var(--boing),box-shadow .22s}
-.stat:nth-child(odd){--rot:-1deg}.stat:nth-child(even){--rot:.8deg}
-button.stat:hover{transform:translate(-2px,-5px) rotate(2deg) scale(1.03);box-shadow:6px 10px 0 var(--shade)}
-button.stat:active{transform:translateY(3px) scale(.98);box-shadow:1px 1px 0 var(--shade)}
-.stat .ib{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#2b2358;border:2.5px solid #2b2358;margin-bottom:6px}
-.stat .n{font-family:var(--pixel);font-weight:700;font-size:42px;line-height:1;font-variant-numeric:tabular-nums}
-.stat .k{font-size:14px;font-weight:700}
-.last{display:flex;align-items:flex-end;gap:12px}
-.last .lm{width:54px;flex:none}
-.last .bubble{flex:1;font-size:14.5px;padding:12px 16px}
-.last .bubble .pix{font-family:var(--pixel);font-weight:700;background:var(--hl);padding:0 7px;border-radius:6px}
+.stat{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:13px 14px 11px;text-align:left;color:var(--on-yellow);background:var(--c);
+  border:var(--bw2) solid var(--print);box-shadow:4px 4px 0 var(--print);transition:transform .14s,box-shadow .14s}
+button.stat:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--print)}
+button.stat:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--print)}
+.stat .ib{width:28px;height:28px;display:grid;place-items:center;background:var(--panel);color:var(--tx);border:2px solid var(--print);margin-bottom:4px}
+.stat .ib .ic{width:15px;height:15px}
+.stat .n{font-family:var(--display);font-size:31px;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat .k{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;opacity:.8}
+.last{display:flex;align-items:center;gap:12px;padding:13px 15px;background:var(--panel);border:var(--bw2) solid var(--line);box-shadow:4px 4px 0 var(--shade);font-size:13.5px;line-height:1.6}
+.last .lm{width:40px;flex:none}
+.last b{font-weight:700}
+.last .pix{font-family:var(--mono);font-size:11px;background:var(--yellow);color:#111;padding:1px 6px;border:1.5px solid var(--print)}
 
-/* tags view: floating bubbles sized by use */
-.tagfilter{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 18px;margin-bottom:22px;max-width:400px;border-radius:999px}
-.tagfilter .ic{stroke:var(--tx2)}
-.tagfilter input{flex:1;min-width:0;background:none;border:none;box-shadow:none!important;border-radius:0;padding:10px 0;font-size:15px;font-weight:500}
-.tagnote{margin:-10px 0 18px;font-family:var(--pixel);font-size:14px;color:var(--tx3)}
+/* ─── the live console ─── */
+.console{background:var(--panel);border:var(--bw2) solid var(--print);box-shadow:6px 6px 0 var(--print)}
+.win-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:var(--bw2) solid var(--print);background:var(--panel2)}
+.win-dots{display:flex;gap:5px}
+.win-dots i{width:11px;height:11px;background:var(--c,var(--paper));border:1.5px solid var(--print);display:block}
+.win-title{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+.win-meta{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--tx3);letter-spacing:.05em}
+.tabs,.con-tabs{display:flex;gap:0;border-bottom:var(--bw2) solid var(--print);background:var(--panel2)}
+.tabs button,.con-tabs button{flex:1;min-height:38px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:var(--mono);font-size:11px;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--tx2);border-right:1.5px solid var(--line);border-bottom:3px solid transparent}
+.tabs button:last-child,.con-tabs button:last-child{border-right:0}
+.tabs button.active,.con-tabs button.active{background:var(--c,var(--panel));color:var(--tx);border-bottom-color:var(--print)}
+.console-body{padding:14px}
+.console-q{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.console-q input{flex:1;min-width:180px;min-height:40px;padding:0 12px;font-family:var(--mono);font-size:13px}
+.console-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ccol{border:2px solid var(--line);background:var(--panel2);padding:10px 11px;min-height:160px}
+.ccol.on{border-color:var(--print);box-shadow:4px 4px 0 var(--print);background:var(--panel)}
+.ccol h4{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;display:flex;justify-content:space-between;gap:6px;margin-bottom:8px}
+.ccol .ci{border-top:1.5px dashed var(--line);padding:7px 0}
+.ccol .ci .m{font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ccol .ci .f{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--tx3);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap}
+.console-foot{display:flex;align-items:center;gap:12px;padding:9px 12px;border-top:var(--bw2) solid var(--print);background:var(--panel2);flex-wrap:wrap}
+.cf-play{width:34px;height:34px;display:grid;place-items:center;background:var(--yellow);border:2px solid var(--print);box-shadow:3px 3px 0 var(--print);color:var(--on-yellow);font-size:13px}
+.cf-play:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--print)}
+.cf-track{flex:1;min-width:110px;height:10px;background:var(--panel);border:2px solid var(--print)}
+.cf-fill{height:100%;width:0;background:var(--cyan);transition:width .35s}
+.cf-time{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.05em}
+.cf-note{font-family:var(--mono);font-size:10.5px;color:var(--tx3);letter-spacing:.05em}
+
+/* ─── comparison cards with bars ─── */
+.perf{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.6fr);border:var(--bw2) solid var(--print);box-shadow:6px 6px 0 var(--print);background:var(--panel)}
+.perf-l{padding:clamp(20px,2.6vw,30px);border-right:var(--bw2) solid var(--print);display:flex;flex-direction:column;gap:14px}
+.perf-l .lm{width:118px}
+.perf-claim{font-family:var(--display);font-size:clamp(16px,2vw,22px);line-height:1.16;letter-spacing:-.01em}
+.perf-r{display:grid;grid-template-columns:repeat(3,1fr)}
+.perf-c{padding:clamp(18px,2.4vw,26px);border-right:1.5px dashed var(--line);display:flex;flex-direction:column;gap:9px}
+.perf-c:last-child{border-right:0}
+.perf-c .n{font-family:var(--display);font-size:clamp(28px,3.2vw,42px);line-height:1;letter-spacing:-.02em}
+.perf-c .k{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3)}
+.bar{height:11px;background:var(--panel2);border:2px solid var(--print);position:relative;overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:var(--c,var(--ink));transition:width .9s cubic-bezier(.2,.85,.25,1)}
+.in .bar>i{width:var(--w,60%)}
+.perf-c .d{font-size:12.5px;line-height:1.6;color:var(--tx2)}
+
+/* ─── escalation split ─── */
+.esc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);border:var(--bw2) solid var(--print);box-shadow:6px 6px 0 var(--print);background:var(--panel)}
+.esc-l{padding:20px;border-right:var(--bw2) solid var(--print)}
+.esc-r{padding:20px}
+.thr{border:1.5px solid var(--line);padding:10px 12px;margin-bottom:9px;background:var(--panel2)}
+.thr:last-child{margin-bottom:0}
+.thr .h{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.thr .h b{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+.thr .h i{width:11px;height:11px;border:1.5px solid var(--print);background:var(--c);display:block;flex:none}
+.thr p{font-size:12.5px;line-height:1.58;color:var(--tx2)}
+.queue{border:1.5px solid var(--line)}
+.qrow{display:flex;align-items:center;gap:11px;padding:10px 12px;border-bottom:1.5px solid var(--line);background:var(--qbg,var(--panel));color:var(--tx)}
+.qrow:last-child{border-bottom:0}
+.qrow .q{width:9px;height:9px;background:var(--qc,var(--ink));border:1.5px solid var(--print);flex:none}
+.qrow .qt{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;flex:none;width:104px}
+.qrow .qd{font-size:12.5px;line-height:1.5;flex:1;min-width:0}
+.qrow .qn{font-family:var(--mono);font-size:12px;font-weight:700;margin-left:auto}
+
+/* ─── latency ─── */
+.lat{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.lat-c{padding:20px;border:var(--bw2) solid var(--print);box-shadow:5px 5px 0 var(--print);background:var(--c);color:var(--on-c,var(--on-yellow))}
+.lat-c .n{font-family:var(--display);font-size:clamp(34px,4.4vw,54px);line-height:1;letter-spacing:-.03em}
+.lat-c .n small{font-size:.36em;letter-spacing:0}
+.lat-c .k{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;margin-top:5px}
+.lat-c p{font-size:12.5px;line-height:1.6;margin-top:7px;opacity:.85}
+.chart{border:var(--bw2) solid var(--print);box-shadow:5px 5px 0 var(--print);background:var(--panel);padding:16px;color:var(--tx2)}
+.chart svg{display:block;width:100%;height:auto}
+.chart-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2)}
+.chart-legend span{display:inline-flex;align-items:center;gap:7px}
+.chart-legend i{width:16px;height:3px;display:block;background:var(--c)}
+.tiers{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.tier{padding:16px 18px;background:var(--panel);border:var(--bw2) solid var(--print);box-shadow:5px 5px 0 var(--print)}
+.tier h3{font-family:var(--display);font-size:15px;margin-bottom:7px}
+.tier ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+.tier li{font-family:var(--mono);font-size:11.5px;line-height:1.6;color:var(--tx2);padding-left:13px;position:relative}
+.tier li::before{content:"-";position:absolute;left:0;color:var(--tx3)}
+
+/* ─── accuracy ─── */
+.bench{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bench-c{padding:22px;background:var(--panel);border:var(--bw2) solid var(--print);box-shadow:5px 5px 0 var(--print)}
+.bench-c .big{font-family:var(--display);font-size:clamp(48px,6.4vw,76px);line-height:.94;letter-spacing:-.03em}
+.bench-c .big small{font-size:.3em;letter-spacing:0}
+.bench-c .lab{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--tx3);margin-top:7px}
+.bench-c p{font-size:13px;line-height:1.7;color:var(--tx2);margin-top:11px}
+.bench-c .bar{margin-top:13px;height:13px}
+.bench-note{margin-top:14px;display:flex;gap:12px;align-items:flex-start;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:var(--tx2)}
+.bench-note b{color:var(--tx)}
+
+/* ─── orchestration + use cases ─── */
+.flow-map{display:grid;grid-template-columns:1fr auto 1.2fr auto 1fr;gap:10px;align-items:center;margin-bottom:clamp(28px,4vw,50px)}
+.fm-col{display:flex;flex-direction:column;gap:8px}
+.fm-box{border:var(--bw2) solid var(--print);background:var(--panel);box-shadow:4px 4px 0 var(--print);padding:12px 13px}
+.fm-box .h{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);margin-bottom:7px}
+.fm-box .r{display:flex;gap:7px;flex-wrap:wrap}
+.fm-box .r span{font-family:var(--mono);font-size:11px;padding:2px 7px;border:1.5px solid var(--print);background:var(--c,var(--panel2));color:var(--on-yellow)}
+.fm-arrow{font-family:var(--mono);font-size:20px;color:var(--tx3)}
+.uses{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.use{padding:14px 14px 12px;background:var(--c,var(--panel));border:var(--bw2) solid var(--print);box-shadow:4px 4px 0 var(--print);color:var(--on-yellow);display:flex;flex-direction:column;gap:6px}
+.use .n{font-family:var(--display);font-size:12.5px}
+.use .cat{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.72}
+.use h3{font-family:var(--display);font-size:14px;line-height:1.16}
+.use p{font-size:11.8px;line-height:1.58;opacity:.86}
+.use code{font-family:var(--mono);font-size:10.5px;background:rgba(255,255,255,.55);border:1.5px solid rgba(17,17,17,.35);padding:1px 5px;align-self:flex-start}
+
+/* ─── principles ─── */
+.about{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:14px}
+.idcard{padding:22px;background:var(--paper);border:var(--bw2) solid var(--print);box-shadow:6px 6px 0 var(--print);color:var(--tx)}
+.idcard .lm{width:104px;margin-bottom:12px}
+.idcard h3{font-family:var(--display);font-size:18px;margin-bottom:8px}
+.idcard p{font-size:13.5px;line-height:1.7;color:var(--tx2)}
+.idcard .acts{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+.principles{display:flex;flex-direction:column;gap:11px}
+.principle{display:flex;gap:13px;padding:16px 18px;background:var(--paper);border:var(--bw2) solid var(--print);box-shadow:5px 5px 0 var(--print);color:var(--tx)}
+.principle .n{font-family:var(--display);font-size:24px;line-height:1;color:var(--yellow);-webkit-text-stroke:2px var(--print);paint-order:stroke fill;flex:none}
+.principle h3{font-family:var(--display);font-size:14.5px;margin-bottom:4px}
+.principle p{font-size:12.8px;line-height:1.66;color:var(--tx2)}
+
+/* ─── documentation ─── */
+.doc{display:grid;grid-template-columns:200px minmax(0,1fr);gap:clamp(20px,3vw,44px);align-items:start}
+.doc-toc{position:sticky;top:96px;display:flex;flex-direction:column;gap:2px;border-left:var(--bw2) solid var(--print);padding-left:12px}
+.doc-toc a{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--tx2);text-decoration:none;padding:5px 0}
+.doc-toc a:hover{color:var(--tx);background:var(--panel)}
+.doc-body section{padding:0 0 clamp(26px,3.4vw,40px);margin-bottom:clamp(26px,3.4vw,40px);border-bottom:1.5px dashed var(--line)}
+.doc-body section:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+.doc-body h3{font-family:var(--display);font-size:clamp(18px,2.2vw,24px);margin-bottom:6px;letter-spacing:-.01em}
+.doc-body .ds{font-size:13.5px;line-height:1.7;color:var(--tx2);margin-bottom:14px;max-width:62ch}
+.doc-body h4{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);margin:16px 0 8px}
+.doc-body pre{margin:0 0 10px;font-family:var(--mono);font-size:12px;line-height:1.65;background:var(--panel);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shade);padding:12px 14px;overflow-x:auto}
+.doc-body pre .c{color:var(--tx3)}
+.doc-body .verb{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;padding:12px 0;border-top:1.5px dashed var(--line)}
+.doc-body .verb:first-of-type{border-top:0}
+.doc-body .verb b{font-family:var(--mono);font-size:12.5px;letter-spacing:.05em}
+.doc-body .verb p{font-size:13px;line-height:1.68;color:var(--tx2)}
+.apitable{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+.apitable th,.apitable td{text-align:left;padding:8px 10px;border:1.5px solid var(--line);vertical-align:top}
+.apitable th{background:var(--panel2);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+.apitable td:first-child{white-space:nowrap;color:var(--blue-text);font-weight:700}
+.apitable td:nth-child(2){white-space:nowrap}
+.apitable tr td{background:var(--panel)}
+.dl-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.dl-list div{border:1.5px solid var(--line);background:var(--panel);padding:11px 13px}
+.dl-list b{font-family:var(--mono);font-size:11.5px;display:block;margin-bottom:3px}
+.dl-list span{font-size:12.5px;line-height:1.55;color:var(--tx2)}
+
+/* ─── conversion + footer ─── */
+.conv{background:var(--pl-pink)}
+.conv-panel{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,.75fr);gap:clamp(18px,3vw,38px);align-items:center;background:var(--paper);
+  border:var(--bw2) solid var(--print);box-shadow:7px 7px 0 var(--print);padding:clamp(22px,3.2vw,36px)}
+.conv-panel .lm{width:clamp(96px,10vw,150px)}
+.conv h2{font-family:var(--display);font-size:clamp(23px,3.4vw,44px);line-height:1;letter-spacing:-.02em}
+.conv h2 .b{color:var(--blue-text)}.conv h2 .p{color:var(--pink-text)}
+.conv p{font-size:13.5px;line-height:1.7;color:var(--tx2);margin:12px 0 18px;max-width:44ch}
+.outlook{padding:18px;background:var(--lav);border:var(--bw2) solid var(--print);box-shadow:5px 5px 0 var(--print);color:var(--on-lav)}
+.outlook .h{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;margin-bottom:10px}
+.outlook ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+.outlook li{font-size:12.5px;line-height:1.58;display:flex;gap:8px}
+.outlook li::before{content:">";flex:none;font-family:var(--mono)}
+.foot{background:var(--pl-cream);padding:clamp(34px,5vw,62px) 0 24px}
+.foot-card{border:var(--bw2) solid var(--print);box-shadow:6px 6px 0 var(--print);background:var(--paper)}
+.foot-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.1fr)}
+.foot-brand{padding:22px;border-right:1.5px dashed var(--line);display:flex;gap:12px;align-items:flex-start}
+.foot-brand p{font-size:12.5px;line-height:1.68;color:var(--tx2);max-width:38ch}
+.foot-notes{padding:22px;border-right:1.5px dashed var(--line)}
+.foot-notes .h,.foot-map .h{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--tx3);margin-bottom:11px}
+.foot-notes ol{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:8px}
+.foot-notes li{font-size:12px;line-height:1.6;color:var(--tx2)}
+.foot-notes li b{color:var(--tx);font-family:var(--mono);font-size:11px}
+.foot-map{padding:22px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.foot-map ul{list-style:none;display:flex;flex-direction:column;gap:5px}
+.foot-map li a{font-family:var(--mono);font-size:11.5px;color:var(--tx2);text-decoration:none;border-bottom:1px solid transparent}
+.foot-map li a:hover{color:var(--tx);border-bottom-color:var(--tx)}
+.foot-bottom{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:11px 22px;border-top:var(--bw2) solid var(--print);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3)}
+
+/* ─── the head strip for the list views ─── */
+.head{border-bottom:var(--bw2) solid var(--line);
+  background-image:linear-gradient(to right,var(--gridline) 1px,transparent 1px),linear-gradient(to bottom,var(--gridline) 1px,transparent 1px);
+  background-size:var(--grid) var(--grid)}
+.head-in{max-width:1180px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.head h1{font-family:var(--display);font-size:clamp(19px,2.4vw,28px);line-height:1;letter-spacing:-.02em}
+.head .sub{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;padding:3px 9px;background:var(--panel);border:2px solid var(--line);box-shadow:3px 3px 0 var(--shade)}
+.head .sub:empty{display:none}
+body[data-view=recent] .head{background-color:var(--pl-yellow)}
+body[data-view=trash] .head{background-color:var(--pl-pink)}
+body[data-view=tags] .head{background-color:var(--pl-blue)}
+body[data-view=relay] .head{background-color:var(--pl-lilac)}
+body[data-view=docs] .head{background-color:var(--pl-blue)}
+body[data-view=info] .head{background-color:var(--pl-yellow)}
+body[data-view=recent] #v-list{background-color:var(--pl-yellow)}
+body[data-view=trash] #v-list{background-color:var(--pl-pink)}
+
+/* ─── memory cards ─── */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{position:relative;padding:18px 18px 13px;background:var(--panel);border:var(--bw2) solid var(--line);box-shadow:5px 5px 0 var(--shade);
+  transition:transform .15s,box-shadow .15s;animation:cardIn .35s ease-out backwards}
+.card:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--shade)}
+.card .no{position:absolute;top:-13px;left:15px;padding:1px 8px;font-family:var(--mono);font-weight:700;font-size:11px;color:var(--on-yellow);
+  background:var(--c,var(--panel2));border:2px solid var(--print);box-shadow:3px 3px 0 var(--print)}
+@keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.card.vanish{animation:vanish .28s ease-in forwards}
+@keyframes vanish{to{opacity:0;transform:translateY(-12px)}}
+.card .meta{display:flex;gap:10px;margin-bottom:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3)}
+.card .meta .len{margin-left:auto}
+.card .txt{font-size:14.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.card .txt.clip{max-height:5.2em;overflow:hidden;cursor:pointer;-webkit-mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,.12));mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,.12))}
+.card .txt:not(.clip){cursor:pointer}
+.card .histbox{margin-top:11px;padding:9px 11px;background:var(--panel2);border:2px dashed var(--line);font-family:var(--mono);font-size:11.5px;line-height:1.75;color:var(--tx2);max-height:220px;overflow:auto}
+.card .histbox .hhead{color:var(--tx);font-weight:700;margin-bottom:4px}
+.card .histbox .hrow b{color:var(--pink-text);font-weight:700}
+.card .histbox .hold{color:var(--tx3)}
+.card .row2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.card .acts{display:flex;gap:7px;flex-wrap:wrap;margin-left:auto}
+mark{background:var(--yellow);color:#111;padding:0 3px;border:1px solid var(--print)}
+.more{margin:26px auto 0;display:flex}
+.card .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:5px;min-height:25px;padding:0 9px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--on-yellow);background:var(--c);
+  border:2px solid var(--print);box-shadow:2px 2px 0 var(--print);white-space:nowrap;transition:transform .12s,box-shadow .12s}
+.chip:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--print)}
+.chip:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--print)}
+.chip.on{outline:2px solid var(--print);outline-offset:2px}
+.tagemore{font-family:var(--mono);font-size:11px;color:var(--tx3);padding:3px 4px}
+.tagedit{display:flex;gap:10px;align-items:center}
+.tagedit label{font-weight:700;flex:0 0 auto;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+.tagedit input{flex:1;padding:10px 12px;font-size:14px}
+.empty{padding:36px 20px 24px;text-align:center;color:var(--tx2);font-size:15px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.empty .emimi{width:96px}
+
+/* ─── tags ─── */
+.tagfilter{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 13px;margin-bottom:16px;max-width:400px;background:var(--panel);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shade)}
+.tagfilter .ic{stroke:var(--tx3);width:16px;height:16px}
+.tagfilter input{flex:1;min-width:0;background:none;border:none;outline:none!important;padding:9px 0;font-family:var(--mono);font-size:13px}
+.tagnote{margin:-8px 0 14px;font-family:var(--mono);font-size:11.5px;color:var(--tx3)}
 .tagnote:empty{display:none}
-.tagfield{display:flex;flex-wrap:wrap;gap:14px 10px;align-items:center}
-.gem{display:inline-flex;align-items:center;gap:8px;padding:0 18px;font-weight:700;color:var(--on-p);background:var(--c);border:3px solid var(--line);border-radius:999px;box-shadow:0 4px 0 var(--shade);
-  animation:gemIn .55s var(--boing) backwards;transition:transform .18s var(--boing),box-shadow .18s}
-.gem b{font-family:var(--pixel);font-size:.85em;background:var(--paper);color:var(--tx);padding:0 8px;border-radius:999px;border:2px solid var(--line)}
-.gem:hover{transform:translateY(-4px) rotate(-3deg) scale(1.08);box-shadow:0 8px 0 var(--shade)}
-.gem:active{transform:translateY(3px);box-shadow:none}
-@keyframes gemIn{0%{opacity:0;transform:scale(.2) rotate(-25deg)}100%{opacity:1;transform:none}}
-
-/* ─── sheet / dialogs ─── */
-.scrim{position:fixed;inset:0;z-index:20;background:rgba(43,35,88,.5);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:14vh 16px 16px}
-.scrim.open{display:flex}
-.sheet{position:relative;width:100%;max-width:640px;max-height:80vh;display:flex;flex-direction:column;animation:sheetIn .5s var(--boing) both}
-@keyframes sheetIn{0%{opacity:0;transform:translateY(40px) scale(.85) rotate(-2deg)}100%{opacity:1;transform:none}}
-.sheet .peek{position:absolute;right:26px;top:-80px;width:88px;pointer-events:none}
-.sheet header{padding:18px 24px 14px;display:flex;align-items:center;gap:12px}
-.sheet header h2{font-family:var(--display);font-weight:400;font-size:22px}
-.sheet header .x{margin-left:auto}
-.sheet .tabs{display:flex;gap:10px;padding:0 24px 6px}
-.sheet .tabs button{flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:14px;background:var(--paper2);border:3px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade);transition:transform .15s var(--boing),background .15s}
-.sheet .tabs button.active{background:var(--c);color:var(--on-p);transform:translateY(-2px)}
-.sheet .tabs button:active{transform:translateY(3px);box-shadow:none}
-.sheet .pane{padding:16px 24px 24px;display:none;flex-direction:column;gap:14px;overflow:auto}
-.sheet .pane.active{display:flex}
-.sheet textarea{width:100%;min-height:150px;padding:14px 16px;font-size:16px;line-height:1.65;resize:vertical}
-.sheet .hint{font-size:13px;color:var(--tx3);line-height:1.7}
-.sheet .done{padding:12px 16px;background:var(--hl);border:2.5px dashed var(--line);border-radius:14px;font-family:var(--pixel);font-size:15px;line-height:1.7;display:none}
-.sheet .pane .btn{align-self:flex-start}
-
-.remember{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;cursor:pointer;user-select:none}
-.remember input{width:20px;height:20px;accent-color:var(--p1);cursor:pointer;flex:none;border-radius:6px;padding:0}
-.forget{font-size:13px;color:var(--tx3);padding:4px 0;text-decoration:underline;text-underline-offset:3px}
-.forget:hover{color:var(--tx)}
-
-.cfrim{align-items:center;padding:16px;z-index:30}
-.sheet.cf{max-width:440px}
-.sheet.cf.danger header h2{color:var(--danger)}
-.cf-body{padding:4px 24px 18px;font-size:15px;line-height:1.7;color:var(--tx2);overflow:auto}
-.cf-body b{color:var(--tx)}
-.cf-body .prev{display:block;margin-top:12px;padding:10px 14px;background:var(--paper2);border:2.5px dashed var(--line);border-radius:14px;font-size:13.5px;color:var(--tx3);max-height:140px;overflow:auto;white-space:pre-wrap;word-break:break-word}
-.cf-acts{display:flex;gap:12px;padding:0 24px 26px}
-.cf-acts .btn{flex:1}
-
-/* ─── toast: Mimi talks ─── */
-.toast{position:fixed;left:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:70;display:flex;align-items:flex-end;gap:8px;max-width:min(94vw,560px);
-  transform:translateY(160%);transition:transform .5s var(--boing);pointer-events:none}
-.toast.show{transform:none}
-.toast .tm{width:66px;flex:none}
-.toast .bubble{font-size:15px;padding:12px 18px;margin-bottom:14px}
-.toast.err .bubble{background:var(--p1);color:#2b2358}
-.toast.err .bubble::after{border-right-color:var(--p1)}
-
-/* ─── gate: the guild door ─── */
-.gate{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow:auto;
-  background:linear-gradient(180deg,var(--sky0) 0%,var(--sky1) 58%,var(--sky2) 100%)}
-.gate.open{display:flex}
-.gate .gm{width:150px;margin-bottom:-28px;position:relative;z-index:2}
-.gate .box{position:relative;width:100%;max-width:400px;padding:44px 28px 24px;display:flex;flex-direction:column;gap:14px;animation:pop .6s var(--boing) both}
-.gate .mark{text-align:center;font-family:var(--display);font-size:26px}
-.gate .sub{text-align:center;font-size:14.5px;color:var(--tx2);line-height:1.6;margin-top:-6px}
-.gate input[type=password]{font-size:17px;padding:14px 16px;text-align:center;letter-spacing:.14em}
-.gate .acts{display:flex;flex-direction:column}
-.gate .acts .btn{width:100%;min-height:52px}
-.gate .err{display:none;font-size:14px;font-weight:700;color:var(--danger);align-items:center;gap:6px;line-height:1.5;justify-content:center;text-align:center}
-.gate .err.show{display:flex}
-.gate.shake .box{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
-@keyframes shake{10%,90%{transform:translateX(-3px)}20%,80%{transform:translateX(5px)}30%,50%,70%{transform:translateX(-9px)}40%,60%{transform:translateX(9px)}}
-.gate .opts{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:24px}
-.gate.unlock .box{animation:pop .4s reverse forwards}
+.tagfield{display:flex;flex-wrap:wrap;gap:10px 8px;align-items:center}
+.gem{display:inline-flex;align-items:center;gap:8px;padding:0 13px;font-family:var(--mono);font-weight:700;color:var(--on-yellow);background:var(--c);border:2px solid var(--print);
+  box-shadow:3px 3px 0 var(--print);animation:gemIn .3s ease-out backwards;transition:transform .13s,box-shadow .13s}
+.gem b{font-family:var(--mono);font-size:.82em;background:var(--panel);color:var(--tx);padding:0 6px;border:1.5px solid var(--print)}
+.gem:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--print)}
+.gem:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--print)}
+@keyframes gemIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
 
 /* ─── relay ─── */
-#relay{margin-top:4px}
-.relay-tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
-.rtab{min-height:40px;padding:0 20px;font-weight:700;font-size:14px;background:var(--paper);border:3px solid var(--line);border-radius:999px;box-shadow:0 3px 0 var(--shade);transition:transform .15s var(--boing)}
-.rtab:hover{transform:translateY(-2px) rotate(-1.5deg)}
-.rtab.active{background:var(--c);color:var(--on-p);transform:translateY(-2px);box-shadow:0 5px 0 var(--shade)}
+.relay-tabs{display:flex;gap:0;flex-wrap:wrap;width:fit-content;margin-bottom:20px;border:var(--bw2) solid var(--print);box-shadow:4px 4px 0 var(--print);background:var(--panel)}
+.rtab{min-height:40px;padding:0 17px;font-family:var(--mono);font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;background:var(--panel);
+  border-right:1.5px solid var(--line);transition:background .13s}
+.rtab:last-child{border-right:0}
+.rtab:hover{background:var(--panel2)}
+.rtab.active{background:var(--c,var(--yellow));color:var(--on-yellow)}
 .rpane{display:none}
 .rpane.active{display:block}
-.rrow{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
-.rrow input{padding:10px 14px;font-size:15px;min-width:140px}
-.rrow .btn{min-height:44px;padding:0 22px}
-.rchk{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:pointer;user-select:none}
-.rchk input{width:18px;height:18px;accent-color:var(--p1);cursor:pointer;min-width:0;padding:0}
-.hint-line{font-size:13.5px;color:var(--tx3);line-height:1.7;margin:-4px 0 16px}
-.rcard{padding:14px 20px;margin-bottom:16px;border-radius:20px;animation:cardIn .55s var(--boing) backwards}
-.rcard .rh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px;font-family:var(--pixel);font-size:14.5px;color:var(--tx3)}
-.rcard .rh b{color:var(--tx);font-weight:700;font-size:16px;background:var(--hl);padding:0 8px;border-radius:6px}
-.rcard .rt{font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
-.rcard .rt .topic{font-weight:700;display:block;margin-bottom:4px}
-.rcard .refs{font-family:var(--pixel);font-size:14.5px;color:var(--tx3);margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.rcard .refs a{color:var(--tx);background:var(--p3);color:#2b2358;padding:0 10px;border:2px solid var(--line);border-radius:999px;cursor:pointer;font-weight:700}
-.rcard .refs .acked{color:var(--ok);font-weight:700}
-.rcard .refs .pend{color:var(--danger);font-weight:700}
-.rcard .rel{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.rcard .rel .btn{min-height:38px;padding:0 18px;font-size:14px}
-.rnone{padding:24px 14px;text-align:center;font-size:14.5px;font-weight:500;color:var(--tx2);border:3px dashed var(--line);border-radius:20px}
-
-/* write forms inside relay panes: a folded note you open when you need it */
-.newbox{margin-bottom:18px;padding:12px 16px;border-radius:20px}
-.newbox>summary{cursor:pointer;font-weight:700;font-size:14.5px;list-style:none;display:flex;align-items:center;gap:9px;min-height:34px}
+.rrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.rrow input{padding:10px 12px;font-size:14px;min-width:140px;font-family:var(--mono)}
+.rrow .btn{min-height:40px}
+.rchk{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer;user-select:none}
+.rchk input{width:18px;height:18px;accent-color:var(--pink);cursor:pointer;min-width:0;padding:0}
+.hint-line{font-size:13px;color:var(--tx3);line-height:1.7;margin:-4px 0 14px}
+.rcard{padding:13px 16px;margin-bottom:11px;background:var(--panel);border:var(--bw2) solid var(--line);box-shadow:4px 4px 0 var(--shade);animation:cardIn .3s ease-out backwards}
+.rcard .rh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:5px;font-family:var(--mono);font-size:11.5px;color:var(--tx3)}
+.rcard .rh b{color:var(--tx);font-weight:700;font-size:12.5px;background:var(--yellow);color:#111;padding:0 6px;border:1.5px solid var(--print)}
+.rcard .rt{font-size:13.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.rcard .rt .topic{font-weight:700;display:block;margin-bottom:3px}
+.rcard .refs{font-family:var(--mono);font-size:11.5px;color:var(--tx3);margin-top:7px;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.rcard .refs a{background:var(--cyan);color:var(--on-cyan);padding:0 8px;border:1.5px solid var(--print);cursor:pointer;font-weight:700}
+.rcard .refs .acked{color:var(--green);font-weight:700}
+.rcard .refs .pend{color:var(--pink-text);font-weight:700}
+.rcard .rel{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.rcard .rel .btn{min-height:36px;padding:0 15px;font-size:11.5px}
+.rnone{padding:20px 14px;text-align:center;font-size:13.5px;color:var(--tx2);border:2px dashed var(--line);background:var(--panel2)}
+.newbox{margin-bottom:14px;background:var(--panel);border:var(--bw2) solid var(--print);box-shadow:4px 4px 0 var(--shade)}
+.newbox>summary{cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.03em;padding:11px 14px;list-style:none;display:flex;align-items:center;gap:9px}
 .newbox>summary::-webkit-details-marker{display:none}
-.newbox>summary::before{content:"✚";display:grid;place-items:center;width:24px;height:24px;font-size:13px;background:var(--c,var(--p4));color:var(--on-p);
-  border:2.5px solid var(--line);border-radius:50%;box-shadow:0 2px 0 var(--shade);transition:transform .2s var(--boing)}
-.newbox[open]>summary::before{content:"▾";transform:rotate(0)}
-.newbox>summary:focus-visible{outline:3px solid var(--p4);outline-offset:4px;border-radius:12px}
-.newbox .nb{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.newbox>summary::before{content:"+";display:grid;place-items:center;width:22px;height:22px;font-size:14px;background:var(--c,var(--yellow));color:var(--on-yellow);
+  border:2px solid var(--print);flex:none}
+.newbox[open]>summary{border-bottom:2px solid var(--line)}
+.newbox .nb{display:flex;flex-direction:column;gap:10px;padding:13px 14px}
 .nb-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.nb-row input{flex:1;min-width:140px;padding:11px 14px;font-size:15px}
-.newbox textarea{width:100%;min-height:96px;padding:12px 14px;font-size:15px;line-height:1.65;resize:vertical}
-.newbox .btn{align-self:flex-start}
-.newbox .hint-line{margin:0}
+.nb-row input{flex:1;min-width:140px;padding:10px 12px;font-size:14px;font-family:var(--mono)}
+.newbox textarea{width:100%;min-height:90px;padding:11px 12px;font-size:14px;line-height:1.65;resize:vertical}
 
-/* ─── intro: title screen + iris wipe ─── */
-@property --iris{syntax:'<length-percentage>';inherits:false;initial-value:0%}
-.intro{position:fixed;inset:0;z-index:100;display:grid;place-items:center;cursor:pointer;background:linear-gradient(180deg,#8fd6ff,#c4efff 60%,#e4fbe6);
-  -webkit-mask-image:radial-gradient(circle at 50% 50%,transparent var(--iris),#000 calc(var(--iris) + 2px));mask-image:radial-gradient(circle at 50% 50%,transparent var(--iris),#000 calc(var(--iris) + 2px))}
-.intro.out{animation:iris .85s cubic-bezier(.6,0,.3,1) forwards}
-@keyframes iris{from{--iris:0%}to{--iris:80%}}
+/* ─── sheets, dialogs, toast, gate ─── */
+.scrim{position:fixed;inset:0;z-index:70;background:rgba(17,17,17,.55);display:none;align-items:flex-start;justify-content:center;padding:12vh 16px 16px}
+.scrim.open{display:flex}
+.sheet{position:relative;width:100%;max-width:680px;max-height:82vh;display:flex;flex-direction:column;background:var(--panel);border:var(--bw2) solid var(--print);box-shadow:7px 7px 0 var(--print);animation:sheetIn .2s ease-out both}
+@keyframes sheetIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.sheet .peek{position:absolute;right:22px;top:-56px;width:70px;pointer-events:none}
+.sheet header{padding:15px 18px 11px;display:flex;align-items:center;gap:12px;border-bottom:var(--bw2) solid var(--print)}
+.sheet header h2{font-family:var(--display);font-size:19px;letter-spacing:-.01em}
+.sheet header .x{margin-left:auto}
+.sheet .tabs{padding:0}
+.sheet .pane{padding:15px 18px 20px;display:none;flex-direction:column;gap:12px;overflow:auto}
+.sheet .pane.active{display:flex}
+.sheet textarea{width:100%;min-height:140px;padding:12px 14px;font-size:14.5px;line-height:1.65;resize:vertical}
+.sheet .hint{font-size:12.5px;color:var(--tx3);line-height:1.7}
+.sheet .done{padding:10px 12px;background:var(--yellow);color:#111;border:2px dashed var(--print);font-family:var(--mono);font-size:12px;line-height:1.7;display:none}
+.sheet .pane .btn{align-self:flex-start}
+.remember{display:flex;align-items:center;gap:10px;font-size:13.5px;cursor:pointer;user-select:none}
+.remember input{width:19px;height:19px;accent-color:var(--pink);cursor:pointer;flex:none}
+.forget{font-size:12.5px;color:var(--tx3);padding:4px 0;text-decoration:underline;text-underline-offset:3px;font-family:var(--mono)}
+.forget:hover{color:var(--tx)}
+.cfrim{align-items:center;padding:16px}
+.sheet.cf{max-width:460px}
+.sheet.cf.danger header h2{color:var(--pink-text)}
+.cf-body{padding:13px 18px 15px;font-size:14px;line-height:1.7;color:var(--tx2);overflow:auto}
+.cf-body b{color:var(--tx)}
+.cf-body .prev{display:block;margin-top:11px;padding:9px 11px;background:var(--panel2);border:2px dashed var(--line);font-size:12.5px;color:var(--tx3);max-height:140px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.cf-acts{display:flex;gap:12px;padding:0 18px 20px}
+.cf-acts .btn{flex:1}
+.toast{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:80;display:flex;align-items:flex-end;gap:8px;max-width:min(94vw,560px);
+  transform:translateY(180%);transition:transform .26s ease-out;pointer-events:none}
+.toast.show{transform:none}
+.toast .tm{width:54px;flex:none}
+.toast .bubble{font-size:13.5px;padding:11px 14px;background:var(--panel);border:var(--bw2) solid var(--print);box-shadow:4px 4px 0 var(--print);line-height:1.6}
+.toast.err .bubble{background:var(--pink);color:var(--on-pink)}
+.gate{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow:auto;background:var(--blue)}
+.gate.open{display:flex}
+.gate .gm{width:104px;margin-bottom:-20px;position:relative;z-index:2}
+.gate .box{position:relative;width:100%;max-width:410px;padding:34px 24px 20px;display:flex;flex-direction:column;gap:12px;background:var(--panel);
+  border:var(--bw2) solid var(--print);box-shadow:7px 7px 0 var(--print)}
+.gate .mark{text-align:center;font-family:var(--display);font-size:23px;letter-spacing:-.02em}
+.gate .sub{text-align:center;font-size:13.5px;color:var(--tx2);line-height:1.6;margin-top:-6px}
+.gate input[type=password]{font-size:16px;padding:13px 14px;text-align:center;letter-spacing:.14em;font-family:var(--mono)}
+.gate .acts{display:flex;flex-direction:column}
+.gate .acts .btn{width:100%;min-height:48px}
+.gate .err{display:none;font-size:13px;font-weight:700;color:var(--pink-text);align-items:center;gap:6px;line-height:1.5;justify-content:center;text-align:center}
+.gate .err.show{display:flex}
+.gate.shake .box{animation:shake .4s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-3px)}20%,80%{transform:translateX(5px)}30%,50%,70%{transform:translateX(-9px)}40%,60%{transform:translateX(9px)}}
+.gate .opts{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:24px}
+.gate.unlock .box{animation:pop .3s reverse forwards}
+@keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.intro{position:fixed;inset:0;z-index:100;display:grid;place-items:center;cursor:pointer;background:var(--blue)}
+.intro.out{animation:wipe .65s cubic-bezier(.75,0,.25,1) forwards}
+@keyframes wipe{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 0 100% 0)}}
 .intro.gone{display:none}
-.intro .core{display:flex;flex-direction:column;align-items:center;gap:14px;color:#2b2358}
-.intro .im{width:170px;animation:introHop 1s var(--boing) both}
-.intro .wm{font-size:clamp(46px,13vw,82px)}
-.intro .wm span{animation:introLetter .7s var(--boing) both;animation-delay:calc(.35s + var(--i)*70ms);-webkit-text-stroke:7px #2b2358;text-shadow:0 6px 0 #2b2358}
-.intro .go{font-family:var(--pixel);font-weight:700;font-size:18px;color:#2b2358;animation:blinkTxt 1s steps(2) infinite 1s;opacity:0;animation-fill-mode:forwards}
-@keyframes introHop{0%{transform:translateY(-120vh) scale(.8)}100%{transform:none}}
-@keyframes introLetter{0%{opacity:0;transform:translateY(-60px) scale(1.5) rotate(-20deg)}100%{opacity:1;transform:none}}
-@keyframes blinkTxt{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}
+.intro .core{display:flex;flex-direction:column;align-items:center;gap:16px;color:#fff}
+.intro .im{width:120px;animation:introHop .9s cubic-bezier(.34,1.56,.64,1) both}
+.intro .wm{font-size:clamp(40px,11vw,76px)}
+.intro .go{font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--yellow);
+  animation:blinkTxt 1s steps(2) infinite .8s;opacity:0;animation-fill-mode:forwards}
+@keyframes introHop{0%{transform:translateY(-110vh)}100%{transform:none}}
+@keyframes blinkTxt{0%{opacity:1}50%{opacity:.25}100%{opacity:1}}
 
-/* ─── adaptive: tablet + mobile ─── */
-@media (min-width:761px){.navbar{position:static;overflow:visible;margin:6px 0 16px;padding:0 0 8px}.nav{flex-wrap:wrap;width:auto}}
+/* ─── responsive ─── */
+@media (max-width:1000px){
+  .uses{grid-template-columns:repeat(3,1fr)}
+  .foot-in{grid-template-columns:1fr 1fr}
+  .foot-brand{grid-column:span 2;border-right:0;border-bottom:1.5px dashed var(--line)}
+  .doc{grid-template-columns:1fr}
+  .doc-toc{position:static;flex-direction:row;flex-wrap:wrap;gap:4px;border-left:0;padding-left:0;border-bottom:1.5px dashed var(--line);padding-bottom:10px}
+  .doc-toc a{padding:3px 8px;border:1.5px solid var(--line);background:var(--panel)}
+}
+@media (max-width:900px){
+  .hero-in{grid-template-columns:1fr;gap:26px}
+  .hero-bit{flex-direction:row;justify-content:flex-start;align-items:center;gap:16px}
+  .hero-bit .bit{width:96px;flex:none}
+  .hero-bit .cap{text-align:left}
+  .perf{grid-template-columns:1fr}
+  .perf-l{border-right:0;border-bottom:var(--bw2) solid var(--print);flex-direction:row;align-items:center;gap:18px}
+  .perf-l .lm{width:88px;flex:none}
+  .esc{grid-template-columns:1fr}
+  .esc-l{border-right:0;border-bottom:var(--bw2) solid var(--print)}
+  .flow-map{grid-template-columns:1fr;gap:12px}
+  .fm-arrow{text-align:center;transform:rotate(90deg)}
+  .conv-panel{grid-template-columns:1fr;text-align:left}
+  .conv-panel .lm{width:104px}
+  .about{grid-template-columns:1fr}
+  .dl-list{grid-template-columns:1fr}
+}
 @media (max-width:760px){
-  /* `background-attachment:fixed` is janky on iOS (and repaints on scroll);
-     the world layer is already fixed, so it paints the sky instead. */
-  body{background:var(--sky2)}
-  .world{background:linear-gradient(180deg,var(--sky0) 0%,var(--sky1) 58%,var(--sky2) 100%)}
-  .app{padding:env(safe-area-inset-top) 14px calc(130px + env(safe-area-inset-bottom))}
-  .top{padding:14px 0 6px}
-  .wm{font-size:30px}.logo .lm{width:46px}
-  /* the status text stays in the accessibility tree, it is only hidden from sight */
+  .hud{padding:0 14px}
+  .top{padding:8px 0;gap:8px}
+  .top-r{order:2;margin-left:auto}
+  .searchrow{order:3;flex:1 0 100%;max-width:none;display:none}
+  body.search-open .searchrow{display:flex}
+  .wm{font-size:19px}
+  .mark{width:26px;height:26px}
   .chip-st span:last-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-  /* one scrolling pill row that stays readable while content slides under it */
-  .navbar{top:max(4px,env(safe-area-inset-top));margin:4px -14px 12px;padding:8px 14px 12px;
-    background:linear-gradient(180deg,var(--veil) 0%,var(--veil) 72%,transparent 100%);backdrop-filter:blur(6px)}
-  .searchrow{margin-bottom:22px}
-  .search{min-height:54px;padding:0 16px}
-  .search kbd{display:none}
-  .head h1{font-size:23px}
-  .card{padding:24px 16px 14px}
-  /* 16px is the floor for a field on iOS — anything smaller and the page zooms
-     when the keyboard opens. Not gated on `pointer` alone: emulators and some
-     browsers get that media feature wrong, and a phone is a phone. */
-  input,textarea,.tagedit input,.rrow input,.nb-row input,.tagfilter input,.search input{font-size:16px}
-  .card .tags .chip{min-height:38px;padding:0 15px}
-  .head .sub{min-height:32px;display:inline-flex;align-items:center}
-  .hero{flex-direction:column;align-items:center;text-align:left;gap:0;margin-bottom:28px}
-  .hero .hm{width:150px;margin-bottom:-6px}
-  .hero .talk{padding-bottom:0;width:100%}
-  .hero .bubble::before,.hero .bubble::after{left:50%;bottom:auto;top:-12px;margin-left:-9px;border:9px solid transparent;border-bottom-color:var(--line);border-top:0}
-  .hero .bubble::after{top:-8px;border-bottom-color:var(--paper);transform:none}
-  .hero .bubble{font-size:17px}
-  .hero .meta-pill{font-size:13px;border-radius:18px;line-height:1.5;padding:3px 14px}
+  /* the tab bar becomes a drawer: one row of controls on a phone */
+  .navbar{position:fixed;top:0;right:0;bottom:0;width:min(84vw,330px);max-width:none;margin:0;z-index:75;
+    flex-direction:column;align-items:stretch;gap:0;overflow-y:auto;padding:16px 14px calc(24px + env(safe-area-inset-bottom));
+    background:var(--paper);border-left:var(--bw2) solid var(--print);transform:translateX(101%);visibility:hidden;
+    box-shadow:-8px 0 0 rgba(17,17,17,.15)}
+  body.menu-open .navbar{transform:none;visibility:visible}
+  .drawer-head{display:flex;align-items:center;gap:10px;padding-bottom:12px;margin-bottom:12px;border-bottom:var(--bw2) solid var(--print)}
+  .drawer-head .wm{font-size:20px}
+  .drawer-head .x{margin-left:auto}
+  .nav{flex-direction:column;gap:8px;overflow:visible;padding:0}
+  .nav button{width:100%;min-height:48px;justify-content:flex-start;padding:0 14px;font-size:12px}
+  .nav button .ib{width:22px;height:22px}
+  .nav button .ib .ic{width:14px;height:14px}
+  #menu-btn,#m-search{display:inline-flex}
+  /* the theme keeps its label for screen readers, the icon carries it on screen */
+  #theme span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .wrap{padding:0 14px}
+  .head-in{padding:13px 14px}
+  .hero-in{padding:34px 14px 38px}
+  .hero-live{grid-template-columns:repeat(2,1fr)}
   #stats-mem,#stats-relay{grid-template-columns:repeat(2,1fr)}
   #stats-relay .stat:last-child{grid-column:span 2}
-  .stat .n{font-size:38px}
-  .orb{width:54px;height:54px;right:6%}
-  .tagfilter{max-width:none}
-  /* dialogs dock to the bottom edge: thumb reach, and the drag bar says so */
+  .perf-r{grid-template-columns:1fr}
+  .perf-c{border-right:0;border-bottom:1.5px dashed var(--line)}
+  .perf-c:last-child{border-bottom:0}
+  .ls-row{grid-template-columns:1fr}
+  .ls-cell{border-right:0;border-bottom:1.5px dashed var(--line)}
+  .ls-cell:last-child{border-bottom:0}
+  .ls-axis{display:none}
+  .console-cols{grid-template-columns:1fr}
+  .lat{grid-template-columns:1fr}
+  .tiers{grid-template-columns:1fr}
+  .bench{grid-template-columns:1fr}
+  .uses{grid-template-columns:repeat(2,1fr)}
+  .foot-in{grid-template-columns:1fr}
+  .foot-brand{grid-column:auto;border-bottom:1.5px dashed var(--line)}
+  .foot-notes{border-right:0;border-bottom:1.5px dashed var(--line)}
+  .foot-map{grid-template-columns:1fr 1fr}
+  .apitable{font-size:11px}
+  .apitable th,.apitable td{padding:6px 7px}
   .scrim{align-items:flex-end;padding:0;padding-top:calc(16px + env(safe-area-inset-top))}
   .scrim.cfrim{align-items:center;padding:16px}
-  #scrim .sheet{max-width:none;max-height:86dvh;border-radius:26px 26px 0 0;animation:sheetUp .45s var(--boing) both}
-  #scrim .sheet>header{position:relative;padding-top:22px}
-  #scrim .sheet>header::before{content:"";position:absolute;left:50%;top:9px;width:52px;height:5px;border-radius:99px;background:var(--line);opacity:.3;transform:translateX(-50%)}
-  #scrim .sheet .pane{padding-bottom:calc(24px + env(safe-area-inset-bottom));overscroll-behavior:contain}
-  .sheet .peek{width:74px;top:-68px}
-  .nb-row input{min-width:0}
+  #scrim .sheet{max-width:none;max-height:86dvh;animation:sheetUp .28s ease-out both}
+  #scrim .sheet>header{position:relative;padding-top:19px}
+  #scrim .sheet>header::before{content:"";position:absolute;left:50%;top:7px;width:50px;height:5px;background:var(--line);opacity:.45;transform:translateX(-50%)}
+  #scrim .sheet .pane{padding-bottom:calc(20px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+  .sheet .peek{width:60px;top:-50px}
   .toast{left:8px;right:8px;max-width:none}
+  .toast .tm{width:44px}
+  .qrow .qt{width:auto}
+  .qrow{flex-wrap:wrap}
+  .doc-body .verb{grid-template-columns:1fr;gap:4px}
 }
-@keyframes sheetUp{0%{opacity:0;transform:translateY(60px)}100%{opacity:1;transform:none}}
-/* narrow phones: one column, tighter everything, tap targets stay ≥44px */
+@keyframes sheetUp{from{opacity:0;transform:translateY(36px)}to{opacity:1;transform:none}}
 @media (max-width:430px){
-  .app{padding:env(safe-area-inset-top) 12px calc(120px + env(safe-area-inset-bottom))}
-  .top{gap:10px;flex-wrap:wrap}
-  /* three controls cannot share a row with the wordmark at this width, and an
-     overflowed button is an invisible button — the second row is a control
-     cluster pinned to the right, so the status chip reads as part of it */
-  .top-r{margin-left:0;width:100%;justify-content:flex-end}
-  .wm{font-size:26px}.logo .lm{width:40px}
-  .top-r{gap:8px}
-  .ia{min-height:44px;padding:0 14px}
-  .nav button{min-height:48px;padding:0 15px 0 10px;font-size:14px}
-  .nav button .ib{width:26px;height:26px}
-  #stats-mem,#stats-relay{grid-template-columns:1fr;gap:14px}
-  #stats-relay .stat:last-child{grid-column:auto}
-  .stat{flex-direction:row;align-items:center;gap:12px;padding:12px 14px}
-  .stat .ib{margin-bottom:0;flex:none}
-  .stat .n{font-size:32px;margin-left:auto}
-  .stat .k{font-size:13.5px}
-  .hero .hm{width:126px}
-  .hero .bubble{font-size:16px;padding:12px 14px}
-  .head h1{font-size:21px}
-  .head .sub{font-size:13px}
-  .chip-st{font-size:13px;padding:0 11px}
-  .rtab{min-height:44px;padding:0 16px}
-  #scrim .sheet header,#scrim .sheet .tabs,#scrim .sheet .pane{padding-left:16px;padding-right:16px}
-  .sheet .peek{right:16px}
-  .cf-body,.cf-acts{padding-left:16px;padding-right:16px}
-  .toast .tm{width:54px}
-  .toast .bubble{font-size:14px;padding:11px 14px}
-  .gate .gm{width:120px;margin-bottom:-22px}
-  .gate .box{padding:36px 20px 20px}
-  .intro .im{width:132px}
+  .uses{grid-template-columns:repeat(2,1fr)}
+  .use p{font-size:11.5px}
+  .foot-map{grid-template-columns:1fr}
+  .head h1{font-size:18px}
+  .rtab{min-height:40px;padding:0 13px}
+  .gate .gm{width:92px;margin-bottom:-16px}
+  .gate .box{padding:30px 18px 18px}
+  .intro .im{width:100px}
 }
-/* short viewports (landscape phones): the primary action must stay reachable */
-@media (max-height:640px){
-  .gate{justify-content:flex-start;padding-top:6vh}
-  .hero{margin-bottom:24px}
-}
+@media (max-height:640px){.gate{justify-content:flex-start;padding-top:6vh}}
 @media (max-height:640px) and (max-width:760px){#scrim .sheet{max-height:92dvh}.scrim{padding-top:6vh}}
 @media (max-height:640px) and (min-width:761px){.scrim{padding:8vh 16px 16px}.sheet{max-height:88vh}}
-/* ─── touch: 44px minimum targets, 16px fields (iOS zooms below that) ─── */
 @media (pointer:coarse){
-  /* these override the bare `input` selector by specificity, so list them */
   input,textarea,.tagedit input,.rrow input,.nb-row input,.tagfilter input,.search input{font-size:16px}
-  .gate input[type=password]{font-size:17px}
-  .ia{min-height:44px;padding:0 16px}
-  /* tag pills wrap, so they set the row height — a thumb still needs 44px */
-  .chip,.card .tags .chip{min-height:44px;padding:0 15px}
-  .nav button{min-height:52px}
+  .gate input[type=password]{font-size:16px}
+  .ia{min-height:44px;padding:0 14px}
+  .chip,.card .tags .chip{min-height:44px;padding:0 14px}
+  .nav button{min-height:48px}
   .rchk,.remember{min-height:44px}
   .rchk input,.remember input{width:22px;height:22px}
   .forget{padding:12px 0}
   .rcard .rel .btn{min-height:44px}
-  .nb .btn,.sheet .pane .btn{min-height:52px}
-  .sheet .pane .btn{align-self:stretch}
-  .card .acts .ia{font-size:14px}
+  .nb .btn,.sheet .pane .btn{min-height:48px}
+  .card .acts .ia{font-size:11px}
+  .btn{min-height:46px}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
   .intro{display:none}
+  .bar>i{width:var(--w,60%)!important}
 }
 </style>
 </head>
-<body>
+<body data-view="dashboard">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <defs>
-    <linearGradient id="mimi-g" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#c6f7ff"/><stop offset=".55" stop-color="#74dcff"/><stop offset="1" stop-color="#5ec0f5"/></linearGradient>
+    <!-- the chip: the mascot and the mark are the same object -->
+    <symbol id="i-mark" viewBox="0 0 32 32">
+      <rect x="6" y="6" width="20" height="20" fill="#1557F5" stroke="#111111" stroke-width="3"/>
+      <rect x="10" y="12" width="12" height="4" fill="#FFD400"/>
+      <rect x="10" y="19" width="12" height="3" fill="#FFFFFF"/>
+      <rect x="0" y="12" width="5" height="3" fill="#111111"/><rect x="0" y="18" width="5" height="3" fill="#111111"/>
+      <rect x="27" y="12" width="5" height="3" fill="#111111"/><rect x="27" y="18" width="5" height="3" fill="#111111"/>
+    </symbol>
     <symbol id="i-dash" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9H4Z"/><path d="M10 20v-5h4v5"/></symbol>
     <symbol id="i-recent" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3Z"/><path d="M9 9h6M9 13h6"/></symbol>
     <symbol id="i-tags" viewBox="0 0 24 24"><path d="M3 12 12 3h8v8l-9 9Z"/><circle cx="15.5" cy="8.5" r="1"/></symbol>
@@ -547,89 +762,521 @@ button.stat:active{transform:translateY(3px) scale(.98);box-shadow:1px 1px 0 var
     <symbol id="i-gem" viewBox="0 0 24 24"><path d="M12 2.5 19 9.5 12 21.5 5 9.5Z"/><path d="M5 9.5h14M9.5 9.5 12 2.5l2.5 7M9.5 9.5 12 21.5l2.5-12"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5h7v14H4zM13 5h7v14h-7z"/><path d="M11 5v14"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.4v1"/></symbol>
   </defs>
 </svg>
 
-<div class="world" aria-hidden="true">
-  <div class="orb"></div>
-  <div class="cloud a"></div><div class="cloud b"></div><div class="cloud c"></div>
-  <svg class="hills" viewBox="0 0 1000 200" preserveAspectRatio="none">
-    <path class="h1" d="M0 120C120 60 240 70 360 110S600 150 720 95 900 50 1000 90V200H0Z"/>
-    <path class="h2" d="M0 160C140 120 280 130 420 160S700 190 820 145 940 120 1000 140V200H0Z"/>
-  </svg>
-</div>
-<canvas id="fx0" aria-hidden="true"></canvas>
+<div class="world" aria-hidden="true"></div>
 <canvas id="fx" aria-hidden="true"></canvas>
 
-<div class="app">
+<!-- ══ header: a brand row, then a tab bar that becomes a drawer on a phone ══ -->
+<div class="hud">
   <header class="top">
     <div class="logo" id="logo" title="minimem">
-      <div class="lm" data-mimi="idle"></div>
-      <div class="wm" id="wm" aria-label="minimem"><span class="c1" style="--i:0">m</span><span class="c0" style="--i:1">i</span><span class="c2" style="--i:2">n</span><span class="c3" style="--i:3">i</span><span class="c4" style="--i:4">m</span><span class="c5" style="--i:5">e</span><span class="c1" style="--i:6">m</span></div>
+      <svg class="mark" aria-hidden="true"><use href="#i-mark"/></svg>
+      <div class="wm" id="wm" aria-label="minimem"><span class="a">mini</span><span class="b">mem</span></div>
+    </div>
+    <div class="searchrow">
+      <label class="search">
+        <svg class="ic"><use href="#i-search"/></svg>
+        <input id="q" type="search" placeholder="recall: ไทย & English พิมพ์เพี้ยนนิดหน่อยก็เจอ" autocomplete="off" spellcheck="false" aria-label="Recall memories">
+        <kbd>/</kbd>
+      </label>
     </div>
     <div class="top-r">
       <span class="chip-st"><span class="dot" id="hb-dot"></span><span id="hb-txt">connecting…</span></span>
-      <button class="ia" id="open-token"><svg class="ic"><use href="#i-key"/></svg>access token</button>
+      <button class="ia" id="m-search" aria-label="Search" aria-expanded="false"><svg class="ic"><use href="#i-search"/></svg></button>
+      <button class="ia" id="open-token" aria-label="Access token"><svg class="ic"><use href="#i-key"/></svg></button>
       <button class="ia" id="theme" aria-label="Switch theme"><svg class="ic"><use href="#i-sun"/></svg><span>day</span></button>
+      <button class="ia" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg class="ic"><use href="#i-menu"/></svg></button>
     </div>
   </header>
-
-  <div class="navbar"><nav class="nav" aria-label="Main">
-    <button data-mode="dashboard" class="c0 active"><span class="ib"><svg class="ic"><use href="#i-dash"/></svg></span>Dashboard</button>
-    <button data-mode="recent" class="c3"><span class="ib"><svg class="ic"><use href="#i-recent"/></svg></span>Recent<span class="count" id="c-recent"></span></button>
-    <button data-mode="tags" class="c4"><span class="ib"><svg class="ic"><use href="#i-tags"/></svg></span>Tags<span class="count" id="c-tags"></span></button>
-    <button data-mode="add" class="c2"><span class="ib"><svg class="ic"><use href="#i-add"/></svg></span>Add</button>
-    <button data-mode="extract" class="c1"><span class="ib"><svg class="ic"><use href="#i-extract"/></svg></span>Extract</button>
-    <button data-mode="trash" class="c5"><span class="ib"><svg class="ic"><use href="#i-trash"/></svg></span>Trash<span class="count" id="c-trash"></span></button>
-    <button data-mode="relay" class="c6"><span class="ib"><svg class="ic"><use href="#i-relay"/></svg></span>Relay</button>
-  </nav></div>
-
-  <div class="searchrow">
-    <label class="search st">
-      <svg class="ic"><use href="#i-search"/></svg>
-      <input id="q" type="search" placeholder="recall — ไทย & English พิมพ์เพี้ยนนิดหน่อยก็เจอ…" autocomplete="off" spellcheck="false" aria-label="Recall memories">
-      <kbd>/</kbd>
-    </label>
-    <button class="btn" id="go-add" hidden>Add</button>
+  <div class="navbar" id="navbar">
+    <div class="drawer-head">
+      <svg class="mark" aria-hidden="true"><use href="#i-mark"/></svg>
+      <div class="wm"><span class="a">mini</span><span class="b">mem</span></div>
+      <button class="ia x" id="menu-close" aria-label="Close menu"><svg class="ic"><use href="#i-close"/></svg></button>
+    </div>
+    <nav class="nav" aria-label="Main">
+      <button data-mode="dashboard" class="c0 active"><span class="ib"><svg class="ic"><use href="#i-dash"/></svg></span>Home</button>
+      <button data-mode="recent" class="c3"><span class="ib"><svg class="ic"><use href="#i-recent"/></svg></span>Recent<span class="count" id="c-recent"></span></button>
+      <button data-mode="tags" class="c4"><span class="ib"><svg class="ic"><use href="#i-tags"/></svg></span>Tags<span class="count" id="c-tags"></span></button>
+      <button data-mode="add" class="c2"><span class="ib"><svg class="ic"><use href="#i-add"/></svg></span>Add</button>
+      <button data-mode="extract" class="c1"><span class="ib"><svg class="ic"><use href="#i-extract"/></svg></span>Extract</button>
+      <button data-mode="trash" class="c5"><span class="ib"><svg class="ic"><use href="#i-trash"/></svg></span>Trash<span class="count" id="c-trash"></span></button>
+      <button data-mode="relay" class="c6"><span class="ib"><svg class="ic"><use href="#i-relay"/></svg></span>Relay</button>
+      <button data-mode="docs" class="c3"><span class="ib"><svg class="ic"><use href="#i-book"/></svg></span>Docs</button>
+      <button data-mode="info" class="c0"><span class="ib"><svg class="ic"><use href="#i-info"/></svg></span>Info</button>
+    </nav>
   </div>
+</div>
 
-  <main class="content">
-    <header class="head" id="head" hidden>
-      <h1 id="h-title">Recent</h1><span class="sub" id="h-sub"></span>
-      <button class="ia c c1" id="h-clear" hidden>clear tag ✕</button>
-    </header>
+<main class="content">
 
-    <!-- dashboard -->
-    <div class="view" id="v-dash" hidden>
-      <div class="hero">
-        <div class="hm" id="hero-mimi" data-mimi="idle" title="จิ้มดูสิ"></div>
-        <div class="talk">
-          <div class="bubble" id="hero-say">…</div>
-          <span class="meta-pill" id="ver"></span>
+<header class="head" id="head" hidden>
+  <div class="head-in">
+    <h1 id="h-title">Recent</h1><span class="sub" id="h-sub"></span>
+    <button class="ia c c1" id="h-clear" hidden>clear tag ✕</button>
+  </div>
+</header>
+
+<!-- ══ dashboard ══ -->
+<div class="view" id="v-dash" hidden>
+
+  <!-- hero -->
+  <section class="hero">
+    <div class="wrap hero-in">
+      <div>
+        <p class="eyebrow" id="ver">memory layer · sqlite · persistent</p>
+        <h1 class="display">THE MEMORY<br>LAYER FOR<br>AGENTS <em>THAT<br>ACT</em></h1>
+        <p class="lede">ทุกเรื่องที่ agent จำได้ อยู่ที่เดียว ค้นได้ทั้งไทยและอังกฤษ อ่านได้ว่าใครพูด เมื่อไหร่ เชื่อได้แค่ไหน และแก้ตัวเองได้เมื่อมันผิด</p>
+        <div class="hero-cta">
+          <button class="btn" id="hero-add">จดความจำ / store</button>
+          <button class="btn ondark" id="hero-recall">ลองค้น / recall</button>
+        </div>
+        <p class="hero-say" id="hero-say">…</p>
+        <div class="hero-live">
+          <div><b id="hero-live">··</b><span>live</span></div>
+          <div><b id="hero-tags">··</b><span>tags</span></div>
+          <div><b id="hero-history">··</b><span>versions</span></div>
+          <div><b id="hero-lessons">··</b><span>lessons</span></div>
         </div>
       </div>
-      <h2 class="group-title">Memory store</h2>
-      <div class="stats" id="stats-mem"></div>
-      <h2 class="group-title">Agent relay</h2>
-      <div class="stats" id="stats-relay"></div>
-      <div class="last"><div class="lm" data-mimi="idle"></div><div class="bubble" id="last"></div></div>
+      <div class="hero-bit">
+        <div class="bit" id="hero-mimi" data-mimi="idle" title="จิ้มดูสิ"></div>
+        <p class="cap">Bit เก็บชิปให้<br>เรื่องที่ทุก agent เขียนไว้ อยู่ในคลังเดียว</p>
+      </div>
     </div>
+  </section>
 
-    <!-- tags -->
-    <div class="view" id="v-tags" hidden>
-      <label class="tagfilter st"><svg class="ic"><use href="#i-search"/></svg><input id="tag-q" type="search" placeholder="filter tags…" autocomplete="off" spellcheck="false" aria-label="Filter tags"></label>
+  <!-- ticker -->
+  <div class="ticker" aria-hidden="true"><div class="track"><span>search</span><span>dedupe</span><span>trust</span><span>supersede</span><span>handoff</span><span>leases</span><span>lessons</span><span>crystals</span><span>audit</span><span>trigram fts5</span><span>embeddings</span><span>provenance</span></div></div>
+
+  <!-- the idea, as a scale -->
+  <section class="plate pl-paper sec">
+    <div class="wrap">
+      <div class="layers-strip">
+        <div class="ls-row">
+          <div class="ls-cell">
+            <span class="t">layer 1 · instant</span>
+            <h3>FTS5 trigram</h3>
+            <p>คำค้นตรง ๆ เข้า index ทันที ไม่มีโมเดล ไม่มีเวกเตอร์ รองรับภาษาไทยโดยไม่ต้องตัดคำ เป็นเส้นทางที่แม่นที่สุดสำหรับชื่อและ identifier</p>
+          </div>
+          <div class="ls-cell mid">
+            <span class="t">layer 2 · minimem</span>
+            <h3>Hybrid + relations</h3>
+            <p>ผสมสัญญาณคำ ความหมาย และความเก่า แล้วใช้ความสัมพันธ์ที่เก็บไว้ตัดสินว่าอันไหนเป็นของปัจจุบัน ไม่มีโมเดลใน loop ร้อน</p>
+          </div>
+          <div class="ls-cell">
+            <span class="t">layer 3 · slow</span>
+            <h3>LLM adjudicator</h3>
+            <p>โมเดลอ่าน claim ทั้งสองฝั่งแล้วตัดสินว่าเป็นเรื่องเดียวกันไหม ทำครั้งเดียวตอน curate แล้วเก็บคำตัดสินเป็น relation ไว้</p>
+          </div>
+        </div>
+        <div class="ls-axis"><span>สัญชาตญาณ · instinct</span><span>ตัดสินใจ · judgement</span><span>การไตร่ตรอง · deliberation</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- the store, right now -->
+  <section class="plate pl-paper sec">
+    <div class="wrap">
+      <h3 class="group-title c0">Memory store</h3>
+      <div class="stats" id="stats-mem"></div>
+      <h3 class="group-title c3">Agent relay</h3>
+      <div class="stats" id="stats-relay"></div>
+      <div class="last"><div class="lm" data-mimi="idle"></div><div id="last">…</div></div>
+    </div>
+  </section>
+
+  <!-- the live console -->
+  <section class="plate pl-yellow sec">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">the same question, three ways</p>
+        <h2 class="h2">คำเดียวกัน ถามผ่านเส้นทางต่างกัน ได้คนละอันดับ</h2>
+        <p class="lede">หน้าต่างนี้คือคำสั่งจริงของเซิร์ฟเวอร์ ไม่ใช่ภาพจำลอง กด ▶ เพื่อรัน</p>
+      </div>
+      <div class="console" id="console">
+        <div class="win-bar">
+          <span class="win-dots"><i class="c0"></i><i class="c1"></i><i class="c2"></i></span>
+          <span class="win-title">recall.console</span>
+          <span class="win-meta" id="con-meta">/memories/recall</span>
+        </div>
+        <div class="con-tabs" id="con-tabs">
+          <button data-c="keyword">keyword</button>
+          <button data-c="hybrid" class="active">hybrid</button>
+          <button data-c="recent">recent</button>
+        </div>
+        <div class="console-body">
+          <div class="console-q">
+            <input id="cq" type="search" value="health check" aria-label="Console query" spellcheck="false">
+            <button class="btn" id="cq-run">▶ run</button>
+          </div>
+          <div class="console-cols">
+            <div class="ccol" data-col="keyword"><h4><span>keyword</span><span class="tiny" id="cc-k">··</span></h4><div id="cc-k-body"></div></div>
+            <div class="ccol on" data-col="hybrid"><h4><span>hybrid</span><span class="tiny" id="cc-h">··</span></h4><div id="cc-h-body"></div></div>
+            <div class="ccol" data-col="recent"><h4><span>recent</span><span class="tiny" id="cc-r">··</span></h4><div id="cc-r-body"></div></div>
+          </div>
+        </div>
+        <div class="console-foot">
+          <button class="cf-play" id="cf-play" aria-label="Run the query">▶</button>
+          <div class="cf-track"><div class="cf-fill" id="cf-fill"></div></div>
+          <span class="cf-time" id="cf-time">·· ms</span>
+          <span class="cf-note" id="cf-note">keyword · hybrid · recent</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- the long version lives on its own page now -->
+</div>
+
+<!-- ══ info: the long version, on its own page ══ -->
+<div class="view" id="v-info" hidden>
+        <!-- performance -->
+        <section class="plate pl-yellow sec">
+          <div class="wrap">
+            <div class="sec-head">
+              <p class="eyebrow">performance</p>
+              <h2 class="h2">“สองอันนี้คือเรื่องเดียวกันไหม”<br>ไม่มีใครตอบได้ด้วยค่าความคล้าย</h2>
+              <p class="lede">Cosine วัดความคล้ายเชิงหัวข้อ ไม่ใช่ความเหมือนเชิงข้อเท็จจริง วัดไว้บน 67 คู่ที่มือคนติดป้ายไว้ ไม่ใช่เดาสุ่ม</p>
+            </div>
+            <div class="perf" data-reveal>
+              <div class="perf-l">
+                <div class="lm" data-mimi="idle"></div>
+                <div>
+                  <p class="eyebrow" style="margin-bottom:9px">the finding</p>
+                  <p class="perf-claim">32 จาก 67 คู่ “คนละเรื่อง” ยังอยู่เหนือเกณฑ์ และไม่มี lexical substitute ไหนแยกสองกลุ่มนี้ได้เลย</p>
+                </div>
+              </div>
+              <div class="perf-r">
+                <div class="perf-c c1">
+                  <span class="k">stored relations + merge test</span>
+                  <span class="n" style="color:var(--pink-text)">0.76</span>
+                  <div class="bar c1" style="--w:76%"><i></i></div>
+                  <span class="d">ความแม่นยำ 0.86 · recall 0.68 เป็นเส้นทางที่ใช้งานจริง ตัดสินด้วยโมเดลแล้วเก็บคำตัดสินไว้</span>
+                </div>
+                <div class="perf-c c3">
+                  <span class="k">cosine ≥ 0.78 alone</span>
+                  <span class="n" style="color:var(--cyan-text)">0.60</span>
+                  <div class="bar c3" style="--w:60%"><i></i></div>
+                  <span class="d">ความแม่นยำ 0.43 · recall 1.00 ตัดทั้ง 56 คู่พร้อมกัน รวมทั้งคู่ที่คนละเรื่อง</span>
+                </div>
+                <div class="perf-c c4">
+                  <span class="k">best lexical substitute</span>
+                  <span class="n" style="color:var(--lav)">≤0.77</span>
+                  <div class="bar c4" style="--w:77%"><i></i></div>
+                  <span class="d">IDF-weighted overlap ดีที่สุด แต่ยังไม่มีเกณฑ์ไหนบนฟีเจอร์ชุดนี้แยกสองประชากรได้</span>
+                </div>
+              </div>
+            </div>
+            <div class="note" style="margin-top:14px">วัดบน <b>67 คู่ที่ติดป้ายด้วยมือ</b> 24 คู่เป็นเรื่องเดียวกัน · 32 คู่คนละเรื่อง · 11 คู่กลาง ๆ ตัวเลขเต็มอยู่ใน <b>docs/same-fact.md</b></div>
+          </div>
+        </section>
+
+        <!-- structured outputs -->
+        <section class="plate pl-blue sec">
+          <div class="wrap">
+            <div class="sec-head">
+              <p class="eyebrow">structured outputs</p>
+              <h2 class="h2">คำตอบไม่ได้มีแค่ข้อความ</h2>
+              <p class="lede">ทุก endpoint คืนโครงสร้างที่ agent เอาไปตัดสินใจต่อได้ทันที ไม่ต้อง parse ข้อความ ไม่ต้องเดา</p>
+            </div>
+            <div class="window" data-reveal>
+              <div class="win-bar">
+                <span class="win-dots"><i class="c0"></i><i class="c1"></i><i class="c2"></i></span>
+                <span class="win-title">api surface</span>
+                <span class="win-meta">16 MCP tools · REST · one sqlite file</span>
+              </div>
+              <div class="outs">
+                <div class="out">
+                  <div class="h"><b>GET /memories/search</b><span class="pill c3">ranked</span></div>
+                  <p>ค้นแล้วได้อันดับ ใช้ทั้งไทยและอังกฤษ ไม่ต้องแตกคำเอง</p>
+                  <pre>[{ "id": 888, "text": "…",
+ "tags": ["infra"] }]</pre>
+                  <div class="meter"><div class="bar c3" style="--w:72%"><i></i></div><span>fts5 trigram</span></div>
+                </div>
+                <div class="out">
+                  <div class="h"><b>GET /memories/recall</b><span class="pill c0">provenance</span></div>
+                  <p>อันดับเดียวกัน แต่บอกด้วยว่าเจอด้วยอะไร ใครพูด เก่าแค่ไหน และกำลังกดอันไหนทิ้ง</p>
+                  <pre>{ "match": "both", "cos": 0.82,
+ "age_days": 3, "trust": "verified",
+ "agent_source": "hermes",
+ "shadowed": [{ "id": 901, "by": 914 }] }</pre>
+                  <div class="meter"><div class="bar c0" style="--w:88%"><i></i></div><span>full signal</span></div>
+                </div>
+                <div class="out">
+                  <div class="h"><b>POST /supersedes</b><span class="pill c1">relation</span></div>
+                  <p>ประกาศว่าสองอันนี้คือเรื่องเดียวกัน อันไหนปัจจุบัน ความสัมพันธ์นี้คือผู้มีอำนาจตัดสิน ไม่ใช่ค่า cosine</p>
+                  <pre>{ "current": 914, "other": 901,
+ "reason": "#914 is the correction" }</pre>
+                  <div class="meter"><div class="bar c1" style="--w:76%"><i></i></div><span>F1 0.76 measured</span></div>
+                </div>
+                <div class="out">
+                  <div class="h"><b>POST /memories/:id/trust</b><span class="pill c2">label</span></div>
+                  <p>ติดป้ายความน่าเชื่อถือ verified / unverified / disputed และผู้ที่พูด เป็นข้อมูลแนะนำ ไม่มีวันลบให้เอง</p>
+                  <pre>{ "trust": "verified",
+ "agent_source": "pig" }</pre>
+                  <div class="meter"><div class="bar c2" style="--w:64%"><i></i></div><span>advisory only</span></div>
+                </div>
+                <div class="out">
+                  <div class="h"><b>POST /handoff</b><span class="pill c4">relay</span></div>
+                  <p>ทิ้งโน้ตให้ agent อื่น แล้วอีกฝั่ง ack ปิดงาน จุดที่ agent คนหนึ่งส่งงานต่อให้อีกคนโดยไม่ต้องค้นใหม่</p>
+                  <pre>{ "from": "hermes", "to": "crush",
+ "topic": "deploy check" }</pre>
+                  <div class="meter"><div class="bar c4" style="--w:55%"><i></i></div><span>until acked</span></div>
+                </div>
+                <div class="out">
+                  <div class="h"><b>POST /crystals</b><span class="pill c6">merge</span></div>
+                  <p>เกาะความจำหลายรายการให้เป็นภาพเดียว พร้อมรายการ source เพื่อย้อนกลับได้</p>
+                  <pre>{ "text": "the long view…",
+ "sources": [1, 2, 7] }</pre>
+                  <div class="meter"><div class="bar" style="--w:42%"><i></i></div><span>summarised</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- escalation -->
+        <section class="plate pl-yellow sec">
+          <div class="wrap">
+            <div class="sec-head">
+              <p class="eyebrow">when a human is needed</p>
+              <h2 class="h2">จุดที่ความไม่แน่ใจถูกโยนลงคิว</h2>
+              <p class="lede">ถ้าโมเดลล้ม เราไม่เดา เราข้าม แล้วให้คนหรือ agent อื่นเข้ามาจัดการแทน ความจำที่ซ้ำเกินไปเสียหายน้อยกว่าความจำที่หายไปเงียบ ๆ</p>
+            </div>
+            <div class="esc">
+              <div class="esc-l">
+                <h3 class="h3" style="margin-bottom:13px">สามสถานะของความจำ</h3>
+                <div class="thr c2"><div class="h"><i></i><b>verified</b></div><p>มีคนตรวจแล้วว่าเชื่อได้ แสดงก่อนในผลค้น แต่ยังไม่มีวันถูกลบเอง</p></div>
+                <div class="thr c0"><div class="h"><i></i><b>unverified</b></div><p>ความจำที่เพิ่งเขียนทุกอันยังรอการตรวจ แต่ถูกเรียกมาใช้ได้ตามปกติ</p></div>
+                <div class="thr c1"><div class="h"><i></i><b>disputed</b></div><p>มีคนขัดแย้ง ต้องดูประกอบเสมอ อย่าคิดว่าคำตอบสุดท้าย</p></div>
+                <div class="note" style="margin-top:13px">trust เป็น<b>ข้อมูลแนะนำ</b> เท่านั้น ไม่มีระบบไหนลบความจำเองเพราะป้ายนี้</div>
+              </div>
+              <div class="esc-r">
+                <h3 class="h3" style="margin-bottom:13px">คิวงานที่ต้องมีคนมาดู</h3>
+                <div class="queue" id="esc-queue">
+                  <div class="qrow" style="--qbg:var(--green);--qc:var(--green);color:var(--on-green)"><span class="q"></span><span class="qt">executed</span><span class="qd">ความจำที่บันทึกแล้ว ใช้งานได้ทันที</span><span class="qn" id="q-live">··</span></div>
+                  <div class="qrow" style="--qbg:var(--yellow);--qc:var(--yellow);color:var(--on-yellow)"><span class="q"></span><span class="qt">review</span><span class="qd">handoff ที่ยังไม่ถูก ack คนรับต้องมาปิดงาน</span><span class="qn" id="q-ho">··</span></div>
+                  <div class="qrow" style="--qbg:var(--pink);--qc:var(--pink);color:var(--on-pink)"><span class="q"></span><span class="qt">escalate</span><span class="qd">ข้อความที่ลบแล้วแต่ยังกู้คืนได้ รอการตัดสินใจ</span><span class="qn" id="q-trash">··</span></div>
+                  <div class="qrow"><span class="q"></span><span class="qt">inform</span><span class="qd">บทเรียนที่จดไว้ ข้อความที่บอกว่าทำแบบไหนดี</span><span class="qn" id="q-lessons">··</span></div>
+                  <div class="qrow"><span class="q"></span><span class="qt">audit</span><span class="qd">ทุกการลบ ทุกการ ack ทุกการเปลี่ยน มีคนถามย้อนได้</span><span class="qn" id="q-audit">··</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ticker -->
+        <div class="ticker" aria-hidden="true"><div class="track"><span>a model failure is skipped, never guessed</span><span>a redundant memory costs a little</span><span>a missing one is a silent hole</span><span>measure, do not tune by feel</span><span>one file, one process, one truth</span></div></div>
+
+        <!-- latency -->
+        <section class="plate pl-lilac sec">
+          <div class="wrap">
+            <div class="sec-head">
+              <p class="eyebrow">latency</p>
+              <h2 class="h2">ถามสิบข้อ ไม่แพงขึ้น</h2>
+              <p class="lede">คลังนี้คือ index ไม่ใช่ context คำถามข้อที่สิบไม่ได้แพงกว่าคำถามข้อแรก เพราะไม่มีอะไรสะสมไปเรื่อย ๆ</p>
+            </div>
+            <div class="lat">
+              <div class="lat-c c3" style="--on-c:var(--on-cyan)">
+                <div class="n">26<small> ms</small></div>
+                <div class="k">search · p50</div>
+                <p>ค้นแล้วได้อันดับ วัด n=40 ครั้งบนเครื่องนี้ ค่ามัธยฐาน 26 ms ต่ำสุด 17 สูงสุด 33</p>
+              </div>
+              <div class="lat-c c4" style="--on-c:var(--on-lav)">
+                <div class="n">24<small> ms</small></div>
+                <div class="k">recall · p50</div>
+                <p>รุ่นที่มี provenance ติดมาด้วย วัด n=40 ครั้ง ค่ามัธยฐาน 24 ms ต่ำสุด 16 สูงสุด 27</p>
+              </div>
+            </div>
+            <div class="chart" data-reveal>
+              <svg viewBox="0 0 680 240" role="img" aria-label="Per-question latency for questions one to ten, asked one at a time and as a batch of ten">
+                <g stroke="currentColor" stroke-width="1" stroke-dasharray="3 4" stroke-opacity=".22">
+                  <line x1="52" y1="20" x2="650" y2="20"/><line x1="52" y1="60" x2="650" y2="60"/>
+                  <line x1="52" y1="100" x2="650" y2="100"/><line x1="52" y1="140" x2="650" y2="140"/>
+                  <line x1="52" y1="180" x2="650" y2="180"/>
+                </g>
+                <g stroke="currentColor" stroke-width="1.5" stroke-opacity=".55">
+                  <line x1="52" y1="20" x2="52" y2="180"/><line x1="52" y1="180" x2="650" y2="180"/>
+                </g>
+                <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor" opacity=".75">
+                  <text x="44" y="184" text-anchor="end">0</text><text x="44" y="144" text-anchor="end">10</text>
+                  <text x="44" y="104" text-anchor="end">20</text><text x="44" y="64" text-anchor="end">30</text>
+                  <text x="44" y="24" text-anchor="end">40</text>
+                  <text x="52" y="200" text-anchor="middle">#1</text><text x="351" y="200" text-anchor="middle">#5</text>
+                  <text x="650" y="200" text-anchor="middle">#10</text>
+                  <text x="18" y="100" text-anchor="middle" transform="rotate(-90 18 100)">ms / question</text>
+                </g>
+                <polyline fill="none" stroke="#12A9E8" stroke-width="3" stroke-linejoin="round"
+                  points="60,80 122,76 184,84 247,68 309,72 371,76 433,64 496,80 558,76 620,72"/>
+                <polyline fill="none" stroke="#E94B85" stroke-width="3" stroke-dasharray="7 5" stroke-linejoin="round"
+                  points="60,56 122,56 184,44 247,80 309,64 371,60 433,60 496,84 558,64 620,68"/>
+                <g font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="700">
+                  <text x="60" y="42" fill="#12A9E8">asked one at a time</text>
+                  <text x="60" y="26" fill="#E94B85">asked as a batch of ten</text>
+                </g>
+              </svg>
+              <div class="chart-legend">
+                <span><i style="--c:#12A9E8"></i>asked one at a time: 24 to 29 ms</span>
+                <span><i style="--c:#E94B85"></i>batch of ten: 24 to 34 ms</span>
+                <span>ทั้งสิบข้อรวมกัน 291 ms</span>
+              </div>
+            </div>
+            <div class="tiers">
+              <div class="tier">
+                <h3>ระดับที่หนึ่ง: บนเครื่องตัวเอง</h3>
+                <ul>
+                  <li>หนึ่ง process Bun หนึ่งไฟล์ SQLite โหมด WAL</li>
+                  <li>FTS5 trigram และ index เวกเตอร์ถ้าตั้งค่า embedding</li>
+                  <li>ตัวเลขทั้งหมดวัดจาก instance จริงบนเครื่องนี้</li>
+                </ul>
+              </div>
+              <div class="tier">
+                <h3>ระดับที่สอง: ผ่าน LAN</h3>
+                <ul>
+                  <li>REST และ MCP บน origin เดียวกัน ผ่าน Caddy</li>
+                  <li>client ทุกตัวพูด MCP ได้ 16 tool ไม่ต้องเขียน parser</li>
+                  <li>ตรวจสุขภาพได้โดยไม่ต้อง bind พอร์ต</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- accuracy -->
+        <section class="plate pl-blue sec">
+          <div class="wrap">
+            <div class="sec-head">
+              <p class="eyebrow">accuracy</p>
+              <h2 class="h2">ตัวเลขที่วัดแล้ว ไม่ใช่ตัวเลขที่เชื่อ</h2>
+            </div>
+            <div class="bench">
+              <div class="bench-c" data-reveal>
+                <div class="big">76<small>% F1</small></div>
+                <div class="lab">merge test + stored relations</div>
+                <div class="bar c0" style="--w:76%"><i></i></div>
+                <p>ความแม่นยำ 0.86 · recall 0.68 เส้นทางที่ใช้งานจริง ตัดสินครั้งเดียวตอน curate แล้วเก็บ relation ไว้อ่านซ้ำได้เร็ว ๆ</p>
+              </div>
+              <div class="bench-c" data-reveal>
+                <div class="big">100<small>% precision</small></div>
+                <div class="lab">the artifact veto</div>
+                <div class="bar c2" style="--w:100%"><i></i></div>
+                <p>template เดียวกันแต่ artifact ต่างกัน คือคนละเรื่องเสมอ กฎตายตัวที่ปฏิเสธการยุบทันทีโดยไม่ต้องถามโมเดล</p>
+              </div>
+            </div>
+            <div class="bench-note">
+              <span class="pill y">note</span>
+              <span>ชุดทดสอบคือ 67 คู่ที่ติดป้ายด้วยมือ: 24 เรื่องเดียวกัน · 32 คนละเรื่อง · 11 กลาง ๆ และเมื่อคนกับโมเดลไม่ตรงกัน <b>คนติดป้ายชนะ</b> ป้ายถูกแก้ ไม่ใช่โมเดลถูกปรับให้เข้ากับป้าย</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- use cases -->
+        <section class="plate pl-paper sec">
+          <div class="wrap">
+            <div class="sec-head">
+              <p class="eyebrow">use cases</p>
+              <h2 class="h2">คลังเดียว หลาย agent</h2>
+              <p class="lede">ทุก agent ในเครื่องมือชี้มาที่ไฟล์เดียวกัน ผ่าน protocol เดียวกัน แล้วเห็นของเดียวกัน</p>
+            </div>
+            <div class="flow-map" data-reveal>
+              <div class="fm-col">
+                <div class="fm-box">
+                  <div class="h">agents</div>
+                  <div class="r"><span class="c2">hermes</span><span class="c3">opencode</span><span class="c4">pig</span><span class="c1">crush</span></div>
+                </div>
+              </div>
+              <div class="fm-arrow">→</div>
+              <div class="fm-col">
+                <div class="fm-box">
+                  <div class="h">minimem · bun + elysia</div>
+                  <div class="r"><span class="c0">MCP</span><span class="c3">REST</span><span class="c2">recall</span><span class="c4">relay</span></div>
+                </div>
+              </div>
+              <div class="fm-arrow">→</div>
+              <div class="fm-col">
+                <div class="fm-box">
+                  <div class="h">storage</div>
+                  <div class="r"><span class="c6">sqlite · WAL</span><span class="c3">fts5 trigram</span><span class="c4">vectors</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="uses">
+              <div class="use c0"><span class="n">01</span><span class="cat">restore</span><h3>เริ่มงานที่ค้างไว้</h3><p>ก่อนลงมือ เรียก recall แล้วอ่านสถานะที่ทิ้งไว้ แทนการค้นใหม่เรื่องเดิม</p><code>GET /memories/recall</code></div>
+              <div class="use c3"><span class="n">02</span><span class="cat">handoff</span><h3>ส่งงานต่อให้ agent อื่น</h3><p>ทิ้งโน้ตพร้อมหัวข้อและ id ที่เกี่ยวข้อง อีกฝั่ง ack ปิดงาน</p><code>POST /handoff</code></div>
+              <div class="use c2"><span class="n">03</span><span class="cat">exclusive</span><h3>กันสอง agent แก้ไฟล์เดียวกัน</h3><p>lease แบบมีชื่อ ถ้ามี agent ถืออยู่จะได้ 409 พร้อมบอกว่า agent ไหนถือ</p><code>POST /leases</code></div>
+              <div class="use c4"><span class="n">04</span><span class="cat">durable</span><h3>กฎ “ทำแบบนี้สิ”</h3><p>lesson ที่มี scope ค้นได้ ไม่หายไปเมื่อ session จบ</p><code>POST /lessons</code></div>
+              <div class="use c1"><span class="n">05</span><span class="cat">merge</span><h3>ภาพรวมระยะยาว</h3><p>เกาะหลายความจำเป็นข้อสรุปเดียว พร้อม source ย้อนกลับ</p><code>POST /crystals</code></div>
+              <div class="use c0"><span class="n">06</span><span class="cat">correct</span><h3>แก้ตัวเอง</h3><p>ประกาศว่าอันใหม่คืออันเก่าที่แก้แล้ว อันเก่าจะถูกเรียกมาเป็นเงา</p><code>POST /supersedes</code></div>
+              <div class="use c6"><span class="n">07</span><span class="cat">extract</span><h3>แปลง log ให้เป็นความจำ</h3><p>ส่งข้อความดิบ ให้โมเดลเลือกเรื่องที่ควรจำ แล้วได้ operation ที่ validate แล้ว</p><code>POST /extract</code></div>
+              <div class="use c3"><span class="n">08</span><span class="cat">thai-safe</span><h3>ค้นภาษาไทยโดยไม่ตัดคำ</h3><p>FTS5 trigram หาไทยได้ตรง ๆ แม้พิมพ์เพี้ยน</p><code>GET /memories/search</code></div>
+              <div class="use c4"><span class="n">09</span><span class="cat">integrate</span><h3>ต่อ MCP เข้ากับ client ที่ใช้อยู่</h3><p>Claude Code, Codex, opencode, Crush, Gemini CLI, Cursor 16 tool ไม่ต้องเขียน parser เอง</p><code>POST /mcp</code></div>
+              <div class="use c2"><span class="n">10</span><span class="cat">ops</span><h3>สำรองและตรวจสุขภาพ</h3><p>สำรองแบบ VACUUM INTO ที่ไม่ตกหล่น WAL และตรวจไฟล์โดยไม่ต้อง bind พอร์ต</p><code>--check</code></div>
+              <div class="use c1"><span class="n">11</span><span class="cat">audit</span><h3>ย้อนว่า agent ไหนเปลี่ยนอะไร</h3><p>ทุกการลบ ทุกการ ack ทุกเวอร์ชันของความจำ ถูกบันทึกไว้</p><code>GET /audit</code></div>
+              <div class="use c6"><span class="n">12</span><span class="cat">label</span><h3>ติดป้ายว่าเชื่อได้แค่ไหน</h3><p>verified / unverified / disputed พร้อมผู้ที่พูด โดยไม่แตะข้อความเดิม</p><code>POST /memories/:id/trust</code></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- principles -->
+        <section class="plate pl-blue sec">
+          <div class="wrap">
+            <div class="sec-head">
+              <p class="eyebrow">about</p>
+              <h2 class="h2">สามข้อที่เรายึด</h2>
+            </div>
+            <div class="about">
+              <div class="idcard">
+                <div class="lm" data-mimi="idle"></div>
+                <h3>minimem</h3>
+                <p>คลังความจำกลางของเครื่องมือ สำหรับ agent ที่ลงมือทำจริง หนึ่งไฟล์ SQLite หนึ่ง process หนึ่งแหล่งความจริง เขียนไว้ให้คนอ่านก่อน แล้วค่อยให้ machine อ่าน</p>
+                <div class="acts">
+                  <button class="btn ghost" id="about-token">access token</button>
+                  <button class="btn ghost" id="about-relay">เปิด relay</button>
+                  <button class="btn ghost" id="about-docs">อ่านเอกสาร</button>
+                </div>
+              </div>
+              <div class="principles">
+                <div class="principle"><span class="n">1</span><div><h3>โมเดลล้มก็ข้าม ไม่เดา</h3><p>ความจำที่ซ้ำเกินไปเสียหายน้อยกว่าความจำที่หายไปเงียบ ๆ โมเดลที่ล้มถูกข้าม ไม่ถูกเดาแทน</p></div></div>
+                <div class="principle"><span class="n">2</span><div><h3>ตัวเลขต้องวัด ไม่ใช่ประมาณ</h3><p>ตัวชี้วัดแล้วมีเหตุผลกำกับทุกตัว ถ้าจะเปลี่ยน ให้รัน test ก่อนแล้วเขียนว่าทำไม</p></div></div>
+                <div class="principle"><span class="n">3</span><div><h3>เช็คที่ผ่านได้ผ่านไม่ได้ ยังไม่ใช่เช็ค</h3><p>สคริปต์ต้องเป็นเจ้าของเซิร์ฟเวอร์ตัวเอง หา port ว่างแล้วปิดมันตอนจบ ไม่ใช้ของที่คนอื่นเปิดไว้</p></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+</div>
+
+<!-- ══ tags ══ -->
+<div class="view" id="v-tags" hidden>
+  <section class="plate pl-blue sec">
+    <div class="wrap">
+      <label class="tagfilter"><svg class="ic"><use href="#i-search"/></svg><input id="tag-q" type="search" placeholder="filter tags…" autocomplete="off" spellcheck="false" aria-label="Filter tags"></label>
       <div class="tagnote" id="tag-note"></div>
       <div class="tagfield" id="tagfield"></div>
     </div>
+  </section>
+</div>
 
-    <!-- recent / trash / search -->
-    <div class="view" id="v-list" hidden>
+<!-- ══ recent / trash / search ══ -->
+<div class="view" id="v-list" hidden>
+  <section class="plate sec">
+    <div class="wrap">
       <div class="cards" id="cards"></div>
-      <button class="btn ghost more" id="more" hidden>Load more</button>
+      <button class="btn ghost more" id="more" hidden>โหลดเพิ่ม / load more</button>
     </div>
+  </section>
+</div>
 
-    <!-- relay -->
-    <div class="view" id="relay" hidden>
+<!-- ══ relay ══ -->
+<div class="view" id="v-relay" hidden>
+  <section class="plate pl-lilac sec">
+    <div class="wrap">
       <div class="relay-tabs">
         <button class="rtab c3 active" data-r="handoff">handoff</button>
         <button class="rtab c4" data-r="leases">leases</button>
@@ -639,18 +1286,18 @@ button.stat:active{transform:translateY(3px) scale(.98);box-shadow:1px 1px 0 var
       </div>
 
       <div class="rpane active" id="rp-handoff">
-        <details class="newbox st c3">
-          <summary>เขียน handoff ใหม่ — ส่งงานต่อให้ agent อื่น</summary>
+        <details class="newbox c3">
+          <summary>เขียน handoff ใหม่: ส่งงานต่อให้ agent อื่น</summary>
           <div class="nb">
             <div class="nb-row">
               <input id="ho-from" placeholder="from (agent)" autocomplete="off" spellcheck="false" aria-label="From agent">
               <input id="ho-to" placeholder="to (agent)" autocomplete="off" spellcheck="false" aria-label="To agent">
               <input id="ho-topic" placeholder="topic (optional)" autocomplete="off" spellcheck="false" aria-label="Topic">
             </div>
-            <textarea id="ho-body" placeholder="งานที่ต้องส่งต่อ — สั้น ชัด อ่านแล้วทำต่อได้เลย…" maxlength="8000" aria-label="Handoff body"></textarea>
+            <textarea id="ho-body" placeholder="งานที่ต้องส่งต่อ สั้น ชัด อ่านแล้วทำต่อได้เลย" maxlength="8000" aria-label="Handoff body"></textarea>
             <div class="nb-row">
               <button class="btn" id="ho-send">ส่งต่อ</button>
-              <span class="hint-line">POST /handoff — คนรับจะเห็นใน Relay &gt; handoff จนกว่าจะ ack</span>
+              <span class="hint-line">POST /handoff คนรับจะเห็นใน Relay &gt; handoff จนกว่าจะ ack</span>
             </div>
           </div>
         </details>
@@ -665,16 +1312,16 @@ button.stat:active{transform:translateY(3px) scale(.98);box-shadow:1px 1px 0 var
           <input id="ls-holder" placeholder="holder" autocomplete="off" spellcheck="false" aria-label="Holder">
           <input id="ls-ttl" type="number" placeholder="ttl min" value="30" min="1" max="1440" aria-label="TTL in minutes">
           <button class="btn" id="ls-load">Load</button></div>
-        <div class="hint-line">POST /leases 409s when someone else holds the name — that is the mutual-exclusion signal, not a bug.</div>
+        <div class="hint-line">POST /leases ตอบ 409 เมื่อมีคนถือชื่อนี้อยู่ นั่นคือสัญญาณกันชน ไม่ใช่บั๊ก</div>
         <div class="cards" id="ls-list"></div>
       </div>
 
       <div class="rpane" id="rp-lessons">
-        <details class="newbox st c2">
-          <summary>จด lesson ใหม่ — กฎ “ทำแบบนี้สิ” ที่อยากให้จำ</summary>
+        <details class="newbox c2">
+          <summary>จด lesson ใหม่: กฎ “ทำแบบนี้สิ” ที่อยากให้จำ</summary>
           <div class="nb">
             <div class="nb-row">
-              <input id="ln-new" placeholder="lesson — เจอบั๊กนี้แล้วแก้แบบนี้…" autocomplete="off" spellcheck="false" aria-label="New lesson">
+              <input id="ln-new" placeholder="lesson: เจอบั๊กนี้แล้วแก้แบบนี้" autocomplete="off" spellcheck="false" aria-label="New lesson">
               <input id="ln-new-scope" placeholder="scope (optional)" autocomplete="off" spellcheck="false" aria-label="Lesson scope">
             </div>
             <button class="btn" id="ln-save">จด lesson</button>
@@ -686,10 +1333,10 @@ button.stat:active{transform:translateY(3px) scale(.98);box-shadow:1px 1px 0 var
       </div>
 
       <div class="rpane" id="rp-crystals">
-        <details class="newbox st c1">
-          <summary>เกาะ crystals — รวมความจำหลายอันเป็นภาพเดียว</summary>
+        <details class="newbox c1">
+          <summary>เกาะ crystals: รวมความจำหลายรายการเป็นภาพเดียว</summary>
           <div class="nb">
-            <textarea id="cr-new" placeholder="crystal — the merged / summarised view…" maxlength="4000" aria-label="New crystal"></textarea>
+            <textarea id="cr-new" placeholder="crystal: the merged / summarised view" maxlength="4000" aria-label="New crystal"></textarea>
             <div class="nb-row">
               <input id="cr-sources" placeholder="source ids (12,34)" autocomplete="off" spellcheck="false" aria-label="Source memory ids">
               <button class="btn" id="cr-save">✚ save crystal</button>
@@ -702,33 +1349,210 @@ button.stat:active{transform:translateY(3px) scale(.98);box-shadow:1px 1px 0 var
 
       <div class="rpane" id="rp-audit">
         <div class="rrow"><button class="btn" id="au-load">Load</button></div>
-        <div class="hint-line">Newest first. Every purge and handoff ack lands here.</div>
+        <div class="hint-line">ใหม่สุดก่อน ทุกการ purge และทุกการ ack ของ handoff จะตกลงที่นี่</div>
         <div class="cards" id="au-list"></div>
       </div>
     </div>
-  </main>
+  </section>
 </div>
+
+<!-- ══ documentation ══ -->
+<div class="view" id="v-docs" hidden>
+  <section class="plate pl-blue sec">
+    <div class="wrap">
+      <div class="doc">
+        <nav class="doc-toc" aria-label="Documentation sections">
+          <a href="#doc-start">Start</a>
+          <a href="#doc-verbs">Three verbs</a>
+          <a href="#doc-relay">Relay</a>
+          <a href="#doc-api">Endpoints</a>
+          <a href="#doc-ops">Running it</a>
+        </nav>
+        <div class="doc-body">
+          <section id="doc-start">
+            <h3>เริ่มจากสามคำสั่ง</h3>
+            <p class="ds">คลังเปิดอยู่ที่ <code>localhost:3100</code> และมีโทเคนป้องกัน ถ้าเปิด auth ไว้ให้ใส่ <code>Authorization: Bearer &lt;token&gt;</code> ทุกคำสั่ง</p>
+            <h4>1. เขียนหนึ่งเรื่อง</h4>
+            <pre>curl -X POST localhost:3100/memories \
+  -H 'content-type: application/json' \
+  -d '{"text":"minimem รันที่ :3100","tags":["infra"]}'</pre>
+            <h4>2. ค้นกลับ</h4>
+            <pre>curl 'localhost:3100/memories/search?q=health+check'</pre>
+            <h4>3. ถามว่าใครพูดเมื่อไหร่</h4>
+            <pre>curl 'localhost:3100/memories/recall?q=health+check'</pre>
+            <div class="note">ผ่าน MCP เลยก็ได้ มี 16 tool: <b>memory_save</b>, <b>memory_search</b>, <b>memory_recall</b>, <b>memory_trust</b>, <b>memory_supersede</b>, <b>lesson_save</b>, <b>handoff_write</b>, <b>lease_acquire</b> และอีก ๆ วิธีตั้งค่าต่อ client อยู่ใน <b>docs/INSTALL.md</b></div>
+          </section>
+
+          <section id="doc-verbs">
+            <h3>สามคำสั่งที่ทำให้คลังนี้ต่างจากโฟลเดอร์ข้อความ</h3>
+            <p class="ds">คลังเก็บข้อความได้ง่าย สิ่งที่ยากคือรู้ว่าข้อความไหนคือของเดิมและของไหนทับกัน สามคำสั่งนี้จัดการเรื่องนั้น</p>
+            <div class="verb"><b>recall</b><p>ค้นแล้วได้อันดับ พร้อมบอกว่าเจอด้วยคำ (<code>match</code>), ความหมาย (<code>cos</code>), อายุ (<code>age_days</code>), ใครพูด (<code>agent_source</code>), เชื่อได้แค่ไหน (<code>trust</code>) และอันเก่าที่ถูกบัง (<code>shadowed</code>) เรียกด้วย <code>?mode=keyword</code> เพื่อบังคับเส้นทาง FTS5 ล้วน</p></div>
+            <div class="verb"><b>trust</b><p>ติดป้าย <code>verified</code> / <code>unverified</code> / <code>disputed</code> พร้อมชื่อผู้ที่พูด เป็นข้อมูลแนะนำสำหรับ agent ไม่มีวันลบความจำให้เองเพราะป้าย</p></div>
+            <div class="verb"><b>supersede</b><p>ประกาศว่าสองอันคือเรื่องเดียวกัน และอันไหนปัจจุบัน หลังจากนั้นอันเก่าจะถูกเรียกมาเป็นเงาแทนที่จะถูกเรียกมาเป็นคำตอบ ยกเลิกได้ด้วย <code>DELETE /supersedes</code></p></div>
+          </section>
+
+          <section id="doc-relay">
+            <h3>Relay: ตารางเล็ก ๆ สำหรับส่งงานกัน</h3>
+            <p class="ds">agent ทำงานเสร็จไม่จำเป็นต้องส่งต่อในบทสนทนา จึงเขียนโน้ตทิ้งไว้ในคลัง แล้วผู้รับมาอ่านตอนเริ่มงาน</p>
+            <div class="dl-list">
+              <div><b>handoff</b><span>โน้ตฝากไว้ให้ agent อื่น ปิดงานด้วย ack เฉพาะ agent ที่ถูกเรียกเท่านั้น</span></div>
+              <div><b>lease</b><span>ล็อกแบบมีชื่อ ถ้ามี agent ถืออยู่จะได้ 409 พร้อมบอกว่า agent ไหนถือ หมดอายุแล้วใช้ซ้ำได้</span></div>
+              <div><b>lesson</b><span>กฎ “ทำแบบนี้สิ” ที่มี scope ค้นได้ ไม่หายไปเมื่อ session จบ</span></div>
+              <div><b>crystal</b><span>ความจำหลายรายการที่รวมเป็นภาพเดียว พร้อมรายการ source ย้อนกลับได้</span></div>
+              <div><b>audit</b><span>agent ไหนเปลี่ยนอะไร ที่ไหน เมื่อไหร่ ทั้งผ่าน REST และ MCP</span></div>
+            </div>
+          </section>
+
+          <section id="doc-api">
+            <h3>Endpoints</h3>
+            <p class="ds">ทุกเส้นทางคืน JSON ยกเว้น <code>GET /mcp</code> ที่ตอบ 405</p>
+            <table class="apitable">
+              <thead><tr><th>method</th><th>path</th><th>ทำอะไร</th></tr></thead>
+              <tbody>
+                <tr><td>GET</td><td>/health</td><td>สถานะคลัง เปิดสาธารณะ ไม่ต้องใช้ token</td></tr>
+                <tr><td>GET</td><td>/stats</td><td>จำนวน live, deleted, history, tags และ relay</td></tr>
+                <tr><td>GET</td><td>/memories</td><td>รายการความจำ ตัวกรองด้วย tag, limit, offset</td></tr>
+                <tr><td>POST</td><td>/memories</td><td>เขียนหนึ่งเรื่อง: body เป็น object เดียว ข้อความซ้ำคืน id เดิมพร้อม merge แท็ก</td></tr>
+                <tr><td>GET</td><td>/memories/search</td><td>ค้นแล้วได้อันดับ รองรับภาษาไทย</td></tr>
+                <tr><td>GET</td><td>/memories/recall</td><td>อันดับเดียวกันพร้อม provenance, shadowed, match, cos, age_days</td></tr>
+                <tr><td>GET</td><td>/memories/:id</td><td>อ่านหนึ่งเรื่อง</td></tr>
+                <tr><td>PATCH</td><td>/memories/:id</td><td>แก้ข้อความหรือแท็ก</td></tr>
+                <tr><td>DELETE</td><td>/memories/:id</td><td>ลบแบบ soft กู้คืนได้</td></tr>
+                <tr><td>GET</td><td>/memories/deleted</td><td>รายการที่อยู่ในถัง</td></tr>
+                <tr><td>POST</td><td>/memories/:id/restore</td><td>กู้คืนจากถัง</td></tr>
+                <tr><td>DELETE</td><td>/memories/:id/purge</td><td>ลบถาวร ต้องมี ?confirm=yes และอยู่ในถังเท่านั้น</td></tr>
+                <tr><td>GET</td><td>/memories/:id/history</td><td>ทุกเวอร์ชันของหนึ่งเรื่อง</td></tr>
+                <tr><td>GET</td><td>/tags</td><td>แท็กทั้งหมดพร้อมจำนวน นับเฉพาะที่ยังไม่ถูกลบ</td></tr>
+                <tr><td>GET</td><td>/audit</td><td>ใครเปลี่ยนอะไร ใหม่สุดก่อน</td></tr>
+                <tr><td>GET</td><td>/embeddings</td><td>สถานะ index เวกเตอร์ ไม่คืน token</td></tr>
+                <tr><td>POST</td><td>/embeddings/backfill</td><td>เติม index ทีละจำนวน ปลอดภัยตอนรันอยู่</td></tr>
+                <tr><td>POST</td><td>/extract</td><td>ส่งข้อความดิบ ให้โมเดลคืน memory operations ที่ validate แล้ว</td></tr>
+                <tr><td>POST</td><td>/mcp</td><td>JSON-RPC 2.0 streamable HTTP 16 tool</td></tr>
+                <tr><td>GET/POST</td><td>/supersedes</td><td>ความสัมพันธ์ “อันนี้ทับอันนั้น”</td></tr>
+                <tr><td>GET/POST</td><td>/handoff</td><td>โน้ตฝากไว้ให้ agent อื่น</td></tr>
+                <tr><td>GET/POST</td><td>/leases</td><td>ล็อกแบบมีชื่อ</td></tr>
+                <tr><td>GET/POST</td><td>/lessons</td><td>กฎที่ต้องจำข้าม session</td></tr>
+                <tr><td>GET/POST</td><td>/crystals</td><td>ภาพรวมของหลายความจำ</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="doc-ops">
+            <h3>สำรอง ตรวจสุขภาพ และจัดการบริการ</h3>
+            <p class="ds">คลังคือไฟล์เดียว การดูแลจึงเรียบง่าย แต่มีข้อที่ต้องระวัง</p>
+            <h4>สำรองให้ถูกวิธี</h4>
+            <pre>sqlite3 /path/minimem.db ".backup out.db"     <span class="c"># ไฟล์ที่ยังรันอยู่</span>
+sqlite3 /path/minimem.db "VACUUM INTO 'out.db'"   <span class="c"># คัดลอกที่สมบูรณ์ รวม WAL</span></pre>
+            <p class="ds">การ <code>cp</code> ไฟล์ตอนที่บริการยังรันอยู่จะได้เวกเตอร์เก่าและข้อมูลที่ยังไม่ถูก flush ใช้ VACUUM INTO หรือ .backup เท่านั้น</p>
+            <h4>ตรวจไฟล์โดยไม่ต้องเปิดพอร์ต</h4>
+            <pre>bun run server.ts --check</pre>
+            <h4>ตัวแปรที่มีผล</h4>
+            <div class="dl-list">
+              <div><b>MINIMEM_DB_PATH</b><span>ที่อยู่ไฟล์ SQLite ค่าเริ่มต้น ./data/minimem.db</span></div>
+              <div><b>AUTH_ENABLED</b><span>1 คือเปิดล็อก, 0 คือเปิดทุกคน เปิดแล้วห้าม bind 0.0.0.0</span></div>
+              <div><b>MINIMEM_MCP</b><span>1 คือเปิด POST /mcp</span></div>
+              <div><b>CF_AI_TOKEN / CF_ACCOUNT_ID</b><span>ถ้าตั้งแล้วจะมี semantic layer ไม่ตั้งก็เหลือ keyword อย่างเดียว</span></div>
+              <div><b>MINIMEM_ENV</b><span>ไฟล์ env ที่อ่านเข้ามา ไม่มี secret ใน command line</span></div>
+              <div><b>HYBRID_W_FTS / HYBRID_W_VEC / HYBRID_W_REC</b><span>น้ำหนักการผสมอันดับ มีเหตุผลกำกับทุกตัว เปลี่ยนแล้วต้องรัน test</span></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+</main>
+
+<!-- ══ conversion ══ -->
+<div class="conv">
+  <div class="ticker pink" aria-hidden="true"><div class="track"><span>store it</span><span>recall it</span><span>trust it</span><span>correct it</span><span>pass it on</span><span>one file, one truth</span></div></div>
+  <div class="wrap sec">
+    <div class="conv-panel">
+      <div class="lm" data-mimi="happy"></div>
+      <div>
+        <h2>เริ่มจาก <span class="b">ความจำ</span><br><span class="p">หนึ่งเรื่อง</span> ก็พอ</h2>
+        <p>ไม่ต้องตั้งค่าอะไรก่อน ไม่ต้องเลือก schema ไม่ต้องคิดว่าจะเก็บยังไง เขียนเข้าไป ที่เหลือคลังจัดการเอง</p>
+        <button class="btn blue" id="conv-cta">เปิดคลัง / open the store</button>
+      </div>
+      <div class="outlook">
+        <div class="h">on the bench</div>
+        <ul>
+          <li>เทียบ prompt ของ adjudicator เก็บคำตัดสินรายคู่ไว้ให้ใหม่คะแนนซ้ำได้</li>
+          <li>ปิด relation เป็นกราฟก่อนใช้ เพื่อไม่ให้รากของ chain ถูกเงาทับ</li>
+          <li>วัด latency จริงบนเครื่องนี้ทุกครั้งที่เปลี่ยน ranking</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ footer ══ -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-card">
+      <div class="foot-in">
+        <div class="foot-brand">
+          <svg class="mark" aria-hidden="true"><use href="#i-mark"/></svg>
+          <p>คลังความจำกลางของเครื่องมือ หนึ่งไฟล์ SQLite หนึ่ง process หนึ่งแหล่งความจริง ที่ agent ทุกตัวบนเครื่องชี้มาที่</p>
+        </div>
+        <div class="foot-notes">
+          <div class="h">research notes</div>
+          <ol>
+            <li><b>docs/same-fact.md</b> ทำไม cosine ตัดสิน “เรื่องเดียวกัน” ไม่ได้ พร้อมตัวเลข 67 คู่</li>
+            <li><b>docs/prompt-ab/</b> คำตัดสินรายคู่ของ prompt แต่ละแขนง ให้ใหม่คะแนนซ้ำได้โดยไม่ต้องรันโมเดลใหม่</li>
+            <li><b>docs/INSTALL.md</b> ตั้งค่าต่อ client: Claude Code, Codex, opencode, Crush, Gemini CLI, Cursor</li>
+          </ol>
+        </div>
+        <div class="foot-map">
+          <div>
+            <div class="h">api</div>
+            <ul>
+              <li><a href="#doc-api">/memories</a></li>
+              <li><a href="#doc-api">/memories/search</a></li>
+              <li><a href="#doc-api">/memories/recall</a></li>
+              <li><a href="#doc-api">/supersedes</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="h">relay</div>
+            <ul>
+              <li><a href="#doc-relay">/handoff</a></li>
+              <li><a href="#doc-relay">/leases</a></li>
+              <li><a href="#doc-relay">/lessons</a></li>
+              <li><a href="#doc-relay">/crystals</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="foot-bottom">
+        <span>minimem · lab memory service · MIT</span>
+        <span id="foot-ver">one sqlite file · wal · fts5 trigram</span>
+      </div>
+    </div>
+  </div>
+</footer>
 
 <!-- add / extract modal -->
 <div class="scrim" id="scrim">
-  <div class="sheet st" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
     <div class="peek" data-mimi="happy"></div>
     <header><h2 id="sheet-title">Capture</h2><button class="ia" id="sheet-close">ESC</button></header>
     <div class="tabs">
-      <button data-pane="add" class="c2 active"><svg class="ic"><use href="#i-add"/></svg>Store raw</button>
-      <button data-pane="extract" class="c1"><svg class="ic"><use href="#i-extract"/></svg>Extract with LLM</button>
+      <button data-pane="add" class="c2 active"><svg class="ic"><use href="#i-add"/></svg>store raw</button>
+      <button data-pane="extract" class="c1"><svg class="ic"><use href="#i-extract"/></svg>extract with llm</button>
     </div>
     <div class="pane active" id="pane-add">
       <div class="tagedit">
         <label for="add-tags">tags</label>
         <input id="add-tags" type="text" placeholder="truck, deploy, infra (คั่นด้วย ,)" autocomplete="off" spellcheck="false">
       </div>
-      <textarea id="add-text" placeholder="หนึ่งความจำ หนึ่งเรื่อง — เดี๋ยว Mimi จำให้เอง…" maxlength="4000" aria-label="Memory text"></textarea>
+      <textarea id="add-text" placeholder="หนึ่งความจำ หนึ่งเรื่อง เดี๋ยวคลังจำให้เอง" maxlength="4000" aria-label="Memory text"></textarea>
       <button class="btn" id="add-save">Store it</button>
     </div>
     <div class="pane" id="pane-extract">
-      <textarea id="ex-text" placeholder="แปะบทสนทนา log หรืออะไรก็ได้ — โมเดลจะเลือกเรื่องที่ควรจำให้" maxlength="20000" style="min-height:180px" aria-label="Text to extract from"></textarea>
-      <div class="hint">LLM ผ่าน AI Gateway · gemini-2.5-flash-lite · dedupe/update/delete อัตโนมัติ · ช้าหน่อย (5–20 วิ) ใจเย็นๆ Mimi กำลังคิด</div>
+      <textarea id="ex-text" placeholder="แปะบทสนทนา log หรืออะไรก็ได้ โมเดลจะเลือกเรื่องที่ควรจำให้" maxlength="20000" style="min-height:180px" aria-label="Text to extract from"></textarea>
+      <div class="hint">LLM ผ่าน AI Gateway · gemini-2.5-flash-lite · dedupe/update/delete อัตโนมัติ · ช้าหน่อย (5 ถึง 20 วิ) ใจเย็น ๆ คลังกำลังคิด</div>
       <button class="btn pink" id="ex-run">Extract &amp; store</button>
       <div class="done" id="ex-done"></div>
     </div>
@@ -738,9 +1562,9 @@ button.stat:active{transform:translateY(3px) scale(.98);box-shadow:1px 1px 0 var
 <!-- token gate -->
 <div class="gate" id="gate">
   <div class="gm" id="gate-mimi" data-mimi="idle"></div>
-  <form class="box st" id="gate-form" autocomplete="on">
-    <div class="mark">minimem</div>
-    <div class="sub">หน้านี้ถูกล็อก — ใส่รหัสลับเพื่อเข้ากิลด์</div>
+  <form class="box" id="gate-form" autocomplete="on">
+    <div class="mark" style="font-family:var(--display);font-size:23px;text-align:center">minimem</div>
+    <div class="sub">หน้านี้ถูกล็อก ใส่รหัสลับเพื่อเข้ามา</div>
     <input id="gate-tok" type="password" placeholder="access key" aria-label="access key" autocomplete="current-password" spellcheck="false" required>
     <div class="err" id="gate-err" role="alert" aria-live="polite"></div>
     <div class="acts">
@@ -755,7 +1579,7 @@ button.stat:active{transform:translateY(3px) scale(.98);box-shadow:1px 1px 0 var
 
 <!-- confirm dialog: one reusable layer for destructive + irreversible actions -->
 <div class="scrim cfrim" id="cfrim">
-  <div class="sheet cf st" role="alertdialog" aria-modal="true" aria-labelledby="cf-title">
+  <div class="sheet cf" role="alertdialog" aria-modal="true" aria-labelledby="cf-title">
     <div class="peek" id="cf-mimi" data-mimi="wow"></div>
     <header><h2 id="cf-title">confirm</h2></header>
     <div class="cf-body" id="cf-body"></div>
@@ -768,12 +1592,12 @@ button.stat:active{transform:translateY(3px) scale(.98);box-shadow:1px 1px 0 var
 
 <div class="toast" id="toast" role="status" aria-live="polite"><div class="tm" data-mimi="happy"></div><div class="bubble"><span class="sr"></span><span class="tt" aria-hidden="true"></span></div></div>
 
-<!-- title screen, once per 6 hours -->
+<!-- title card, once per 6 hours -->
 <div class="intro" id="intro" hidden aria-hidden="true">
   <div class="core">
     <div class="im" data-mimi="happy"></div>
-    <div class="wm"><span class="c1" style="--i:0">m</span><span class="c0" style="--i:1">i</span><span class="c2" style="--i:2">n</span><span class="c3" style="--i:3">i</span><span class="c4" style="--i:4">m</span><span class="c5" style="--i:5">e</span><span class="c1" style="--i:6">m</span></div>
-    <div class="go">▶ แตะเพื่อเริ่มผจญภัย</div>
+    <div class="wm"><span class="a">mini</span><span class="b">mem</span></div>
+    <div class="go">▶ แตะเพื่อเริ่ม</div>
   </div>
 </div>
 
@@ -786,7 +1610,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const RM=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
 const pick=a=>a[Math.random()*a.length|0];
 // "remember me" off by default: the token then dies with the tab. Opting in
-// writes localStorage instead — plaintext on disk, so it is the user's call.
+// writes localStorage instead, plaintext on disk, so it is the user's call.
 let token=sessionStorage.getItem(TK)||localStorage.getItem(TK)||'';
 let tokenKept=!!localStorage.getItem(TK);
 let AUTH_ON=true; // set from /health on boot; false = server runs open, no gate
@@ -803,7 +1627,6 @@ function parseTags(v){
 const hcol=s=>{let h=7;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))>>>0;return h%6;};
 
 function b64(s){return btoa(unescape(encodeURIComponent(s)));}
-// true when we should attach a credential: auth is on AND we hold a token
 function hasAuth(){return AUTH_ON && !!token;}
 function authHeader(){
   const who=sessionStorage.getItem(UK)||localStorage.getItem(UK)||'mem';
@@ -820,30 +1643,32 @@ async function req(path,opts={}){
     const j=await r.json().catch(()=>({}));
     const n=j.retry_after_s||Math.ceil(+r.headers.get('Retry-After')||0);
     showGate();
-    throw new Error('ใส่รหัสผิดหลายครั้งเกินไป · รอ '+(n>=60?Math.ceil(n/60)+' นาที':n+' วินาที')+' แล้วลองใหม่');
+    throw new Error('ใส่รหัสผิดหลายครั้งเกินไป รอ '+(n>=60?Math.ceil(n/60)+' นาที':n+' วินาที')+' แล้วลองใหม่');
   }
   if(!r.ok){const t=await r.text().catch(()=>'');throw new Error(`HTTP ${r.status} ${t.slice(0,120)}`);}
   return r.json();
 }
 
-/* ══ Mimi: one inline SVG, five moods ══ */
-const MIMI=(mood='idle')=>`<svg class="mimi" data-mood="${mood}" viewBox="0 -14 120 126" aria-hidden="true">
-<ellipse class="m-sh" cx="60" cy="106" rx="38" ry="6"/>
+/* ══ Bit: the memory chip. The mascot and the mark are one object ══ */
+const MIMI=(mood='idle')=>`<svg class="mimi" data-mood="${mood}" viewBox="0 0 120 126" aria-hidden="true">
+<ellipse class="m-sh" cx="60" cy="114" rx="34" ry="5"/>
 <g class="m-body">
-<path class="m-b" d="M60 14C88 14 108 38 108 68C108 92 88 102 60 102C32 102 12 92 12 68C12 38 32 14 60 14Z"/>
-<path class="m-hl" d="M28 46C32 35 43 28 55 27C46 32 40 39 38 50Z"/>
-<path class="m-gem" d="M60-10 71 5 60 21 49 5Z"/><path class="m-gemhl" d="M60-6 54 5 60 9Z"/>
-<ellipse class="m-bl" cx="32" cy="77" rx="8.5" ry="5"/><ellipse class="m-bl" cx="88" cy="77" rx="8.5" ry="5"/>
-<g class="e e-idle"><ellipse cx="44" cy="62" rx="6.5" ry="8.5"/><ellipse cx="76" cy="62" rx="6.5" ry="8.5"/><circle class="w" cx="46.5" cy="58.5" r="2.5"/><circle class="w" cx="78.5" cy="58.5" r="2.5"/></g>
-<g class="e e-happy"><path d="M37 66Q44 53 51 66M69 66Q76 53 83 66"/></g>
-<g class="e e-sad"><ellipse cx="44" cy="64" rx="6" ry="8"/><ellipse cx="76" cy="64" rx="6" ry="8"/><circle class="w" cx="46" cy="61" r="2.3"/><circle class="w" cx="78" cy="61" r="2.3"/><path d="M36 57L52 52M84 57L68 52"/><path class="tear" d="M86 70Q91 78 86 82Q81 78 86 70Z"/></g>
-<g class="e e-sleep"><path d="M37 62Q44 69 51 62M69 62Q76 69 83 62"/></g>
-<g class="e e-wow"><ellipse cx="44" cy="61" rx="7.5" ry="10"/><ellipse cx="76" cy="61" rx="7.5" ry="10"/><circle class="w" cx="47" cy="57" r="3"/><circle class="w" cx="79" cy="57" r="3"/></g>
-<path class="mo mo-idle" d="M52 77Q60 85 68 77"/>
-<path class="mo mo-happy" d="M48 74Q60 96 72 74Z"/><path class="mo mo-happy tg" d="M54 87Q60 79 66 87Q60 92 54 87Z"/>
-<path class="mo mo-sad" d="M52 86Q60 76 68 86"/>
-<ellipse class="mo mo-wow" cx="60" cy="83" rx="5" ry="7"/>
-<path class="mo mo-sleep" d="M55 82H65"/>
+<g class="m-pin"><rect x="2" y="44" width="16" height="9"/><rect x="2" y="60" width="16" height="9"/><rect x="2" y="76" width="16" height="9"/><rect x="102" y="44" width="16" height="9"/><rect x="102" y="60" width="16" height="9"/><rect x="102" y="76" width="16" height="9"/></g>
+<rect class="m-ant" x="57" y="10" width="6" height="12"/>
+<rect class="m-flag" x="40" y="2" width="40" height="12"/>
+<rect class="m-b" x="20" y="20" width="80" height="86"/>
+<rect class="m-face" x="32" y="40" width="56" height="42"/>
+<rect class="m-slot" x="44" y="92" width="32" height="7"/>
+<g class="e e-idle"><rect class="m-eye" x="43" y="53" width="11" height="13"/><rect class="m-eye" x="66" y="53" width="11" height="13"/><rect class="m-glint" x="45" y="55" width="4" height="4"/><rect class="m-glint" x="68" y="55" width="4" height="4"/></g>
+<g class="e e-happy"><path d="M41 64l6-9 6 9M67 64l6-9 6 9"/></g>
+<g class="e e-sad"><rect class="m-eye" x="44" y="57" width="9" height="9"/><rect class="m-eye" x="67" y="57" width="9" height="9"/><path class="m-tear" d="M84 68q5 8 0 12-5-4 0-12Z"/></g>
+<g class="e e-sleep"><path d="M42 60h12M66 60h12"/></g>
+<g class="e e-wow"><rect class="m-eye" x="41" y="49" width="15" height="17"/><rect class="m-eye" x="64" y="49" width="15" height="17"/><rect class="m-glint" x="43" y="51" width="5" height="5"/><rect class="m-glint" x="66" y="51" width="5" height="5"/></g>
+<path class="mo mo-idle" d="M50 72h20"/>
+<path class="mo mo-happy" d="M46 70h28v7H46z"/>
+<path class="mo mo-sad" d="M48 78h24"/>
+<path class="mo mo-sleep" d="M53 74h14"/>
+<rect class="mo mo-wow" x="54" y="72" width="12" height="12"/>
 </g></svg>`;
 function mountMimi(root=document){root.querySelectorAll('[data-mimi]:not([data-mounted])').forEach(el=>{el.innerHTML=MIMI(el.dataset.mimi);el.dataset.mounted='1';});}
 function mood(host,m,ms=0){
@@ -852,56 +1677,44 @@ function mood(host,m,ms=0){
 }
 function hop(host){const el=typeof host==='string'?$(host):host;const s=el&&el.querySelector('.mimi');if(!s||RM())return;s.classList.remove('hop');void s.getBoundingClientRect();s.classList.add('hop');}
 
-/* ══ fx: floating hearts / stars behind, confetti on top ══
-   one canvas, ~30fps, paused when the tab is hidden. reduced-motion: off. */
+/* ══ fx: a burst of printed shapes. No ambient drift, the page is a print ══ */
 const fx=(()=>{
-  const cv=$('#fx'),ctx=cv.getContext('2d'),cv0=$('#fx0'),ctx0=cv0.getContext('2d');
-  let W=0,H=0,parts=[],bursts=[],raf=0,last=0,pal=['#ffd23f','#ff7aa8','#47dba5','#59bdff','#a98cff','#ffa35c'];
-  function size(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;for(const [c,x] of [[cv,ctx],[cv0,ctx0]]){c.width=W*d;c.height=H*d;x.setTransform(d,0,0,d,0,0);}}
-  function colors(){const s=getComputedStyle(document.documentElement);pal=[0,1,2,3,4,5].map(i=>s.getPropertyValue('--p'+i).trim()||'#fff');}
-  function shape(k,x,y,r,rot,ctx){
+  const cv=$('#fx'),ctx=cv.getContext('2d');
+  let W=0,H=0,bursts=[],raf=0,last=0,pal=['#FFD400','#E94B85','#64D982','#12A9E8','#B79BE9','#1557F5'];
+  function size(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+  function colors(){const s=getComputedStyle(document.documentElement);const v=['--yellow','--pink','--green','--cyan','--lav','--blue'].map(k=>(s.getPropertyValue(k)||'').trim()).filter(Boolean);if(v.length)pal=v;}
+  function shape(k,x,y,r,rot){
     ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.beginPath();
-    if(k==='star'){ctx.moveTo(0,-r);ctx.quadraticCurveTo(0,0,r,0);ctx.quadraticCurveTo(0,0,0,r);ctx.quadraticCurveTo(0,0,-r,0);ctx.quadraticCurveTo(0,0,0,-r);}
-    else if(k==='heart'){const s=r/10;ctx.moveTo(0,4*s);ctx.bezierCurveTo(-12*s,-4*s,-5*s,-12*s,0,-5*s);ctx.bezierCurveTo(5*s,-12*s,12*s,-4*s,0,4*s);}
-    else if(k==='rect'){ctx.rect(-r*.5,-r*.25,r,r*.5);}
-    else ctx.arc(0,0,r*.55,0,6.283);
+    if(k==='plus'){ctx.rect(-r*.16,-r*.6,r*.32,r*1.2);ctx.rect(-r*.6,-r*.16,r*1.2,r*.32);}
+    else if(k==='bar'){ctx.rect(-r*.7,-r*.2,r*1.4,r*.4);}
+    else ctx.rect(-r*.55,-r*.55,r*1.1,r*1.1);
     ctx.fill();ctx.restore();
-  }
-  function mk(init){
-    return {k:Math.random()<.5?'heart':'star',x:Math.random()*W,y:init?Math.random()*H:H+20,vx:(Math.random()-.5)*.25,vy:-(.15+Math.random()*.35),
-      r:4+Math.random()*5,rot:Math.random()*6.28,vr:(Math.random()-.5)*.03,ph:Math.random()*6.28,sp:.6+Math.random()*1.4,c:pal[Math.random()*6|0]};
   }
   function frame(t){
     raf=requestAnimationFrame(frame);
     if(t-last<32)return;const dt=Math.min((t-last)/16.7,3);last=t;
-    ctx.clearRect(0,0,W,H);ctx0.clearRect(0,0,W,H);
-    for(const p of parts){
-      p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;
-      if(p.y<-24){Object.assign(p,mk(false));}
-      ctx0.fillStyle=p.c;ctx0.globalAlpha=.35+.35*Math.abs(Math.sin(t/1000*p.sp+p.ph));shape(p.k,p.x,p.y,p.r,p.rot,ctx0);
-    }
+    ctx.clearRect(0,0,W,H);
     for(let i=bursts.length-1;i>=0;i--){
       const b=bursts[i];b.life-=dt;
       if(b.life<=0){bursts.splice(i,1);continue;}
       b.x+=b.vx*dt;b.y+=b.vy*dt;b.vy+=.16*dt;b.vx*=.985;b.rot+=b.vr*dt;
-      ctx.globalAlpha=Math.min(1,b.life/20);ctx.fillStyle=b.c;shape(b.k,b.x,b.y,b.r,b.rot,ctx);
+      ctx.globalAlpha=Math.min(1,b.life/20);ctx.fillStyle=b.c;shape(b.k,b.x,b.y,b.r,b.rot);
     }
     ctx.globalAlpha=1;
   }
   function start(){
     cancelAnimationFrame(raf);raf=0;
-    if(RM()||document.hidden){ctx.clearRect(0,0,W,H);ctx0.clearRect(0,0,W,H);return;}
-    if(!parts.length){const n=innerWidth<760?9:16;for(let i=0;i<n;i++)parts.push(mk(true));}
+    if(RM()||document.hidden){ctx.clearRect(0,0,W,H);return;}
     last=0;raf=requestAnimationFrame(frame);
   }
   function burst(x,y,n=22){
     if(RM())return;
-    const ks=['star','heart','rect','dot'];
+    const ks=['square','plus','bar','square'];
     for(let i=0;i<n;i++){const a=Math.random()*6.283,s=2+Math.random()*5;
-      bursts.push({k:ks[i%4],x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-3.4,r:5+Math.random()*7,rot:Math.random()*6.28,vr:(Math.random()-.5)*.3,life:44+Math.random()*30,c:pal[Math.random()*6|0]});}
+      bursts.push({k:ks[i%4],x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-3.4,r:5+Math.random()*7,rot:Math.random()*6.28,vr:(Math.random()-.5)*.3,life:44+Math.random()*30,c:pal[Math.random()*pal.length|0]});}
     if(!raf)start();
   }
-  function burstAt(el,n){const r=el.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,n);}
+  function burstAt(el,n){if(!el)return;const r=el.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,n);}
   addEventListener('resize',size);
   document.addEventListener('visibilitychange',start);
   matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change',start);
@@ -909,13 +1722,13 @@ const fx=(()=>{
   return {burst,burstAt,colors,start};
 })();
 
-/* ── theme: day / night ── */
+/* ── theme ── */
 function paintTheme(){
   const day=document.documentElement.dataset.theme!=='night';
   $('#theme span').textContent=day?'day':'night';
   $('#theme use').setAttribute('href',day?'#i-sun':'#i-moon');
   $('#theme').setAttribute('aria-label',day?'Switch to night theme':'Switch to day theme');
-  document.querySelector('meta[name=theme-color]').content=day?'#8fd6ff':'#171244';
+  document.querySelector('meta[name=theme-color]').content=day?'#FFFBEA':'#121212';
   fx.colors();
 }
 $('#theme').onclick=()=>{
@@ -924,15 +1737,38 @@ $('#theme').onclick=()=>{
   try{localStorage.setItem('minimem_theme',night?'night':'day');}catch(e){}
   paintTheme();fx.burstAt($('#theme'),14);
 };
-$('#logo').onclick=()=>{const w=$('#wm');w.classList.remove('go');void w.offsetWidth;w.classList.add('go');hop('#logo .lm');};
+$('#logo').onclick=()=>{
+  const w=$('#wm');w.classList.remove('go');void w.offsetWidth;w.classList.add('go');
+  hop('#logo .mimi')||$('#logo').querySelector('.mark');
+};
 
-/* ── confirm dialog (replaces window.confirm: styled, and reports what happened) ── */
+/* ── the drawer (phone) and the search toggle ── */
+function setMenu(on){
+  document.body.classList.toggle('menu-open',on);
+  $('#menu-btn').setAttribute('aria-expanded',on?'true':'false');
+  syncLock();
+  if(on){const b=$('#menu-close');if(b)b.focus();}
+}
+$('#menu-btn').onclick=()=>setMenu(!document.body.classList.contains('menu-open'));
+$('#menu-close').onclick=()=>{setMenu(false);$('#menu-btn').focus();};
+function setSearch(on){
+  document.body.classList.toggle('search-open',on);
+  $('#m-search').setAttribute('aria-expanded',on?'true':'false');
+  if(on){const q=$('#q');q.focus();q.select();}
+}
+$('#m-search').onclick=()=>setSearch(!document.body.classList.contains('search-open'));
+document.addEventListener('click',e=>{
+  if(!document.body.classList.contains('menu-open'))return;
+  if(e.target.closest('#navbar')||e.target.closest('#menu-btn'))return;
+  setMenu(false);
+});
+
+/* ── confirm dialog ── */
 const CFG={resolve:null};
 // while a layer owns the screen the page behind it must not scroll (touch drag
 // on a bottom sheet otherwise scrolls the list underneath it)
 function syncLock(){
-  const layered=$('#scrim').classList.contains('open')||$('#cfrim').classList.contains('open')||$('#gate').classList.contains('open');
-  // <html> is the element that actually scrolls the page
+  const layered=$('#scrim').classList.contains('open')||$('#cfrim').classList.contains('open')||$('#gate').classList.contains('open')||document.body.classList.contains('menu-open');
   document.documentElement.classList.toggle('lock',layered);
   document.body.classList.toggle('lock',layered);
 }
@@ -955,15 +1791,17 @@ function cfClose(v){const r=CFG.resolve;CFG.resolve=null;$('#cfrim').classList.r
 $('#cf-no').onclick=()=>cfClose(false);
 $('#cf-ok').onclick=()=>cfClose(true);
 $('#cfrim').onclick=e=>{if(e.target===$('#cfrim'))cfClose(false);};
-// one Escape handler for every layer, outermost-first, so the top dialog wins
+// one Escape handler for every layer, outermost first, so the top dialog wins
 addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
   if($('#cfrim').classList.contains('open')){cfClose(false);return;}
   if($('#gate').classList.contains('open'))return;   // gate: no dismissal, must authenticate
-  if($('#scrim').classList.contains('open'))closeSheet();
+  if($('#scrim').classList.contains('open')){closeSheet();return;}
+  if(document.body.classList.contains('menu-open')){setMenu(false);return;}
+  if(document.body.classList.contains('search-open')){setSearch(false);return;}
 });
 
-/* ── toast: Mimi says it ── */
+/* ── toast ── */
 let tt;
 function toast(msg,err){
   const el=$('#toast');
@@ -978,7 +1816,7 @@ function toast(msg,err){
 }
 
 /* ── render ── */
-function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function hl(txt){
   if(!state.q)return esc(txt);
   const words=[...new Set(state.q.toLowerCase().split(/\s+/).filter(w=>w.length>=3&&w!=='--'))];
@@ -986,8 +1824,8 @@ function hl(txt){
   for(const w of words){out=out.replace(new RegExp('('+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'),'<mark>$1</mark>');}
   return out;
 }
-const ago=s=>{const d=(Date.now()-new Date(s.replace(' ','T')+'Z'))/1e3;
-  if(d<3600)return Math.max(1,d/60|0)+'m';if(d<86400)return(d/3600|0)+'h';if(d<2592000)return(d/86400|0)+'d';return s.slice(0,10);};
+const ago=s=>{const d=(Date.now()-new Date(String(s).replace(' ','T')+'Z'))/1e3;
+  if(d<3600)return Math.max(1,d/60|0)+'m';if(d<86400)return(d/3600|0)+'h';if(d<2592000)return(d/86400|0)+'d';return String(s).slice(0,10);};
 
 function histHtml(h){
   return `<div class="histbox"><div class="hhead">history · ${h.length}</div>`+
@@ -1004,11 +1842,11 @@ function tagChips(m,limit=6){
   return `<div class="tags">`+show.map(x=>{
     const on=state.tagFilter===x?' on':'';
     return `<button class="chip c${hcol(x)}${on}" data-tag="${esc(x)}">#${esc(x)}</button>`;
-  }).join('')+(t.length>limit?`<span class="tagmore">+${t.length-limit}</span>`:'')+`</div>`;
+  }).join('')+(t.length>limit?`<span class="tagemore">+${t.length-limit}</span>`:'')+`</div>`;
 }
 
 function card(m){
-  const el=document.createElement('div');el.className='card st c'+(m.id%6);
+  const el=document.createElement('div');el.className='card c'+(m.id%6);
   el.innerHTML=`<span class="no">No.${m.id}</span><div class="meta"><span>${ago(m.updated_at)}</span><span class="len">${m.text.length}c</span></div>
     <div class="txt"></div>
     ${tagChips(m)}
@@ -1018,7 +1856,7 @@ function card(m){
       <button class="ia c c4" data-act="hist">history</button>
       ${state.mode==='trash'
         ?`<button class="ia c c2" data-act="restore">↩ restore</button>
-          <button class="ia c c1" data-act="purge" title="delete permanently — cannot be undone">⚡ purge</button>`
+          <button class="ia c c1" data-act="purge" title="delete permanently, cannot be undone">⚡ purge</button>`
         :`<button class="ia c c1" data-act="del" title="soft-delete">delete</button>`}
     </div></div>`;
   const box=el.querySelector('.txt'),exp=el.querySelector('.expand');
@@ -1038,11 +1876,11 @@ function card(m){
     const t=prompt('แก้ memory:',m.text);if(!t||!t.trim())return;
     const g=prompt('tags (คั่นด้วย ,):',(m.tags||[]).join(', '));
     const body={text:t.trim()};if(g!==null)body.tags=parseTags(g);
-    req('/memories/'+m.id,{method:'PATCH',body:JSON.stringify(body)}).then(()=>{toast('แก้เรียบร้อย เนียนมาก #'+m.id);load();}).catch(e=>toast(e.message,1));
+    req('/memories/'+m.id,{method:'PATCH',body:JSON.stringify(body)}).then(()=>{toast('แก้เรียบร้อย #'+m.id);load();}).catch(e=>toast(e.message,1));
   };
   const db=el.querySelector('[data-act=del]');
   if(db)db.onclick=async()=>{
-    if(!await ask({title:'move to trash?',body:`<b>#${m.id}</b> จะไปอยู่ในถังขยะ — กู้คืนได้จากแท็บ Trash นะ<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'move to trash',danger:true,m:'sad'}))return;
+    if(!await ask({title:'move to trash?',body:`<b>#${m.id}</b> จะไปอยู่ในถังขยะ กู้คืนได้จากแท็บ Trash นะ<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'move to trash',danger:true,m:'sad'}))return;
     try{await req('/memories/'+m.id,{method:'DELETE'});el.classList.add('vanish');await sleep(RM()?0:340);toast('โยนลงถังแล้ว #'+m.id+' (เปลี่ยนใจกู้คืนได้)');load();}
     catch(e){toast(e.message,1);}
   };
@@ -1051,12 +1889,12 @@ function card(m){
     // two asks: purge is the only unrecoverable action in this UI, so it gets
     // an explicit second gate rather than a single click-through confirm
     if(!await ask({title:'purge permanently?',body:'ลบออกจากฐานข้อมูลเลยนะ <b>ไม่มี undo ไม่มี backup</b>',ok:'continue',danger:true,m:'wow'}))return;
-    if(!await ask({title:'last chance',body:`Memory <b>#${m.id}</b> กับแท็ก ${(m.tags||[]).length} อัน จะหายไปตลอดกาล<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'⚡ purge #'+m.id,danger:true,m:'sad'}))return;
+    if(!await ask({title:'last chance',body:`Memory <b>#${m.id}</b> กับแท็กอีก ${(m.tags||[]).length} อัน จะหายไปตลอดกาล<span class="prev">${esc(m.text.slice(0,300))}</span>`,ok:'⚡ purge #'+m.id,danger:true,m:'sad'}))return;
     try{const r=await req('/memories/'+m.id+'/purge?confirm=yes',{method:'DELETE'});el.classList.add('vanish');await sleep(RM()?0:340);toast(`ลบถาวร #${m.id} · ${r.chars} ตัวอักษร ลาก่อนนน`);load();}
     catch(e){toast(e.message,1);}
   };
   const rs=el.querySelector('[data-act=restore]');
-  if(rs){rs.onclick=()=>req('/memories/'+m.id+'/restore',{method:'POST'}).then(()=>{fx.burstAt(rs,26);toast('กลับมาแล้ว! ยินดีต้อนรับกลับบ้าน #'+m.id);load();}).catch(e=>toast(e.message,1));}
+  if(rs)rs.onclick=()=>req('/memories/'+m.id+'/restore',{method:'POST'}).then(()=>{fx.burstAt(rs,26);toast('กลับมาแล้ว #'+m.id);load();}).catch(e=>toast(e.message,1));
   el.querySelector('[data-act=hist]').onclick=async()=>{
     if(hist){open=!open;paint();return;}
     try{hist=await req('/memories/'+m.id+'/history');open=true;paint();}catch(e){toast(e.message,1);}
@@ -1072,14 +1910,15 @@ function setHead(title,sub){
   $('#h-clear').hidden=!state.tagFilter;
 }
 function showView(name){
-  const map={dash:'#v-dash',tags:'#v-tags',list:'#v-list',relay:'#relay'};
+  const map={dash:'#v-dash',tags:'#v-tags',list:'#v-list',relay:'#v-relay',docs:'#v-docs',info:'#v-info'};
   for(const k in map){
     const el=$(map[k]),on=k===name;
-    if(on&&el.hidden){el.hidden=false;}      // re-triggers the entrance
+    if(on&&el.hidden){el.hidden=false;}
     else if(!on)el.hidden=true;
   }
   $('#head').hidden=name==='dash';
   $('.searchrow').style.display=name==='relay'?'none':'';
+  document.body.dataset.view=state.mode||'dashboard';
 }
 const emptyBox=(msg,m='sleep',extra='')=>`<div class="empty"><div class="emimi">${MIMI(m)}</div><div>${msg}</div>${extra}</div>`;
 
@@ -1089,6 +1928,8 @@ async function load(reset=true){
   if(m==='dashboard')return renderDash();
   if(m==='tags')return renderTags();
   if(m==='relay')return loadRelay();
+  if(m==='docs'){showView('docs');setHead('Documentation','how to use it');return;}
+  if(m==='info'){showView('info');setHead('Info','the long version');reveal();return;}
   showView('list');
   const host=$('#cards');
   const first=reset||host.children.length===0;
@@ -1103,22 +1944,22 @@ async function load(reset=true){
     // never swallow: a silent empty list is indistinguishable from "no data",
     // which is how a dead server or an expired token looks like normal use
     toast(e.message||'load failed',1);
-    if(first)host.innerHTML=emptyBox('โหลดไม่ได้อะ — '+esc(e.message||'unknown error'),'sad');
+    if(first)host.innerHTML=emptyBox('โหลดไม่ได้: '+esc(e.message||'unknown error'),'sad');
     setHead('Error','');
     $('#more').hidden=true;
     return;
   }
   if(first)host.innerHTML='';
-  items.forEach((x,i)=>{const c=card(x);c.style.animationDelay=Math.min(i,12)*55+'ms';host.appendChild(c);});
+  items.forEach((x,i)=>{const c=card(x);c.style.animationDelay=Math.min(i,12)*40+'ms';host.appendChild(c);});
   $('#more').hidden=!(m==='recent'&&!state.q&&items.length===state.limit&&state.offset+items.length<(total??Infinity));
   if(state.q)setHead('Recall',`"${state.q}"${state.tagFilter?' in #'+state.tagFilter:''} · ${items.length} hits`);
   else if(m==='trash')setHead('Trash',`${total} recoverable`);
   else if(state.tagFilter)setHead('#'+state.tagFilter,`${total} memories`);
   else setHead('Recent',`${state.offset+items.length}+ shown`);
-  if(!items.length&&reset)host.innerHTML=state.q?emptyBox('ค้นไม่เจออะ… ลองคำอื่นดูมั้ย?','sad')
+  if(!items.length&&reset)host.innerHTML=state.q?emptyBox('ค้นไม่เจอ ลองคำอื่นดูมั้ย?','sad')
     :state.tagFilter?emptyBox('แท็กนี้ยังไม่มีความทรงจำเลย','sleep')
     :m==='trash'?emptyBox('ถังขยะว่างเปล่า สะอาดเอี่ยม','happy')
-    :emptyBox('ยังไม่มีความทรงจำเลย — จดเรื่องแรกกันมั้ย?','sleep','<button class="btn" data-open-add>Add the first one</button>');
+    :emptyBox('ยังไม่มีความทรงจำเลย จดเรื่องแรกกันมั้ย?','sleep','<button class="btn" data-open-add>Add the first one</button>');
   const ob=host.querySelector('[data-open-add]');if(ob)ob.onclick=()=>openSheet('add');
   stats();
 }
@@ -1131,12 +1972,15 @@ function go(mode,rt){
   state.mode=mode;state.q='';state.tagFilter='';$('#q').value='';
   if(rt)rTab=rt;
   setActive(mode);load();
+  scrollTop();
   const b=$('.nav button.active');if(b&&b.scrollIntoView)b.scrollIntoView({inline:'center',block:'nearest',behavior:RM()?'auto':'smooth'});
 }
-function setTagFilter(t){state.tagFilter=t;state.mode='recent';setActive('recent');load();}
+// a long page means the next view could otherwise open halfway down
+function scrollTop(){try{scrollTo({top:0,behavior:RM()?'auto':'smooth'});}catch(e){scrollTo(0,0);}}
+function setTagFilter(t){state.tagFilter=t;state.mode='recent';setActive('recent');load();scrollTop();}
 $('#h-clear').onclick=()=>{state.tagFilter='';load();};
 
-/* ── dashboard: the guild board ── */
+/* ── dashboard ── */
 function countTo(el,n){
   if(RM()||n<2){el.textContent=n;return;}
   const t0=performance.now(),D=900;
@@ -1148,7 +1992,7 @@ const STAT_REL=[['handoffs','Handoffs','i-relay','relay:handoff','c3'],['leases'
 function statTile(key,label,icon,dest,cls,val,i){
   const b=document.createElement(dest?'button':'div');
   b.className='stat '+cls;
-  b.style.animationDelay=i*60+'ms';
+  b.style.animationDelay=i*45+'ms';
   b.innerHTML=`<span class="ib"><svg class="ic"><use href="#${icon}"/></svg></span><span class="n">0</span><span class="k">${label}</span>`;
   if(dest)b.onclick=()=>{const[md,rt]=dest.split(':');go(md,rt);};
   countTo(b.querySelector('.n'),val||0);
@@ -1156,41 +2000,108 @@ function statTile(key,label,icon,dest,cls,val,i){
 }
 function greeting(s){
   const h=new Date().getHours(),n=s.live.toLocaleString();
-  if(h>=5&&h<11)return `อรุณสวัสดิ์! ตื่นมาก็ยังจำได้ครบ <b>${n}</b> เรื่องเลยนะ ไม่ลืมสักอย่าง`;
-  if(h>=11&&h<16)return `บ่ายแล้ว~ <b>${n}</b> เรื่องยังอยู่ครบ กินข้าวหรือยัง? (เรื่องนี้จำให้ไม่ได้นะ)`;
-  if(h>=16&&h<22)return `เย็นแล้ว ความทรงจำ <b>${n}</b> เรื่องนอนหลับสบายอยู่ในนี้`;
-  return `ดึกแล้วนะ… ไม่นอนเหรอ? <b>${n}</b> เรื่องเฝ้าให้อยู่ ไปนอนเถอะ`;
+  if(h>=5&&h<11)return `อรุณสวัสดิ์ ตื่นมาก็ยังจำได้ครบ <b>${n}</b> เรื่อง ไม่ตกสักเรื่อง`;
+  if(h>=11&&h<16)return `บ่ายแล้ว ยังจำได้ครบ <b>${n}</b> เรื่อง เหมือนเดิม`;
+  if(h>=16&&h<22)return `เย็นแล้ว ความทรงจำ <b>${n}</b> เรื่องนอนหลับสบายอยู่ในคลัง`;
+  return `ดึกแล้วนะ ไม่นอนเหรอ ยังเฝ้าให้อยู่ <b>${n}</b> เรื่อง ไปนอนเถอะ`;
 }
 function heroLines(s){return [
-  'จิ้มทำไมเนี่ย จั๊กจี้นะ!','เมื่อกี้ลืมไปแล้ว… ล้อเล่น จำได้ทุกอย่าง',
+  'ถ้าจำไม่ได้ ให้ถามคลังนี้สิ','เมื่อกี้ลืมไปแล้ว ล้อเล่น จำได้ทุกอย่าง',
   'อยากให้จำอะไรเพิ่มมั้ย? กดแท็บ Add ได้เลย',`ถังขยะมี ${s.deleted} เรื่อง ยังไม่ได้ทิ้งใจนะ`,
-  'ขอขนมได้มั้ย ♡ (ไม่มีให้ แต่ขอบคุณ)',`แท็กมี ${s.tags.toLocaleString()} อัน จำได้หมดไม่ต้องห่วง`,'ฮึบ! วันนี้ก็ช่วยกันจำนะ'];}
+  'ขอขนมได้มั้ย ♡ (ไม่มีให้ แต่ขอบคุณ)',`แท็กมี ${s.tags.toLocaleString()} อัน จำได้หมด ไม่ต้องห่วง`,'วันนี้ก็ช่วยกันจำนะ'];}
 async function renderDash(){
   showView('dash');
-  $('#ver').textContent=(META.version?'v'+META.version+' · ':'')+'SQLite · Persistent memory service';
+  $('#ver').textContent=(META.version?'memory layer · v'+META.version+' · ':'memory layer · ')+'sqlite · persistent';
   const s=await stats();
-  if(!s){$('#hero-say').textContent='โหลดสถานะไม่ได้อะ — ลองเช็ก access token ดูนะ';mood('#hero-mimi','sad');return;}
+  if(!s){$('#hero-say').textContent='โหลดสถานะไม่ได้ ลองเช็ก access token ดูนะ';mood('#hero-mimi','sad');return;}
   $('#hero-say').innerHTML=greeting(s);mood('#hero-mimi','happy',1800);
   const mem=$('#stats-mem'),rel=$('#stats-relay');mem.innerHTML='';rel.innerHTML='';
   STAT_MEM.forEach(([k,l,ic,d,c],i)=>mem.appendChild(statTile(k,l,ic,d,c,s[k],i)));
   STAT_REL.forEach(([k,l,ic,d,c],i)=>rel.appendChild(statTile(k,l,ic,d,c,(s.relay||{})[k],i+4)));
+  paintHero(s);paintQueue(s);
   try{
     const a=(await req('/audit?limit=1')).items?.[0];
-    $('#last').innerHTML=a?`ล่าสุด: <span class="pix">${esc(a.action)}</span> โดย <b>${esc(a.actor)}</b>${a.target?' ที่ <b>'+esc(a.target)+'</b>':''} · ${ago(a.at)} ที่แล้ว`:'ยังไม่มีความเคลื่อนไหวเลย เงียบจัง…';
+    $('#last').innerHTML=a?`ล่าสุด: <span class="pix">${esc(a.action)}</span> โดย <b>${esc(a.actor)}</b>${a.target?' ที่ <b>'+esc(a.target)+'</b>':''} · ${ago(a.at)} ที่แล้ว`:'ยังไม่มีความเคลื่อนไหวเลย เงียบจัง';
   }catch(e){$('#last').textContent='';}
+  runConsole();
+}
+function paintHero(s){
+  const set=(sel,v)=>{const e=$(sel);if(e)e.textContent=v;};
+  set('#hero-live',(s.live??0).toLocaleString());
+  set('#hero-tags',(s.tags??0).toLocaleString());
+  set('#hero-history',(s.history??0).toLocaleString());
+  set('#hero-lessons',((s.relay||{}).lessons??0).toLocaleString());
+}
+function paintQueue(s){
+  const set=(sel,v)=>{const e=$(sel);if(e)e.textContent=v;};
+  set('#q-live',(s.live??0).toLocaleString());
+  set('#q-trash',(s.deleted??0).toLocaleString());
+  set('#q-lessons',((s.relay||{}).lessons??0).toLocaleString());
+  set('#q-audit',((s.relay||{}).audit??0).toLocaleString());
+  set('#q-ho',((s.relay||{}).handoffs??0).toLocaleString());
 }
 $('#hero-mimi').onclick=()=>{
-  const el=$('#hero-mimi'),b=$('#hero-say');
+  const el=$('#hero-mimi');
   hop(el);mood(el,'wow',700);setTimeout(()=>mood(el,'happy',1400),700);
   fx.burstAt(el,18);
-  if(STATS){b.innerHTML=pick(heroLines(STATS));b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');}
+  if(STATS)$('#hero-say').innerHTML=pick(heroLines(STATS));
 };
 
-/* ── tags: floating bubbles ── */
+/* ── recall console: the three real paths, run live ── */
+let conTab='hybrid';
+// only the fields that actually came back are shown: a row of em dashes for
+// signals the server does not have would read as "measured and found nothing"
+function conRow(r,kind){
+  const f=[`#${r.id}`];
+  if(kind==='keyword')f.push('keyword');
+  else if(kind==='hybrid'){
+    if(r.score!=null)f.push('s '+Number(r.score).toFixed(3));
+    if(r.cos!=null)f.push('cos '+Number(r.cos).toFixed(3));
+    if(r.age_days!=null)f.push(Math.round(r.age_days)+'d');
+    if(r.match)f.push(r.match);
+  }
+  return `<div class="ci"><div class="m">${esc(String(r.text||'').slice(0,120))}</div><div class="f">${f.map(x=>`<span>${esc(x)}</span>`).join('')}</div></div>`;
+}
+async function runConsole(){
+  const q=($('#cq').value||'').trim();
+  const fill=$('#cf-fill');if(fill)fill.style.width='8%';
+  const t0=performance.now();
+  const kw=document.getElementById('cc-k-body'),hy=document.getElementById('cc-h-body'),rc=document.getElementById('cc-r-body');
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  let degraded=null,cands=null,rel=null;
+  try{
+    const [k,h,r]=await Promise.all([
+      req('/memories/recall?q='+encodeURIComponent(q)+'&limit=5&mode=keyword'),
+      req('/memories/recall?q='+encodeURIComponent(q)+'&limit=5'),
+      req('/memories?limit=5'),
+    ]);
+    degraded=h.degraded||null;cands=h.candidates;rel=h.relevant;
+    const empty='<div class="ci"><div class="m">ไม่มีผลลัพธ์</div></div>';
+    if(kw)kw.innerHTML=(k.items||[]).map(x=>conRow(x,'keyword')).join('')||empty;
+    if(hy)hy.innerHTML=(h.items||[]).map(x=>conRow(x,'hybrid')).join('')||empty;
+    if(rc)rc.innerHTML=(r.items||[]).map(x=>conRow(x,'recent')).join('')||empty;
+    set('cc-k',(k.items||[]).length+' hits');set('cc-h',(h.items||[]).length+' hits');set('cc-r',(r.items||[]).length+' rows');
+    set('cf-note',degraded?('degraded: '+degraded):`candidates ${cands??'-'} · relevant ${rel??'-'}`);
+  }catch(e){
+    const empty='<div class="ci"><div class="m">โหลดไม่ได้</div></div>';
+    [kw,hy,rc].forEach(x=>{if(x)x.innerHTML=empty;});
+    set('cf-note','error');
+  }
+  const ms=Math.round(performance.now()-t0);
+  set('cf-time',ms+' ms');
+  if(fill){fill.style.width='100%';setTimeout(()=>{fill.style.width='8%';},900);}
+}
+$('#cq-run').onclick=()=>runConsole();
+$('#cf-play').onclick=()=>runConsole();
+$('#cq').addEventListener('keydown',e=>{if(e.key==='Enter')runConsole();});
+$$('#con-tabs button').forEach(b=>b.onclick=()=>{
+  conTab=b.dataset.c;
+  $$('#con-tabs button').forEach(x=>x.classList.toggle('active',x===b));
+  $$('.ccol').forEach(c=>c.classList.toggle('on',c.dataset.col===conTab));
+});
+
+/* ── tags ── */
 let tagData=[];
-// tags carry their weight in size, but a thumb still needs a 44px target:
-// on touch the floor is raised and the growth curve is compressed to match.
-// asked per paint, not cached: a phone can rotate or drop its pointer.
 const touch=()=>matchMedia('(pointer:coarse)').matches;
 function paintTags(){
   const f=$('#tag-q').value.trim().toLowerCase();
@@ -1198,8 +2109,8 @@ function paintTags(){
   const max=Math.max(1,...tagData.map(t=>t.n));
   $('#tagfield').innerHTML=rows.length?rows.map((t,i)=>{
     const k=Math.log(t.n+1)/Math.log(max+1);
-    const floor=touch()?44:36;
-    return `<button class="gem c${hcol(t.tag)}" data-tag="${esc(t.tag)}" style="font-size:${(13+k*8).toFixed(1)}px;min-height:${(floor+k*12).toFixed(0)}px;animation-delay:${Math.min(i,40)*22}ms">#${esc(t.tag)}<b>${t.n}</b></button>`;
+    const floor=touch()?44:32;
+    return `<button class="gem c${hcol(t.tag)}" data-tag="${esc(t.tag)}" style="font-size:${(12+k*6).toFixed(1)}px;min-height:${(floor+k*9).toFixed(0)}px;animation-delay:${Math.min(i,40)*18}ms">#${esc(t.tag)}<b>${t.n}</b></button>`;
   }).join(''):emptyBox(f?'ไม่มีแท็ก “'+esc(f)+'” อะ':'ยังไม่มีแท็กเลย','sleep');
   $$('#tagfield .gem').forEach(g=>g.onclick=()=>setTagFilter(g.dataset.tag));
   setHead('Tags',`${rows.length} shown`);
@@ -1208,24 +2119,24 @@ async function renderTags(){
   showView('tags');
   try{const r=await req('/tags?limit=400');tagData=r.tags||[];paintTags();stats();
     // say when the cloud is truncated, otherwise "no tag" reads as "tag missing"
-    $('#tag-note').textContent=r.total>400?`showing top 400 of ${r.total} — type to narrow`:'';
+    $('#tag-note').textContent=r.total>400?`showing top 400 of ${r.total}, type to narrow`:'';
   }
-  catch(e){toast(e.message,1);$('#tag-note').textContent='';$('#tagfield').innerHTML=emptyBox('โหลดไม่ได้อะ — '+esc(e.message),'sad');setHead('Tags','');}
+  catch(e){toast(e.message,1);$('#tag-note').textContent='';$('#tagfield').innerHTML=emptyBox('โหลดไม่ได้: '+esc(e.message),'sad');setHead('Tags','');}
 }
 $('#tag-q').oninput=paintTags;
 
-/* ── relay pane: handoff / leases / lessons / crystals / audit ── */
+/* ── relay pane ── */
 let rTab='handoff';
 const ago2=ago;
 const NONE=t=>`<div class="rnone">${t}</div>`;
 
 function rcard(head,body,refs,actions){
-  return `<div class="rcard st"><div class="rh">${head}</div>`+
+  return `<div class="rcard"><div class="rh">${head}</div>`+
     (body?`<div class="rt">${body}</div>`:'')+
     (refs?`<div class="refs">${refs}</div>`:'')+
     (actions?`<div class="rel">${actions}</div>`:'')+`</div>`;
 }
-// refs/sources live in sqlite as a JSON *string* ("[1,7]"), not a parsed array
+// refs/sources live in sqlite as a JSON string ("[1,7]"), not a parsed array
 function refLinks(refs){
   let ids=refs;
   if(typeof refs==='string'){try{ids=JSON.parse(refs);}catch(e){ids=[];}}
@@ -1237,7 +2148,7 @@ function refLinks(refs){
 
 async function relayGet(path,hostId,emptyMsg){
   const host=$(hostId);
-  host.innerHTML=`<div class="rnone">กำลังโหลด…</div>`;
+  host.innerHTML=`<div class="rnone">กำลังโหลด</div>`;
   try{
     const r=await req(path);
     const rows=(r&&(r.items||r))||[];
@@ -1255,7 +2166,7 @@ async function loadRelay(){
   if(rTab==='handoff'){
     const agent=$('#ho-agent').value.trim();
     setHead('Handoff',agent?'for '+agent:'pick an agent');
-    if(!agent){$('#ho-list').innerHTML=NONE('ใส่ชื่อ agent ก่อนนะ — /handoff ต้องมี ?agent=');return;}
+    if(!agent){$('#ho-list').innerHTML=NONE('ใส่ชื่อ agent ก่อนนะ /handoff ต้องมี ?agent=');return;}
     const all=$('#ho-all').checked?'&all=1':'';
     const rows=await relayGet('/handoff?agent='+encodeURIComponent(agent)+all,'#ho-list','agent นี้ไม่มีงานส่งต่อเลย');
     if(rows===null)return;
@@ -1296,7 +2207,7 @@ async function loadRelay(){
       `<button class="btn pink" data-rel="${esc(l.name)}" data-holder="${esc(l.holder)}">Release</button>`
     )).join('');
     $$('#ls-list [data-rel]').forEach(b=>b.onclick=async()=>{
-      if(!await ask({title:'release lease?',body:`<b>${esc(b.dataset.rel)}</b> — ถือโดย ${esc(b.dataset.holder)}<br>ปล่อยแล้ว agent อื่นจะคว้าไปได้ทันทีเลยนะ`,ok:'release',danger:true,m:'wow'}))return;
+      if(!await ask({title:'release lease?',body:`<b>${esc(b.dataset.rel)}</b> ถือโดย ${esc(b.dataset.holder)}<br>ปล่อยแล้ว agent อื่นจะคว้าไปได้ทันทีเลยนะ`,ok:'release',danger:true,m:'wow'}))return;
       try{await req('/leases/'+encodeURIComponent(b.dataset.rel)+'?holder='+encodeURIComponent(b.dataset.holder),{method:'DELETE'});toast('ปล่อยแล้ว');loadRelay();}
       catch(e){toast(e.message,1);}
     });
@@ -1321,8 +2232,7 @@ async function loadRelay(){
     if(rows===null)return;
     if(rows.length)$('#cr-list').innerHTML=rows.map(x=>{
       const src=refLinks(x.sources);
-      return rcard(`<b>#${x.id}</b><span>${ago2(x.created_at)}</span>`,
-        esc(x.text),src);
+      return rcard(`<b>#${x.id}</b><span>${ago2(x.created_at)}</span>`,esc(x.text),src);
     }).join('');
     return;
   }
@@ -1333,7 +2243,7 @@ async function loadRelay(){
     if(rows===null)return;
     if(rows.length)$('#au-list').innerHTML=rows.map(x=>rcard(
       `<b>${esc(x.action)}</b><span>${esc(x.actor)}</span><span>${ago2(x.at)}</span>`,
-      '',`<span>${esc(x.target||'—')}</span>${x.detail?`<span>${esc(x.detail)}</span>`:''}`
+      '',`<span>${esc(x.target||'-')}</span>${x.detail?`<span>${esc(x.detail)}</span>`:''}`
     )).join('');
   }
 }
@@ -1353,7 +2263,7 @@ $('#ls-load').onclick=async()=>{
   }catch(e){toast(e.message,1);loadRelay();}
 };
 
-/* ── relay writes: handoff / lesson / crystal ── */
+/* ── relay writes ── */
 function busy(btn,on,label){
   btn.disabled=on;
   if(on){btn._t=btn.textContent;btn.textContent=label;}
@@ -1362,18 +2272,16 @@ function busy(btn,on,label){
 $('#ho-send').onclick=async()=>{
   const btn=$('#ho-send');
   const from=$('#ho-from').value.trim()||'mem';
-  // the "who am I" default matches how /handoff reads are filtered, so an
-  // author who forgets the from field still sees their own note in the list
   const to=$('#ho-to').value.trim()||$('#ho-agent').value.trim();
   const body=$('#ho-body').value.trim();
   if(!to){toast('ใส่ชื่อคนรับ (to) ด้วยนะ',1);return;}
   if(!body){toast('ยังไม่ได้เขียนเนื้อหาที่จะส่งต่อเลย',1);return;}
-  busy(btn,true,'กำลังส่ง…');
+  busy(btn,true,'กำลังส่ง');
   try{
     const r=await req('/handoff',{method:'POST',body:JSON.stringify({from,to,body,topic:$('#ho-topic').value.trim()||undefined})});
     fx.burstAt(btn,26);toast('ส่งต่อแล้ว! #'+r.id+' ถึงมือ '+to);
     $('#ho-body').value='';$('#ho-topic').value='';
-    $('#ho-agent').value=$('#ho-agent').value.trim()||to;   // so the list shows it right away
+    $('#ho-agent').value=$('#ho-agent').value.trim()||to;
     loadRelay();
   }catch(e){toast(e.message,1);}
   finally{busy(btn,false);}
@@ -1382,7 +2290,7 @@ $('#ln-save').onclick=async()=>{
   const btn=$('#ln-save');
   const text=$('#ln-new').value.trim();
   if(!text){toast('ยังไม่ได้เขียน lesson เลย',1);return;}
-  busy(btn,true,'กำลังจด…');
+  busy(btn,true,'กำลังจด');
   try{
     await req('/lessons',{method:'POST',body:JSON.stringify({text,scope:$('#ln-new-scope').value.trim()||undefined})});
     fx.burstAt(btn,24);toast('จดบทเรียนแล้ว คราวหน้าจะไม่ลืม');
@@ -1396,7 +2304,7 @@ $('#cr-save').onclick=async()=>{
   const text=$('#cr-new').value.trim();
   if(!text){toast('ยังไม่ได้เขียน crystal เลย',1);return;}
   const sources=($('#cr-sources').value||'').split(/[,\s]+/).map(Number).filter(n=>Number.isFinite(n)&&n>0);
-  busy(btn,true,'กำลังเกาะ…');
+  busy(btn,true,'กำลังเกาะ');
   try{
     await req('/crystals',{method:'POST',body:JSON.stringify({text,sources:sources.length?sources:undefined})});
     fx.burstAt(btn,24);toast('crystal เกาะติดแล้ว ✦');
@@ -1405,7 +2313,6 @@ $('#cr-save').onclick=async()=>{
   }catch(e){toast(e.message,1);}
   finally{busy(btn,false);}
 };
-/* Enter sends from the single-line fields; the textareas keep Enter for newlines */
 ['#ho-from','#ho-to','#ho-topic'].forEach(s=>$(s).onkeydown=e=>{if(e.key==='Enter')$('#ho-send').click();});
 ['#ln-new','#ln-new-scope'].forEach(s=>$(s).onkeydown=e=>{if(e.key==='Enter'&&!e.ctrlKey&&!e.metaKey)$('#ln-save').click();});
 $('#cr-sources').onkeydown=e=>{if(e.key==='Enter')$('#cr-save').click();};
@@ -1416,11 +2323,12 @@ $$('.nav button').forEach(b=>b.onclick=()=>{
   const mode=b.dataset.mode;
   if(mode==='add')return openSheet('add');
   if(mode==='extract')return openSheet('extract');
+  setMenu(false);
   go(mode);
 });
 $('#more').onclick=()=>{state.offset+=state.limit;load(false);};
 
-/* ── search: typing anywhere jumps to recall ── */
+/* ── search ── */
 let deb;
 $('#q').oninput=()=>{clearTimeout(deb);deb=setTimeout(()=>{
   state.q=$('#q').value.trim();
@@ -1428,7 +2336,7 @@ $('#q').oninput=()=>{clearTimeout(deb);deb=setTimeout(()=>{
   else if(!state.q&&(state.mode==='dashboard'||state.mode==='tags'))return;
   load();
 },400);};
-addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==$('#q')&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&!e.metaKey&&!e.ctrlKey&&!$('.scrim.open')&&!$('.gate.open')){e.preventDefault();$('#q').focus();}});
+addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==$('#q')&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&!e.metaKey&&!e.ctrlKey&&!$('.scrim.open')&&!$('.gate.open')){e.preventDefault();setSearch(true);}});
 
 /* ── modal ── */
 function openSheet(pane){$('#scrim').classList.add('open');syncLock();mood('#scrim .peek','happy');switchPane(pane);}
@@ -1437,23 +2345,36 @@ function switchPane(p){$$('.tabs button').forEach(b=>b.classList.toggle('active'
 $$('.tabs button').forEach(b=>b.onclick=()=>switchPane(b.dataset.pane));
 $('#sheet-close').onclick=closeSheet;
 $('#scrim').onclick=e=>{if(e.target===$('#scrim'))closeSheet();};
-$('#go-add').onclick=()=>openSheet('add');
 $('#add-save').onclick=async()=>{const t=$('#add-text').value.trim();if(!t)return;$('#add-save').disabled=true;
   try{const tags=parseTags($('#add-tags').value);const r=await req('/memories',{method:'POST',body:JSON.stringify({text:t,tags})});fx.burstAt($('#add-save'),34);toast(`จดแล้วจ้า! #${r.id} ไม่ลืมแน่นอน`);$('#add-text').value='';$('#add-tags').value='';closeSheet();load();}
   catch(e){toast(e.message,1);}finally{$('#add-save').disabled=false;}};
-$('#ex-run').onclick=async()=>{const t=$('#ex-text').value.trim();if(!t)return;const b=$('#ex-run');b.disabled=true;b.textContent='Mimi กำลังคิด…';$('#ex-done').style.display='none';mood('#scrim .peek','sleep');
+$('#ex-run').onclick=async()=>{const t=$('#ex-text').value.trim();if(!t)return;const b=$('#ex-run');b.disabled=true;b.textContent='กำลังคิด';$('#ex-done').style.display='none';mood('#scrim .peek','sleep');
   try{const r=await req('/extract',{method:'POST',body:JSON.stringify({text:t})});
     $('#ex-done').style.display='block';
     $('#ex-done').textContent=`[${r.model}] added ${r.added} · updated ${r.updated} · deleted ${r.deleted} · skipped ${r.skipped}`;
-    fx.burstAt(b,34);$('#ex-text').value='';toast('สกัดเสร็จแล้ว! ได้ของดีมาเพียบ');load();}
+    fx.burstAt(b,34);$('#ex-text').value='';toast('สกัดเสร็จแล้ว ได้ของดีมาเพียบ');load();}
   catch(e){toast(e.message,1);}finally{b.disabled=false;b.textContent='Extract & store';mood('#scrim .peek','happy');}};
 
-/* ── token gate: the guild door ── */
+/* ── the buttons that live on the plates ── */
+$('#hero-add').onclick=()=>openSheet('add');
+$('#hero-recall').onclick=()=>setSearch(true);
+$('#conv-cta').onclick=()=>openSheet('add');
+$('#about-token').onclick=showGate;
+$('#about-relay').onclick=()=>go('relay','handoff');
+$('#about-docs').onclick=()=>go('docs');
+/* the footer links into the docs, so they have to open that view first:
+   an anchor inside a hidden view has nothing to scroll to */
+$$('a[href^="#doc-"]').forEach(a=>a.onclick=e=>{
+  e.preventDefault();
+  go('docs');
+  setTimeout(()=>{const t=document.querySelector(a.getAttribute('href'));if(t)t.scrollIntoView({behavior:RM()?'auto':'smooth'});},60);
+});
+
+/* ── token gate ── */
 const gateIn=$('#gate-tok'),gateErr=$('#gate-err'),gateBtn=$('#gate-save'),gateEl=$('#gate');
 function showGate(){
   gateEl.classList.remove('unlock');
   gateEl.classList.add('open');syncLock();
-  // drop any shake left over from a previous failure, it must not replay here
   gateEl.classList.remove('shake');
   mood('#gate-mimi','idle');
   $('#gate-keep').checked=tokenKept;
@@ -1467,65 +2388,70 @@ $('#gate-keep').onchange=()=>{$('#gate-forget').hidden=!$('#gate-keep').checked|
 $('#gate-forget').onclick=()=>{
   localStorage.removeItem(TK);localStorage.removeItem(UK);
   tokenKept=false;token='';$('#gate-keep').checked=false;$('#gate-forget').hidden=true;
-  // token is gone from memory too, so the open gate cannot be used until re-entered
   gateEl.classList.add('open');syncLock();gateErr.classList.remove('show');gateErr.textContent='';
   setTimeout(()=>gateIn.focus(),60);
-  toast('ลบรหัสออกจากเครื่องแล้ว · ใส่รหัสใหม่เพื่อเข้า');
+  toast('ลบรหัสออกจากเครื่องแล้ว ใส่รหัสใหม่เพื่อเข้า');
 };
 async function saveGate(){
   const v=gateIn.value.trim();if(!v)return;
   const keep=$('#gate-keep').checked;
   const prev=token,prevKept=tokenKept;
-  // the user field was decorative (server ignores it), so keep whatever was there
   const who=sessionStorage.getItem(UK)||localStorage.getItem(UK)||'mem';
   token=v;tokenKept=keep;
-  // clear both stores first, then write only where the user asked
   sessionStorage.removeItem(TK);sessionStorage.removeItem(UK);
   localStorage.removeItem(TK);localStorage.removeItem(UK);
   const store=keep?localStorage:sessionStorage;
-  gateBtn.disabled=true;gateBtn.textContent='opening…';
+  gateBtn.disabled=true;gateBtn.textContent='opening';
   try{
     await req('/stats');
     store.setItem(TK,token);store.setItem(UK,who);
     gateIn.value='';
     gateErr.classList.remove('show');gateErr.textContent='';
-    // Mimi cheers, confetti, the door pops shut behind you
     mood('#gate-mimi','happy');hop('#gate-mimi');fx.burstAt($('#gate-mimi'),44);
     if(RM()){gateEl.classList.remove('open');}
-    // the door pops shut behind you, then the scroll lock is released with it
     else{gateEl.classList.add('unlock');setTimeout(()=>{gateEl.classList.remove('open','unlock');syncLock();},620);}
     syncLock();
-    toast(keep?'เข้ากิลด์สำเร็จ! จำรหัสไว้ให้แล้ว':'เข้ากิลด์สำเร็จ!');boot();
+    toast(keep?'เข้ามาได้แล้ว จำรหัสไว้ให้แล้ว':'เข้ามาได้แล้ว!');boot();
   }
   catch(e){
     token=prev;tokenKept=prevKept;
     (prevKept?localStorage:sessionStorage).setItem(TK,token);
     (prevKept?localStorage:sessionStorage).setItem(UK,who);
-    gateErr.textContent=e.message==='bad token'?'รหัสไม่ถูกต้อง — ลองใหม่นะ':e.message;
+    gateErr.textContent=e.message==='bad token'?'รหัสไม่ถูกต้อง ลองใหม่นะ':e.message;
     gateErr.classList.add('show');
     mood('#gate-mimi','sad',2200);
-    // re-trigger the shake on repeat failures (animation won't restart otherwise)
     gateEl.classList.remove('shake');void gateEl.offsetWidth;gateEl.classList.add('shake');
     gateIn.select();
   }
   finally{gateBtn.disabled=false;gateBtn.textContent='Unlock';}
 }
 
-/* ── intro: title screen + iris wipe, once per 6 hours, skippable ── */
+/* ── intro: title card, once per 6 hours, skippable ── */
 function intro(){
   const el=$('#intro');
   let last=0;try{last=+localStorage.getItem('minimem_intro')||0;}catch(e){}
   if(RM()||Date.now()-last<6*3600e3)return;
   try{localStorage.setItem('minimem_intro',Date.now());}catch(e){}
   el.hidden=false;
-  const go=el.querySelector('.go');go.style.opacity=1;
+  const go2=el.querySelector('.go');go2.style.opacity=1;
   let done=false;
   const end=()=>{if(done)return;done=true;el.classList.add('out');
-    setTimeout(()=>{el.classList.add('gone');fx.burst(innerWidth/2,innerHeight/3,36);},880);};
+    setTimeout(()=>{el.classList.add('gone');fx.burst(innerWidth/2,innerHeight/3,36);},700);};
   el.onclick=end;
   addEventListener('keydown',end,{once:true});
   setTimeout(end,2400);
 }
+
+/* ── reveal on scroll: the bars fill once, when they are on screen ── */
+let io=null;
+const reveal=()=>{
+  const items=$$('[data-reveal]');
+  if(!('IntersectionObserver' in window)||RM()){items.forEach(i=>i.classList.add('in'));return;}
+  if(!io)io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.2});
+  items.forEach(i=>io.observe(i));
+};
+/* ── the tickers: one strip, duplicated so the loop is seamless ── */
+const tickers=()=>$$('.ticker .track').forEach(t=>{if(!t.dataset.dup){t.dataset.dup='1';t.innerHTML=t.innerHTML+t.innerHTML;}});
 
 /* ── boot ── */
 async function boot(){
@@ -1535,16 +2461,17 @@ async function boot(){
     META.version=h.version||'';
     $('#hb-txt').textContent='online · :'+location.port+(AUTH_ON?'':' · open');
     $('#hb-dot').classList.remove('off');
+    const fv=$('#foot-ver');if(fv)fv.textContent='v'+(META.version||'?')+' · one sqlite file · wal · fts5 trigram';
   }
   catch(e){$('#hb-txt').textContent='offline';$('#hb-dot').classList.add('off');}
   if(!AUTH_ON){$('#gate').classList.remove('open');syncLock();$('#open-token').style.display='none';}
   if(AUTH_ON&&!token){showGate();return;}
   try{await stats();load();}catch(e){}
 }
-mountMimi();paintTheme();
-/* the full recall hint does not fit a phone width — shorten it rather than clip it */
+mountMimi();paintTheme();tickers();reveal();
+/* the full recall hint does not fit a phone width, shorten it rather than clip it */
 function fitPlaceholder(){
-  $('#q').placeholder=innerWidth<560?'recall — ไทย & English':`recall — ไทย & English พิมพ์เพี้ยนนิดหน่อยก็เจอ…`;
+  $('#q').placeholder=innerWidth<560?'recall: ไทย & English':`recall: ไทย & English พิมพ์เพี้ยนนิดหน่อยก็เจอ`;
 }
 addEventListener('resize',fitPlaceholder);
 fitPlaceholder();

@@ -91,7 +91,7 @@ await shot('07-tags');
 /* ── relay: handoff read + ack + write ── */
 await evaluate(`document.querySelector('.nav button[data-mode=relay]').click()`);
 await sleep(800);
-check('relay pane shown', await evaluate(`!document.querySelector('#relay').hidden`));
+check('relay pane shown', await evaluate(`!document.querySelector('#v-relay').hidden`));
 check('search row hidden in relay', await evaluate(`getComputedStyle(document.querySelector('.searchrow')).display`) === 'none');
 await evaluate(`document.querySelector('#ho-agent').value='crush'`);
 await evaluate(`document.querySelector('#ho-load').click()`);
@@ -201,7 +201,7 @@ for (const [w, h, tag] of [[390, 844, 'iphone'], [320, 640, 'small'], [844, 390,
   check(`no h-overflow @${w}x${h} (${tag})`, ov <= 1, 'overflow ' + ov + 'px');
   if (tag === 'iphone') {
     await shot('14-mobile-dash');
-    check('placeholder shortened on phones', (await evaluate(`document.querySelector('#q').placeholder`)) === 'recall — ไทย & English');
+    check('placeholder shortened on phones', (await evaluate(`document.querySelector('#q').placeholder`)) === 'recall: ไทย & English');
     check('status text kept for screen readers', (await evaluate(`document.querySelector('.chip-st span:last-child').textContent.length`)) > 3
       && (await evaluate(`document.querySelector('.chip-st span:last-child').getBoundingClientRect().width`)) < 3);
     /* every header control must be inside the viewport — an overflowed button
@@ -209,10 +209,21 @@ for (const [w, h, tag] of [[390, 844, 'iphone'], [320, 640, 'small'], [844, 390,
     const off = await evaluate(`[...document.querySelectorAll('.top .ia,.top .chip-st,.logo')]
       .filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&(r.right>innerWidth+0.5||r.left<-0.5||r.bottom>innerHeight)}).map(e=>e.id||e.className)`);
     check('no header control overflows the phone width', off.length === 0, JSON.stringify(off));
-    check('the header row wraps instead of hiding a button', await evaluate(`(()=>{const r=document.querySelector('.top-r').getBoundingClientRect();
-      return Math.round(r.width)>=Math.round(document.querySelector('.top').getBoundingClientRect().width)})()`));
-    check('sky painted by the fixed world layer (no iOS fixed-bg jank)', await evaluate(`getComputedStyle(document.querySelector('.world')).backgroundImage`).then(v => /linear-gradient/.test(v)));
-    check('clouds drift by transform, not left', await evaluate(`getComputedStyle(document.querySelector('.cloud.a')).transform !== 'none' && getComputedStyle(document.querySelector('.cloud.a')).left === '-220px'`));
+    /* the control cluster must not clip its own children: an overflowed button
+       is an invisible button. (the header is one row on a phone) */
+    check('the header controls are not clipped by the cluster', await evaluate(`(()=>{
+      const c=document.querySelector('.top-r').getBoundingClientRect();
+      return [...document.querySelectorAll('.top-r > *')].every(e=>{const b=e.getBoundingClientRect();
+        return b.width===0 || (b.right<=c.right+0.5 && b.left>=c.left-0.5 && b.bottom<=c.bottom+0.5)});})()`));
+    check('the header is one row on a phone', await evaluate(`(()=>{
+      const l=document.querySelector('.logo').getBoundingClientRect();
+      const t=document.querySelector('.top-r').getBoundingClientRect();
+      const cl=l.top+l.height/2, ct=t.top+t.height/2;
+      return Math.abs(cl-ct)<2 && t.right<=innerWidth+0.5;})()`));
+    check('graph paper painted by the fixed world layer (no iOS fixed-bg jank)', await evaluate(`getComputedStyle(document.querySelector('.world')).backgroundImage`).then(v => /linear-gradient/.test(v)));
+    /* the ticker moves by transform, not by re-laying out the strip every frame */
+    check('ticker scrolls by transform', await evaluate(`(()=>{const cs=getComputedStyle(document.querySelector('.ticker .track'));
+      return cs.animationName!=='none' && parseFloat(cs.animationDuration)>0})()`));
     check('inputs are ≥16px (no iOS focus zoom)', await evaluate(`[...document.querySelectorAll('#ls-name,#ls-holder,#add-tags,#tag-q,#ln-new,#cr-sources,#ho-from')]
       .every(e=>parseFloat(getComputedStyle(e).fontSize)>=16)`),
       await evaluate(`[...document.querySelectorAll('#ls-name,#add-tags,#tag-q')].map(e=>getComputedStyle(e).fontSize).join(',')`));
