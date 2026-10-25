@@ -893,46 +893,6 @@ mark{background:var(--yellow);color:#111;padding:0 3px;border:1px solid var(--pr
     </div>
   </section>
 
-  <!-- the live console -->
-  <section class="plate pl-yellow sec">
-    <div class="wrap">
-      <div class="sec-head">
-        <p class="eyebrow">the same question, three ways</p>
-        <h2 class="h2">คำเดียวกัน ถามผ่านเส้นทางต่างกัน ได้คนละอันดับ</h2>
-        <p class="lede">หน้าต่างนี้คือคำสั่งจริงของเซิร์ฟเวอร์ ไม่ใช่ภาพจำลอง กด ▶ เพื่อรัน</p>
-      </div>
-      <div class="console" id="console">
-        <div class="win-bar">
-          <span class="win-dots"><i class="c0"></i><i class="c1"></i><i class="c2"></i></span>
-          <span class="win-title">recall.console</span>
-          <span class="win-meta" id="con-meta">/memories/recall</span>
-        </div>
-        <div class="con-tabs" id="con-tabs">
-          <button data-c="keyword">keyword</button>
-          <button data-c="hybrid" class="active">hybrid</button>
-          <button data-c="recent">recent</button>
-        </div>
-        <div class="console-body">
-          <div class="console-q">
-            <input id="cq" type="search" value="health check" aria-label="Console query" spellcheck="false">
-            <button class="btn" id="cq-run">▶ run</button>
-          </div>
-          <div class="console-cols">
-            <div class="ccol" data-col="keyword"><h4><span>keyword</span><span class="tiny" id="cc-k">··</span></h4><div id="cc-k-body"></div></div>
-            <div class="ccol on" data-col="hybrid"><h4><span>hybrid</span><span class="tiny" id="cc-h">··</span></h4><div id="cc-h-body"></div></div>
-            <div class="ccol" data-col="recent"><h4><span>recent</span><span class="tiny" id="cc-r">··</span></h4><div id="cc-r-body"></div></div>
-          </div>
-        </div>
-        <div class="console-foot">
-          <button class="cf-play" id="cf-play" aria-label="Run the query">▶</button>
-          <div class="cf-track"><div class="cf-fill" id="cf-fill"></div></div>
-          <span class="cf-time" id="cf-time">·· ms</span>
-          <span class="cf-note" id="cf-note">keyword · hybrid · recent</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- the long version lives on its own page now -->
 </div>
 
@@ -1276,6 +1236,7 @@ mark{background:var(--yellow);color:#111;padding:0 3px;border:1px solid var(--pr
           <span id="llm-status" role="status" aria-live="polite" style="font-family:var(--mono);font-size:12px;color:var(--tx2);"></span>
         </div>
         <p class="note">Environment variables override the stored settings.</p>
+      <p class="note" style="margin-top:4px;">LLM settings here control <code>/extract</code> (turn free text into memory ops). They do not affect the semantic/embedding layer, which uses Cloudflare Workers AI embeddings configured via <code>CF_ACCOUNT_ID</code> / <code>CF_AI_TOKEN</code> env vars.</p>
       </div>
     </div>
   </section>
@@ -1492,29 +1453,6 @@ sqlite3 /path/minimem.db "VACUUM INTO 'out.db'"   <span class="c"># คัดล
 </div>
 
 </main>
-
-<!-- ══ conversion ══ -->
-<div class="conv">
-  <div class="ticker pink" aria-hidden="true"><div class="track"><span>store it</span><span>recall it</span><span>trust it</span><span>correct it</span><span>pass it on</span><span>one file, one truth</span></div></div>
-  <div class="wrap sec">
-    <div class="conv-panel">
-      <div class="lm" data-mimi="happy"></div>
-      <div>
-        <h2>เริ่มจาก <span class="b">ความจำ</span><br><span class="p">หนึ่งเรื่อง</span> ก็พอ</h2>
-        <p>ไม่ต้องตั้งค่าอะไรก่อน ไม่ต้องเลือก schema ไม่ต้องคิดว่าจะเก็บยังไง เขียนเข้าไป ที่เหลือคลังจัดการเอง</p>
-        <button class="btn blue" id="conv-cta">เปิดคลัง / open the store</button>
-      </div>
-      <div class="outlook">
-        <div class="h">on the bench</div>
-        <ul>
-          <li>เทียบ prompt ของ adjudicator เก็บคำตัดสินรายคู่ไว้ให้ใหม่คะแนนซ้ำได้</li>
-          <li>ปิด relation เป็นกราฟก่อนใช้ เพื่อไม่ให้รากของ chain ถูกเงาทับ</li>
-          <li>วัด latency จริงบนเครื่องนี้ทุกครั้งที่เปลี่ยน ranking</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ══ footer ══ -->
 <footer class="foot">
@@ -2053,7 +1991,6 @@ async function renderDash(){
     const a=(await req('/audit?limit=1')).items?.[0];
     $('#last').innerHTML=a?`ล่าสุด: <span class="pix">${esc(a.action)}</span> โดย <b>${esc(a.actor)}</b>${a.target?' ที่ <b>'+esc(a.target)+'</b>':''} · ${ago(a.at)} ที่แล้ว`:'ยังไม่มีความเคลื่อนไหวเลย เงียบจัง';
   }catch(e){$('#last').textContent='';}
-  runConsole();
 }
 function paintHero(s){
   const set=(sel,v)=>{const e=$(sel);if(e)e.textContent=v;};
@@ -2078,7 +2015,6 @@ $('#hero-mimi').onclick=()=>{
 };
 
 /* ── recall console: the three real paths, run live ── */
-let conTab='hybrid';
 // only the fields that actually came back are shown: a row of em dashes for
 // signals the server does not have would read as "measured and found nothing"
 function conRow(r,kind){
@@ -2092,44 +2028,6 @@ function conRow(r,kind){
   }
   return `<div class="ci"><div class="m">${esc(String(r.text||'').slice(0,120))}</div><div class="f">${f.map(x=>`<span>${esc(x)}</span>`).join('')}</div></div>`;
 }
-async function runConsole(){
-  const q=($('#cq').value||'').trim();
-  const fill=$('#cf-fill');if(fill)fill.style.width='8%';
-  const t0=performance.now();
-  const kw=document.getElementById('cc-k-body'),hy=document.getElementById('cc-h-body'),rc=document.getElementById('cc-r-body');
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  let degraded=null,cands=null,rel=null;
-  try{
-    const [k,h,r]=await Promise.all([
-      req('/memories/recall?q='+encodeURIComponent(q)+'&limit=5&mode=keyword'),
-      req('/memories/recall?q='+encodeURIComponent(q)+'&limit=5'),
-      req('/memories?limit=5'),
-    ]);
-    degraded=h.degraded||null;cands=h.candidates;rel=h.relevant;
-    const empty='<div class="ci"><div class="m">ไม่มีผลลัพธ์</div></div>';
-    if(kw)kw.innerHTML=(k.items||[]).map(x=>conRow(x,'keyword')).join('')||empty;
-    if(hy)hy.innerHTML=(h.items||[]).map(x=>conRow(x,'hybrid')).join('')||empty;
-    if(rc)rc.innerHTML=(r.items||[]).map(x=>conRow(x,'recent')).join('')||empty;
-    set('cc-k',(k.items||[]).length+' hits');set('cc-h',(h.items||[]).length+' hits');set('cc-r',(r.items||[]).length+' rows');
-    set('cf-note',degraded?('degraded: '+degraded):`candidates ${cands??'-'} · relevant ${rel??'-'}`);
-  }catch(e){
-    const empty='<div class="ci"><div class="m">โหลดไม่ได้</div></div>';
-    [kw,hy,rc].forEach(x=>{if(x)x.innerHTML=empty;});
-    set('cf-note','error');
-  }
-  const ms=Math.round(performance.now()-t0);
-  set('cf-time',ms+' ms');
-  if(fill){fill.style.width='100%';setTimeout(()=>{fill.style.width='8%';},900);}
-}
-$('#cq-run').onclick=()=>runConsole();
-$('#cf-play').onclick=()=>runConsole();
-$('#cq').addEventListener('keydown',e=>{if(e.key==='Enter')runConsole();});
-$$('#con-tabs button').forEach(b=>b.onclick=()=>{
-  conTab=b.dataset.c;
-  $$('#con-tabs button').forEach(x=>x.classList.toggle('active',x===b));
-  $$('.ccol').forEach(c=>c.classList.toggle('on',c.dataset.col===conTab));
-});
-
 /* ── tags ── */
 let tagData=[];
 const touch=()=>matchMedia('(pointer:coarse)').matches;
@@ -2428,7 +2326,6 @@ $('#ex-run').onclick=async()=>{const t=$('#ex-text').value.trim();if(!t)return;c
 /* ── the buttons that live on the plates ── */
 $('#hero-add').onclick=()=>openSheet('add');
 $('#hero-recall').onclick=()=>setSearch(true);
-$('#conv-cta').onclick=()=>openSheet('add');
 $('#about-token').onclick=showGate;
 $('#about-relay').onclick=()=>go('relay','handoff');
 $('#about-docs').onclick=()=>go('docs');
