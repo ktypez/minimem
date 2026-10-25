@@ -1236,7 +1236,44 @@ mark{background:var(--yellow);color:#111;padding:0 3px;border:1px solid var(--pr
           <span id="llm-status" role="status" aria-live="polite" style="font-family:var(--mono);font-size:12px;color:var(--tx2);"></span>
         </div>
         <p class="note">Environment variables override the stored settings.</p>
-      <p class="note" style="margin-top:4px;">LLM settings here control <code>/extract</code> (turn free text into memory ops). They do not affect the semantic/embedding layer, which uses Cloudflare Workers AI embeddings configured via <code>CF_ACCOUNT_ID</code> / <code>CF_AI_TOKEN</code> env vars.</p>
+      <p class="note" style="margin-top:4px;">LLM settings here control <code>/extract</code> (turn free text into memory ops).</p>
+      </div>
+    </div>
+  </section>
+  <section class="plate pl-paper sec">
+    <div class="wrap">
+      <h3 class="group-title c0">Embedding settings</h3>
+      <div class="box" style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;max-width:640px;">
+        <label style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);">
+          Provider
+          <input id="embed-provider" name="embed_provider" type="text" placeholder="cloudflare" autocomplete="off" spellcheck="false" aria-label="Embedding provider" style="text-transform:none;">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);">
+          Model
+          <input id="embed-model" name="embed_model" type="text" placeholder="@cf/baai/bge-m3" autocomplete="off" spellcheck="false" aria-label="Embedding model" style="text-transform:none;">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);">
+          Dimension
+          <input id="embed-dim" name="embed_dim" type="number" placeholder="1024" autocomplete="off" spellcheck="false" aria-label="Embedding dimension" style="text-transform:none;">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);">
+          Endpoint (OpenAI-compatible)
+          <input id="embed-endpoint" name="embed_endpoint" type="text" placeholder="https://api.example.com/v1" autocomplete="off" spellcheck="false" aria-label="Embedding endpoint" style="text-transform:none;">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);">
+          API key
+          <input id="embed-api-key" name="embed_api_key" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false" aria-label="Embedding API key" style="text-transform:none;">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);">
+          Account ID (Cloudflare)
+          <input id="embed-account-id" name="embed_account_id" type="text" placeholder="account id" autocomplete="off" spellcheck="false" aria-label="Embedding account id" style="text-transform:none;">
+        </label>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <button class="btn" id="embed-save" type="button">Save</button>
+          <span id="embed-status" role="status" aria-live="polite" style="font-family:var(--mono);font-size:12px;color:var(--tx2);"></span>
+        </div>
+        <p class="note">Environment variables override the stored settings.</p>
+        <p class="note" style="margin-top:4px;">Without provider/key/endpoint configured, semantic search stays off (keyword-only).</p>
       </div>
     </div>
   </section>
@@ -1897,7 +1934,7 @@ async function load(reset=true){
   if(m==='relay')return loadRelay();
   if(m==='docs'){showView('docs');setHead('Documentation','how to use it');return;}
   if(m==='info'){showView('info');setHead('Info','the long version');reveal();return;}
-  if(m==='settings'){showView('settings');setHead('Settings','LLM configuration');loadLlmSettings();return;}
+  if(m==='settings'){showView('settings');setHead('Settings','LLM & embedding configuration');loadLlmSettings();loadEmbedSettings();return;}
   showView('list');
   const host=$('#cards');
   const first=reset||host.children.length===0;
@@ -2286,6 +2323,56 @@ function wireLlmSettings(){
     }finally{btn.disabled=false;}
   };
 }
+/* ── Embedding settings ── */
+let embedSettingsOriginalKey='';
+async function loadEmbedSettings(){
+  const msg=$('#embed-status');
+  try{
+    const s=await req('/settings/embed');
+    const provider=s.embed_provider??s.provider??s.settings?.embed_provider??'';
+    const model=s.embed_model??s.model??s.settings?.embed_model??'';
+    const dim=s.embed_dim??s.dim??s.settings?.embed_dim??'';
+    const endpoint=s.embed_endpoint??s.endpoint??s.settings?.embed_endpoint??'';
+    const key=s.embed_api_key??s.api_key??s.settings?.embed_api_key??'';
+    const account=s.embed_account_id??s.account_id??s.settings?.embed_account_id??'';
+    $('#embed-provider').value=provider||'';
+    $('#embed-model').value=model||'';
+    $('#embed-dim').value=(dim===null||dim===undefined)?'':dim;
+    $('#embed-endpoint').value=endpoint||'';
+    $('#embed-api-key').value=key||'';
+    $('#embed-account-id').value=account||'';
+    embedSettingsOriginalKey=key||'';
+    if(msg){msg.textContent='';msg.style.color='';}
+  }catch(e){
+    if(msg){msg.textContent=e.message||'load failed';msg.style.color='var(--pink)';}
+  }
+}
+function wireEmbedSettings(){
+  const btn=$('#embed-save');
+  if(!btn||btn.dataset.wired)return;
+  btn.dataset.wired='1';
+  btn.onclick=async()=>{
+    const msg=$('#embed-status');
+    btn.disabled=true;
+    if(msg){msg.textContent='';msg.style.color='';}
+    try{
+      const dimVal=$('#embed-dim').value.trim();
+      const body={
+        embed_provider:$('#embed-provider').value.trim(),
+        embed_model:$('#embed-model').value.trim(),
+        embed_dim:dimVal===''?'':Number(dimVal),
+        embed_endpoint:$('#embed-endpoint').value.trim(),
+        embed_api_key:$('#embed-api-key').value.trim(),
+        embed_account_id:$('#embed-account-id').value.trim()
+      };
+      await req('/settings/embed',{method:'PUT',body:JSON.stringify(body)});
+      await loadEmbedSettings();
+      if(msg){msg.textContent='Saved';msg.style.color='var(--tx)';}
+    }catch(e){
+      if(msg){msg.textContent=e.message||'save failed';msg.style.color='var(--pink)';}
+    }finally{btn.disabled=false;}
+  };
+}
 /* ── nav ── */
 $$('.nav button').forEach(b=>b.onclick=()=>{
   const mode=b.dataset.mode;
@@ -2433,7 +2520,7 @@ async function boot(){
   catch(e){$('#hb-txt').textContent='offline';$('#hb-dot').classList.add('off');}
   if(!AUTH_ON){$('#gate').classList.remove('open');syncLock();$('#open-token').style.display='none';}
   if(AUTH_ON&&!token){showGate();return;}
-  try{await stats();load();loadLlmSettings();wireLlmSettings();}catch(e){}
+  try{await stats();load();loadLlmSettings();wireLlmSettings();loadEmbedSettings();wireEmbedSettings();}catch(e){}
 }
 mountMimi();paintTheme();tickers();reveal();
 /* the full recall hint does not fit a phone width, shorten it rather than clip it */

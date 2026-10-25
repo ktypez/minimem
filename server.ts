@@ -41,11 +41,14 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { keywords, matchExpr } from "./search_kw.ts";
 import {
-  CF_ACCOUNT_ID,
-  CF_AI_TOKEN,
-  EMBED_ENABLED,
-  EMBED_MODEL,
-  EMBED_PROVIDER,
+  getEmbedAccountId,
+  getEmbedApiKey,
+  getEmbedDim,
+  getEmbedEnabled,
+  getEmbedEndpoint,
+  getEmbedModel,
+  getEmbedProvider,
+  getEmbedToken,
   type Cand,
   type Scored,
   cosine,
@@ -59,6 +62,7 @@ import {
   unpackVec,
   weights,
 } from "./embed.ts";
+import { setEmbedDb } from "./embed.ts";
 import {
   backfill,
   dropEmbedding,
@@ -345,6 +349,7 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT
 );
 `);
+setEmbedDb(db);
 // v3 columns on memories: nullable, no backfill needed. agent_source = who said
 // it, trust = how much to believe it. Both are advisory metadata for the agent;
 // nothing is ever auto-deleted or auto-forgotten because of them.
@@ -389,6 +394,37 @@ function llmSettingsResponse() {
     endpoint: obj.llm_endpoint,
     api_key: obj.llm_api_key,
     models: obj.llm_models,
+    settings: { ...obj },
+  };
+}
+function embedSettingsResponse() {
+  const provider = getSetting("embed_provider");
+  const model = getSetting("embed_model");
+  const dimRaw = getSetting("embed_dim");
+  const endpoint = getSetting("embed_endpoint");
+  const key = getSetting("embed_api_key");
+  const accountId = getSetting("embed_account_id");
+  let dim: number | null = null;
+  if (dimRaw !== null && dimRaw.trim() !== "") {
+    const n = Number(dimRaw);
+    if (Number.isFinite(n)) dim = n;
+  }
+  const obj = {
+    embed_provider: provider,
+    embed_model: model,
+    embed_dim: dim ?? (dimRaw ?? null),
+    embed_endpoint: endpoint,
+    embed_api_key: redactApiKey(key),
+    embed_account_id: accountId,
+  };
+  return {
+    ...obj,
+    provider: obj.embed_provider,
+    model: obj.embed_model,
+    dim: obj.embed_dim,
+    endpoint: obj.embed_endpoint,
+    api_key: obj.embed_api_key,
+    account_id: obj.embed_account_id,
     settings: { ...obj },
   };
 }
@@ -819,7 +855,7 @@ async function recall(
   // embeddings off / provider not configured: keyword-only, but say so
   if (!embedReady()) {
     return keywordOnly(
-      `embeddings unavailable (EMBED_ENABLED=${EMBED_ENABLED ? 1 : 0}, token ${CF_AI_TOKEN ? "set" : "missing"}, account ${CF_ACCOUNT_ID ? "set" : "missing"})`,
+      `embeddings unavailable (EMBED_ENABLED=${getEmbedEnabled() ? 1 : 0}, token ${getEmbedToken() ? "set" : "missing"}, account ${getEmbedAccountId() ? "set" : "missing"}, endpoint ${getEmbedEndpoint() ? "set" : "missing"})`,
     );
   }
 
@@ -856,7 +892,7 @@ async function recall(
     degraded = qv.error;
   } else {
     const queryVec = unpackVec(packVec(qv.vectors[0]));
-    vectors = cachedVectors(EMBED_MODEL);
+    vectors = cachedVectors(getEmbedModel());
     for (const [id, vec] of vectors) cosOf.set(id, cosine(queryVec, vec));
     // semantic-only candidates: above the relevance floor, best cosine first
     const floor = w.minRelevance;
@@ -1533,13 +1569,16 @@ const app = new Elysia()
   })
   // semantic index state — never returns the token, only whether it is set
   .get("/embeddings", () => ({
-    enabled: EMBED_ENABLED,
+    enabled: getEmbedEnabled(),
     ready: embedReady(),
-    provider: EMBED_PROVIDER,
-    model: EMBED_MODEL,
-    account_id: CF_ACCOUNT_ID ? "set" : "missing",
+    provider: getEmbedProvider(),
+    model: getEmbedModel(),
+    dim: getEmbedDim(),
+    endpoint: getEmbedEndpoint() ? "set" : "missing",
+    account_id: getEmbedAccountId() ? "set" : "missing",
+    api_key: getEmbedApiKey() ? "set" : "missing",
     ai_token: process.env.CF_AI_TOKEN ? "CF_AI_TOKEN" : process.env.CLOUDFLARE_AI_TOKEN ? "CLOUDFLARE_AI_TOKEN" : "missing",
-    ...embeddingStats(db),
+    ...embeddingStats(db, getEmbedModel()),
   }))
   // backfill: idempotent, resumable, capped per call. Safe to run while live.
   .post("/embeddings/backfill", async ({ query }) => {
@@ -1728,6 +1767,106 @@ const app = new Elysia()
     {
       body: t.Any(),
     },
+  )
+  // Embedding settings (database-backed; env vars override at runtime)
+  .get("/settings/embed", () => embedSettingsResponse())
+  .put(
+    "/settings/embed",
+    ({ body, set }) => {
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        set.status = 400;
+        return { error: "invalid request body" };
+      }
+      const b = body as Record<string, unknown>;
+      const providerRaw = b.embed_provider ?? b.provider ?? b.embedProvider;
+      const modelRaw = b.embed_model ?? b.model ?? b.embedModel;
+      const dimRaw = b.embed_dim ?? b.dim ?? b.embedDim;
+      const endpointRaw = b.embed_endpoint ?? b.endpoint ?? b.embedEndpoint;
+      const keyRaw = b.embed_api_key ?? b.api_key ?? b.embedApiKey ?? b.key;
+      const accountRaw = b.embed_account_id ?? b.account_id ?? b.embedAccountId ?? b.accountId;
+
+      if (providerRaw !== undefined) {
+        if (typeof providerRaw !== "string") {
+          set.status = 400;
+          return { error: "embed_provider must be a string" };
+        }
+        setSetting("embed_provider", providerRaw.trim().toLowerCase());
+      }
+
+      if (modelRaw !== undefined) {
+        if (typeof modelRaw !== "string") {
+          set.status = 400;
+          return { error: "embed_model must be a string" };
+        }
+        setSetting("embed_model", modelRaw.trim());
+      }
+
+      if (dimRaw !== undefined) {
+        if (typeof dimRaw === "number") {
+          if (!Number.isFinite(dimRaw) || !Number.isInteger(dimRaw) || dimRaw <= 0) {
+            set.status = 400;
+            return { error: "embed_dim must be a positive integer" };
+          }
+          setSetting("embed_dim", String(dimRaw));
+        } else if (typeof dimRaw === "string") {
+          const t = dimRaw.trim();
+          if (t === "") {
+            setSetting("embed_dim", "");
+          } else {
+            const n = Number(t);
+            if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
+              set.status = 400;
+              return { error: "embed_dim must be a positive integer" };
+            }
+            setSetting("embed_dim", String(n));
+          }
+        } else {
+          set.status = 400;
+          return { error: "embed_dim must be a number" };
+        }
+      }
+
+      if (endpointRaw !== undefined) {
+        if (typeof endpointRaw !== "string") {
+          set.status = 400;
+          return { error: "embed_endpoint must be a string" };
+        }
+        const v = endpointRaw.trim();
+        if (v) {
+          try {
+            const u = new URL(v);
+            if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("bad protocol");
+          } catch {
+            set.status = 400;
+            return { error: "invalid embed_endpoint URL" };
+          }
+        }
+        setSetting("embed_endpoint", v);
+      }
+
+      if (keyRaw !== undefined) {
+        if (typeof keyRaw !== "string") {
+          set.status = 400;
+          return { error: "embed_api_key must be a string" };
+        }
+        const v = keyRaw.trim();
+        const stored = getSetting("embed_api_key");
+        if (v !== redactApiKey(stored)) {
+          setSetting("embed_api_key", v);
+        }
+      }
+
+      if (accountRaw !== undefined) {
+        if (typeof accountRaw !== "string") {
+          set.status = 400;
+          return { error: "embed_account_id must be a string" };
+        }
+        setSetting("embed_account_id", accountRaw.trim());
+      }
+
+      return embedSettingsResponse();
+    },
+    { body: t.Any() },
   )
   // LLM extraction: send raw text or a conversation, store what's worth remembering
   .post("/extract", async ({ body, set }) => {

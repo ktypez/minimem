@@ -40,7 +40,7 @@ import { Database } from "bun:sqlite";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ADJUDICATE_MODEL, ADJUDICATE_STYLE, extractClaims, judgePairs, pairKey, type Claim } from "./adjudicate";
-import { cosine, EMBED_MODEL } from "./embed";
+import { cosine, getEmbedModel, setEmbedDb } from "./embed";
 
 const argv = process.argv.slice(2);
 const flag = (name: string, dflt?: string) => {
@@ -63,6 +63,7 @@ const DB_PATH =
 
 // default constructor: readwrite, creates the file if missing
 const db = new Database(DB_PATH);
+setEmbedDb(db);
 db.exec(`CREATE TABLE IF NOT EXISTS supersedes (
   id_a INTEGER NOT NULL, id_b INTEGER NOT NULL, reason TEXT,
   decided_by TEXT NOT NULL DEFAULT 'model',
@@ -84,7 +85,7 @@ const memText = (id: number): string | null =>
 // ---------- candidate pairs ----------
 type Vec = { id: number; vec: Float32Array };
 const vecs: Vec[] = [];
-for (const r of db.query("SELECT memory_id, dim, vec FROM embeddings WHERE model = ?").all(EMBED_MODEL) as any[]) {
+for (const r of db.query("SELECT memory_id, dim, vec FROM embeddings WHERE model = ?").all(getEmbedModel()) as any[]) {
   const b = r.vec as Uint8Array;
   vecs.push({ id: r.memory_id, vec: new Float32Array(b.buffer, b.byteOffset, b.byteLength / 4) });
 }

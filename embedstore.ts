@@ -6,7 +6,7 @@
 // a memory row is never touched except for its own vector.
 import { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
-import { EMBED_MODEL, embedBatchSafe, hashText, packVec, unpackVec } from "./embed.ts";
+import { getEmbedModel, embedBatchSafe, hashText, packVec, unpackVec, setEmbedDb } from "./embed.ts";
 
 export type Pending = { id: number; text: string };
 
@@ -25,7 +25,7 @@ export type EmbeddingStats = {
  * Soft-deleted rows are excluded here and everywhere else in this file: they are
  * not recalled, so they are not worth a paid embedding call.
  */
-export function scanPending(db: Database, model = EMBED_MODEL): Pending[] {
+export function scanPending(db: Database, model = getEmbedModel()): Pending[] {
   const rows = db
     .query(
       `SELECT m.id AS id, m.text AS text, x.text_hash AS text_hash, x.model AS model
@@ -43,14 +43,14 @@ export function scanPending(db: Database, model = EMBED_MODEL): Pending[] {
   return out;
 }
 
-export function embeddingStats(db: Database, model = EMBED_MODEL): EmbeddingStats {
+export function embeddingStats(db: Database, model = getEmbedModel()): EmbeddingStats {
   const live = (db.query("SELECT COUNT(*) AS n FROM memories WHERE deleted_at IS NULL").get() as { n: number }).n;
   const embedded = (db.query("SELECT COUNT(*) AS n FROM embeddings WHERE model = ?").get(model) as { n: number }).n;
   return { model, live, embedded, stale_or_missing: scanPending(db, model).length };
 }
 
 /** @returns true when the vector was stored; false when the row changed under us. */
-export function storeEmbedding(db: Database, id: number, vec: number[], text: string, model = EMBED_MODEL): boolean {
+export function storeEmbedding(db: Database, id: number, vec: number[], text: string, model = getEmbedModel()): boolean {
   const cur = db.query("SELECT id, text FROM memories WHERE id = ? AND deleted_at IS NULL").get(id) as
     | { id: number; text: string }
     | null;
@@ -72,7 +72,7 @@ export function dropEmbedding(db: Database, id: number): void {
 }
 
 /** Every vector in the index, unpacked. ~1k rows = ~4 MB, cheap to scan in-process. */
-export function loadVectors(db: Database, model = EMBED_MODEL): { id: number; vec: Float32Array }[] {
+export function loadVectors(db: Database, model = getEmbedModel()): { id: number; vec: Float32Array }[] {
   const rows = db.query("SELECT memory_id, vec FROM embeddings WHERE model = ?").all(model) as {
     memory_id: number;
     vec: Uint8Array;
@@ -80,7 +80,7 @@ export function loadVectors(db: Database, model = EMBED_MODEL): { id: number; ve
   return rows.map((r) => ({ id: r.memory_id, vec: unpackVec(r.vec) }));
 }
 
-export function getVector(db: Database, id: number, model = EMBED_MODEL): Float32Array | null {
+export function getVector(db: Database, id: number, model = getEmbedModel()): Float32Array | null {
   const row = db.query("SELECT vec FROM embeddings WHERE memory_id = ? AND model = ?").get(id, model) as
     | { vec: Uint8Array }
     | null;
@@ -108,7 +108,7 @@ export async function backfill(
   db: Database,
   opts: { limit?: number; batchSize?: number; model?: string; onProgress?: (msg: string) => void } = {},
 ): Promise<BackfillReport> {
-  const model = opts.model ?? EMBED_MODEL;
+  const model = opts.model ?? getEmbedModel();
   const limit = Math.max(1, opts.limit ?? 25);
   const batchSize = Math.max(1, Math.min(opts.batchSize ?? 16, 100));
   const report: BackfillReport = {
@@ -168,6 +168,7 @@ if (import.meta.main) {
     process.exit(2);
   }
   const db = new Database(dbPath, { readwrite: true });
+  setEmbedDb(db);
 
   // The server creates this table on boot, but the backfill script must also work
   // against a DB the server has not started yet (e.g. first-run backfill).
