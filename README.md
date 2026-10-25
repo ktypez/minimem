@@ -1,5 +1,7 @@
 # minimem
 
+> **⚠️ Discontinued.** This project is no longer actively maintained. The code and docs remain here for reference, but no new features or fixes will be added. Feel free to fork if you want to continue development.
+
 Shared, persistent memory for AI agents: one SQLite file, one Bun process, a
 REST API, an MCP endpoint, and a readable web UI. Built to answer one question:
 *where does an agent put a fact so it can find it again next week?*
