@@ -34,7 +34,7 @@ bun test keyword-only.test.ts                # the no-embeddings configuration
 - `MINIMEM_DB_PATH` → default `./data/minimem.db` (on this lab: `/home/admin/minimem-data/…`)
 - `MINIMEM_TOKEN` — long bearer; `MINIMEM_LOCK` — short 8-char web-UI code
 - `AUTH_ENABLED` (1 default), `MINIMEM_MCP` (1 default → serves `POST /mcp`)
-- `HOST`/`PORT` default `127.0.0.1:3100`
+- `HOST`/`PORT` default `0.0.0.0:3100`
 - `EXTRACT_MODELS` + `AI_GATEWAY_API_KEY` — only needed by `POST /extract`
 - Semantic: `CF_AI_TOKEN`, `CF_ACCOUNT_ID`, `EMBED_ENABLED`, `EMBED_MODEL`
   (`@cf/baai/bge-m3`), `EMBED_DIM` (1024), `EMBED_PROVIDER` (`cloudflare`)

@@ -10,7 +10,7 @@
  *   MINIMEM_LOCK     optional short code for the web UI
  *   AUTH_ENABLED     1|0 — set 0 to run open on a trusted network
  *   MINIMEM_MCP      1|0 — set 0 to disable the POST /mcp JSON-RPC endpoint
- *   HOST / PORT      default 127.0.0.1:3100
+ *   HOST / PORT      default 0.0.0.0:3100
  *   EXTRACT_MODELS   comma-separated gateway model ids, tried in order
  *
  * Semantic layer (all optional — unset = keyword-only, the old behaviour):
@@ -79,7 +79,12 @@ const AUTH_ENABLED = !["0", "false", "no", "off"].includes(
   (env("AUTH_ENABLED") ?? "1").trim().toLowerCase(),
 );
 const PORT = Number(env("PORT") ?? 3100);
-const HOST = env("HOST") ?? "127.0.0.1";
+const HOST = env("HOST") ?? "0.0.0.0";
+// Refuse to run unauthenticated on a public interface. AUTH_ENABLED=0 is only
+// for loopback / a trusted private network.
+if (!AUTH_ENABLED && !["127.0.0.1", "::1", "localhost"].includes(HOST)) {
+  throw new Error("AUTH_ENABLED=0 requires a loopback HOST (127.0.0.1/::1/localhost); refusing to bind " + HOST + " without auth");
+}
 // MINIMEM_MCP=0 disables the POST /mcp JSON-RPC endpoint (agents lose memory tools).
 const MCP_ENABLED = !["0", "false", "no", "off"].includes(
   (env("MINIMEM_MCP") ?? "1").trim().toLowerCase(),
@@ -91,7 +96,7 @@ const MODELS = (env("EXTRACT_MODELS") ?? "google/gemini-2.5-flash-lite")
 
 // ---------- CLI ----------
 const NAME = "minimem";
-const VERSION = "1.1.0";
+const VERSION = "2.0.0";
 
 function usage(): string {
   return `${NAME} ${VERSION} — small memory store for agents (Bun + Elysia + SQLite FTS5)
@@ -104,7 +109,7 @@ env:
   MINIMEM_LOCK      short web-UI code                  (optional, shows in the token sheet)
   AUTH_ENABLED      1|0  turn the API guard on/off     (default 1)
   MINIMEM_MCP       1|0  serve the POST /mcp endpoint    (default 1)
-  HOST, PORT        bind address                       (default 127.0.0.1:3100)
+  HOST, PORT        bind address                       (default 0.0.0.0:3100)
   EXTRACT_MODELS    comma-separated gateway model ids  (/extract fallback chain)
   AI_GATEWAY_API_KEY  Vercel AI Gateway key            (only needed for /extract)
 
@@ -112,6 +117,13 @@ options:
   -h, --help      print this
   -V, --version   print version
   --check         open the DB, print stats, exit (no server)
+
+public deployment:
+  default bind is 0.0.0.0 (all interfaces). Keep AUTH_ENABLED=1 and set a strong
+  MINIMEM_TOKEN. Put a reverse proxy (Caddy/nginx) in front for HTTPS, and
+  firewall the origin so only the proxy (or your VPN) reaches :3100.
+  Never run with AUTH_ENABLED=0 on a public interface.
+  /settings/llm requires authentication (token) even for reads.
 `;
 }
 
@@ -325,6 +337,14 @@ CREATE TABLE IF NOT EXISTS supersedes (
 );
 CREATE INDEX IF NOT EXISTS supersedes_b_idx ON supersedes(id_b);
 `);
+// ---------- settings: database-backed key/value store (LLM config etc.) ----------
+db.exec(`
+CREATE TABLE IF NOT EXISTS settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT,
+  updated_at TEXT
+);
+`);
 // v3 columns on memories: nullable, no backfill needed. agent_source = who said
 // it, trust = how much to believe it. Both are advisory metadata for the agent;
 // nothing is ever auto-deleted or auto-forgotten because of them.
@@ -338,6 +358,40 @@ CREATE INDEX IF NOT EXISTS supersedes_b_idx ON supersedes(id_b);
   if (!cols.some((c) => c.name === "old_tags")) db.exec("ALTER TABLE history ADD COLUMN old_tags TEXT");
 }
 
+// ---------- settings helpers ----------
+export function getSetting(key: string): string | null {
+  const row = db.query("SELECT value FROM settings WHERE key = ?").get(key) as { value: string | null } | null;
+  return row ? row.value : null;
+}
+export function setSetting(key: string, value: string): void {
+  db.run(
+    "INSERT INTO settings(key, value, updated_at) VALUES(?, ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    [key, value],
+  );
+}
+
+function redactApiKey(value: string | null): string | null {
+  if (!value) return value;
+  if (value.length <= 4) return value;
+  return "****" + value.slice(-4);
+}
+function llmSettingsResponse() {
+  const endpoint = getSetting("llm_endpoint");
+  const key = getSetting("llm_api_key");
+  const models = getSetting("llm_models");
+  const obj = {
+    llm_endpoint: endpoint,
+    llm_api_key: redactApiKey(key),
+    llm_models: models,
+  };
+  return {
+    ...obj,
+    endpoint: obj.llm_endpoint,
+    api_key: obj.llm_api_key,
+    models: obj.llm_models,
+    settings: { ...obj },
+  };
+}
 type Mem = {
   id: number;
   text: string;
@@ -918,6 +972,26 @@ function applyOps(ops: Op[], existing: Mem[]) {
   return result;
 }
 
+function resolveLLMSettings() {
+  const endpoint = (env("LLM_ENDPOINT") || getSetting("llm_endpoint") || "").trim();
+  const key = (env("AI_GATEWAY_API_KEY") || getSetting("llm_api_key") || "").trim();
+  const modelsRaw = env("EXTRACT_MODELS") || getSetting("llm_models") || "google/gemini-2.5-flash-lite";
+  const models = String(modelsRaw)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return { endpoint, key, models: models.length ? models : ["google/gemini-2.5-flash-lite"] };
+}
+
+function chatCompletionUrls(endpoint: string): string[] {
+  const e = endpoint.trim().replace(/\/+$/, "");
+  if (!e) return [];
+  if (e.endsWith("/chat/completions")) return [e];
+  const urls = [`${e}/chat/completions`];
+  if (!e.endsWith("/v1")) urls.push(`${e}/v1/chat/completions`);
+  return [...new Set(urls)];
+}
+
 async function extract(input: string) {
   const existing = relevant(input);
   const prompt =
@@ -925,8 +999,48 @@ async function extract(input: string) {
     (existing.map((m) => `[${m.id}] ${m.text}`).join("\n") || "(none)") +
     `\n\nNEW CONVERSATION:\n${input}`;
 
+  const { endpoint, key, models } = resolveLLMSettings();
   let lastErr: unknown;
-  for (const model of MODELS) {
+
+  if (endpoint) {
+    const urls = chatCompletionUrls(endpoint);
+    for (const model of models) {
+      for (const url of urls) {
+        try {
+          const headers: Record<string, string> = { "Content-Type": "application/json" };
+          if (key) headers.Authorization = `Bearer ${key}`;
+          const res = await fetch(url, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: "system", content: SYSTEM + "\n\nRespond with a single JSON object of the form { \"ops\": [...] } and nothing else." },
+                { role: "user", content: prompt },
+              ],
+              temperature: 0,
+              response_format: { type: "json_object" },
+            }),
+          });
+          if (!res.ok) {
+            lastErr = new Error(`HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+            continue;
+          }
+          const data = (await res.json()) as any;
+          const content = data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.text ?? data?.content;
+          const parsed = typeof content === "string" ? JSON.parse(content) : content;
+          const object = OpsSchema.parse(parsed);
+          return { model, ...applyOps(object.ops, existing) };
+        } catch (e) {
+          lastErr = e;
+          console.error(`[extract] ${model} (${url}) failed:`, e instanceof Error ? e.message : e);
+        }
+      }
+    }
+    throw lastErr ?? new Error("no extraction model configured");
+  }
+
+  for (const model of models) {
     try {
       // plain "provider/model" string routes through the gateway
       // (gateway key comes from the standard AI_GATEWAY env var, set by run.sh)
@@ -1541,6 +1655,80 @@ const app = new Elysia()
     }
     return { ok: true, purged: id, chars: text.length };
   })
+  // LLM settings (database-backed; env vars override at runtime)
+  .get("/settings/llm", () => llmSettingsResponse())
+  .put(
+    "/settings/llm",
+    ({ body, set }) => {
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        set.status = 400;
+        return { error: "invalid request body" };
+      }
+      const b = body as Record<string, unknown>;
+      const endpointRaw = b.llm_endpoint ?? b.endpoint ?? b.llmEndpoint;
+      const keyRaw = b.llm_api_key ?? b.api_key ?? b.llmApiKey ?? b.key;
+      const modelsRaw = b.llm_models ?? b.models ?? b.llmModels;
+
+      if (endpointRaw !== undefined) {
+        if (typeof endpointRaw !== "string") {
+          set.status = 400;
+          return { error: "llm_endpoint must be a string" };
+        }
+        const v = endpointRaw.trim();
+        if (v) {
+          try {
+            const u = new URL(v);
+            if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("bad protocol");
+          } catch {
+            set.status = 400;
+            return { error: "invalid llm_endpoint URL" };
+          }
+        }
+        setSetting("llm_endpoint", v);
+      }
+
+      if (keyRaw !== undefined) {
+        if (typeof keyRaw !== "string") {
+          set.status = 400;
+          return { error: "llm_api_key must be a string" };
+        }
+        const v = keyRaw.trim();
+        const stored = getSetting("llm_api_key");
+        // an unchanged redacted key must not overwrite the real secret
+        if (v !== redactApiKey(stored)) {
+          setSetting("llm_api_key", v);
+        }
+      }
+
+      if (modelsRaw !== undefined) {
+        let v: string;
+        if (Array.isArray(modelsRaw)) {
+          if (!modelsRaw.every((x) => typeof x === "string")) {
+            set.status = 400;
+            return { error: "llm_models must be a string or array of strings" };
+          }
+          v = modelsRaw.map((x) => String(x).trim()).filter(Boolean).join(",");
+        } else if (typeof modelsRaw === "string") {
+          v = modelsRaw
+            .split(",")
+            .map((x) => x.trim())
+            .filter(Boolean)
+            .join(",");
+          // preserve empty input as empty
+          if (modelsRaw.trim() === "") v = "";
+        } else {
+          set.status = 400;
+          return { error: "llm_models must be a string or array of strings" };
+        }
+        setSetting("llm_models", v);
+      }
+
+      return llmSettingsResponse();
+    },
+    {
+      body: t.Any(),
+    },
+  )
   // LLM extraction: send raw text or a conversation, store what's worth remembering
   .post("/extract", async ({ body, set }) => {
     try {

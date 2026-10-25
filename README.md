@@ -65,7 +65,7 @@ Everything is an environment variable; `MINIMEM_ENV` points `run.sh` at a file, 
 - `MINIMEM_LOCK` — short 8-char code; an alternative password for the web UI.
 - `AUTH_ENABLED` — `1` (default) guards the API, `0` disables the guard entirely.
 - `MINIMEM_MCP` — `1` (default) serves the `POST /mcp` endpoint, `0` disables it (agents lose their memory tools).
-- `HOST`, `PORT` — bind address, default `127.0.0.1:3100`.
+- `HOST`, `PORT` — bind address, default `0.0.0.0:3100` (all interfaces).
 - `EXTRACT_MODELS` — comma-separated model ids for `/extract`'s fallback chain.
 - `AI_GATEWAY_API_KEY` — only needed if you call `/extract`.
 
@@ -113,7 +113,7 @@ Every knob also accepts the legacy `SEM_`-prefixed spelling, and the deployed sp
 
 ### About `AUTH_ENABLED=0`
 
-Turning auth off is not a hardening measure — it hands your memory database to anyone who can reach the port. Do it only when the listener is loopback, a private VPN such as Tailscale, or a network you fully control. **Never** bind `0.0.0.0` with auth off on a shared LAN. Memories accumulate hostnames, IP addresses, tokens and config snippets; treat the database as a secret.
+Turning auth off is not a hardening measure — it hands your memory database to anyone who can reach the port. The default bind is now `0.0.0.0` (all interfaces), so with auth off the store is reachable from anywhere. Do it only when the listener is loopback, a private VPN such as Tailscale, or a network you fully control. **Never** run with `AUTH_ENABLED=0` on a public interface. Memories accumulate hostnames, IP addresses, tokens and config snippets; treat the database as a secret.
 
 A useful middle ground: `HOST=127.0.0.1` plus `tailscale serve` when you want remote access without exposing a port.
 
@@ -251,7 +251,7 @@ Back up by copying the file while the server is stopped, or with `sqlite3 db ".b
 
 ### Reverse proxy
 
-Bind to `127.0.0.1` and put a reverse proxy in front for TLS and external access. Caddy example:
+Default bind is `0.0.0.0`. For a public deployment keep AUTH_ENABLED=1 and a strong MINIMEM_TOKEN, put a reverse proxy (Caddy/nginx) in front for HTTPS, and firewall the origin so only the proxy (or your VPN) reaches `:3100`. Caddy example:
 
 ```caddy
 mem.example.com {
@@ -273,6 +273,10 @@ server {
     }
 }
 ```
+
+### Firewall and auth
+
+Never run with `AUTH_ENABLED=0` on a public interface; the guard is the only thing standing between the internet and your memory database. `/settings/llm` requires authentication (token) even for reads, because it exposes LLM endpoint configuration.
 
 ### Backup
 

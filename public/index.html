@@ -810,6 +810,7 @@ mark{background:var(--yellow);color:#111;padding:0 3px;border:1px solid var(--pr
       <button data-mode="relay" class="c6"><span class="ib"><svg class="ic"><use href="#i-relay"/></svg></span>Relay</button>
       <button data-mode="docs" class="c3"><span class="ib"><svg class="ic"><use href="#i-book"/></svg></span>Docs</button>
       <button data-mode="info" class="c0"><span class="ib"><svg class="ic"><use href="#i-info"/></svg></span>Info</button>
+      <button data-mode="settings" class="c0"><span class="ib"><svg class="ic"><use href="#i-key"/></svg></span>settings</button>
     </nav>
   </div>
 </div>
@@ -1250,6 +1251,34 @@ mark{background:var(--yellow);color:#111;padding:0 3px;border:1px solid var(--pr
             </div>
           </div>
         </section>
+</div>
+
+<!-- ══ settings ══ -->
+<div class="view" id="v-settings" hidden>
+  <section class="plate pl-paper sec">
+    <div class="wrap">
+      <h3 class="group-title c0">LLM settings</h3>
+      <div class="box" style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;max-width:640px;">
+        <label style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);">
+          LLM endpoint
+          <input id="llm-endpoint" name="llm_endpoint" type="text" placeholder="https://api.example.com/v1" autocomplete="off" spellcheck="false" aria-label="LLM endpoint" style="text-transform:none;">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);">
+          API key
+          <input id="llm-api-key" name="llm_api_key" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false" aria-label="LLM API key" style="text-transform:none;">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);">
+          Models
+          <input id="llm-models" name="llm_models" type="text" placeholder="model-a, model-b" autocomplete="off" spellcheck="false" aria-label="LLM models" style="text-transform:none;">
+        </label>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <button class="btn" id="llm-save" type="button">Save</button>
+          <span id="llm-status" role="status" aria-live="polite" style="font-family:var(--mono);font-size:12px;color:var(--tx2);"></span>
+        </div>
+        <p class="note">Environment variables override the stored settings.</p>
+      </div>
+    </div>
+  </section>
 </div>
 
 <!-- ══ tags ══ -->
@@ -1910,7 +1939,7 @@ function setHead(title,sub){
   $('#h-clear').hidden=!state.tagFilter;
 }
 function showView(name){
-  const map={dash:'#v-dash',tags:'#v-tags',list:'#v-list',relay:'#v-relay',docs:'#v-docs',info:'#v-info'};
+  const map={dash:'#v-dash',tags:'#v-tags',list:'#v-list',relay:'#v-relay',docs:'#v-docs',info:'#v-info',settings:'#v-settings'};
   for(const k in map){
     const el=$(map[k]),on=k===name;
     if(on&&el.hidden){el.hidden=false;}
@@ -1930,6 +1959,7 @@ async function load(reset=true){
   if(m==='relay')return loadRelay();
   if(m==='docs'){showView('docs');setHead('Documentation','how to use it');return;}
   if(m==='info'){showView('info');setHead('Info','the long version');reveal();return;}
+  if(m==='settings'){showView('settings');setHead('Settings','LLM configuration');loadLlmSettings();return;}
   showView('list');
   const host=$('#cards');
   const first=reset||host.children.length===0;
@@ -2318,6 +2348,46 @@ $('#cr-save').onclick=async()=>{
 $('#cr-sources').onkeydown=e=>{if(e.key==='Enter')$('#cr-save').click();};
 ['#ho-body','#cr-new'].forEach(s=>$(s).onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();$(s==='#ho-body'?'#ho-send':'#cr-save').click();}});
 
+/* ── LLM settings ── */
+let llmSettingsOriginalKey='';
+async function loadLlmSettings(){
+  const msg=$('#llm-status');
+  try{
+    const s=await req('/settings/llm');
+    const endpoint=s.llm_endpoint??s.endpoint??s.settings?.llm_endpoint??'';
+    const key=s.llm_api_key??s.api_key??s.settings?.llm_api_key??'';
+    const models=s.llm_models??s.models??s.settings?.llm_models??'';
+    $('#llm-endpoint').value=endpoint||'';
+    $('#llm-api-key').value=key||'';
+    $('#llm-models').value=models||'';
+    llmSettingsOriginalKey=key||'';
+    if(msg){msg.textContent='';msg.style.color='';}
+  }catch(e){
+    if(msg){msg.textContent=e.message||'load failed';msg.style.color='var(--pink)';}
+  }
+}
+function wireLlmSettings(){
+  const btn=$('#llm-save');
+  if(!btn||btn.dataset.wired)return;
+  btn.dataset.wired='1';
+  btn.onclick=async()=>{
+    const msg=$('#llm-status');
+    btn.disabled=true;
+    if(msg){msg.textContent='';msg.style.color='';}
+    try{
+      const body={
+        llm_endpoint:$('#llm-endpoint').value.trim(),
+        llm_api_key:$('#llm-api-key').value.trim(),
+        llm_models:$('#llm-models').value
+      };
+      await req('/settings/llm',{method:'PUT',body:JSON.stringify(body)});
+      await loadLlmSettings();
+      if(msg){msg.textContent='Saved';msg.style.color='var(--tx)';}
+    }catch(e){
+      if(msg){msg.textContent=e.message||'save failed';msg.style.color='var(--pink)';}
+    }finally{btn.disabled=false;}
+  };
+}
 /* ── nav ── */
 $$('.nav button').forEach(b=>b.onclick=()=>{
   const mode=b.dataset.mode;
@@ -2466,7 +2536,7 @@ async function boot(){
   catch(e){$('#hb-txt').textContent='offline';$('#hb-dot').classList.add('off');}
   if(!AUTH_ON){$('#gate').classList.remove('open');syncLock();$('#open-token').style.display='none';}
   if(AUTH_ON&&!token){showGate();return;}
-  try{await stats();load();}catch(e){}
+  try{await stats();load();loadLlmSettings();wireLlmSettings();}catch(e){}
 }
 mountMimi();paintTheme();tickers();reveal();
 /* the full recall hint does not fit a phone width, shorten it rather than clip it */
