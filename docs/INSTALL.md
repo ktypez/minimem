@@ -38,13 +38,15 @@ Or install it as a service (OpenRC or systemd, whichever the box has):
 
 Data always lives outside the repo, and the env file is `chmod 600` and owned by the service user. Nothing secret is ever committed.
 
-**Remote access.** Bind to `127.0.0.1` and put a reverse proxy in front; do not expose `:3100` on a shared LAN. The proxy must forward `POST /mcp` (that is the only write path) — `GET /mcp` answers `405` by design.
+**Remote access.** The default bind is `0.0.0.0` (all interfaces). For a public deployment keep `AUTH_ENABLED=1` and a strong `MINIMEM_TOKEN`, put a reverse proxy (Caddy/nginx) in front for HTTPS, and firewall the origin so only the proxy (or your VPN) reaches `:3100`. Do not expose `:3100` on a shared LAN without auth. The proxy must forward `POST /mcp` (that is the only write path) — `GET /mcp` answers `405` by design. `/settings/llm` requires authentication (token) even for reads.
 
 ```caddy
 mem.example.com {
     reverse_proxy 127.0.0.1:3100
 }
 ```
+
+Firewall example (ufw): allow 443/tcp and 80/tcp, deny 3100/tcp from outside; or bind the origin to `127.0.0.1` and let the proxy terminate TLS.
 
 ## 2. Get the token
 
