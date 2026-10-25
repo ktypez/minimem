@@ -41,6 +41,7 @@
 // SEM_COS_NOISE_FLOOR, SEM_COS_GOOD_CEIL, SEM_FTS_STRONG, ...).
 
 import { createHash } from "node:crypto";
+import type { Database } from "bun:sqlite";
 import { isDifferentArtifact as artifactVeto } from "./artifact";
 
 const env = (k: string) => process.env[k];
@@ -82,6 +83,22 @@ const numAny = (names: string[], d: number) => {
   return d;
 };
 
+// ---------- DB-backed settings (optional) ----------
+let _settingsDb: Database | null = null;
+export function setEmbedDb(db: Database | null): void {
+  _settingsDb = db;
+}
+function dbSetting(key: string): string | null {
+  if (!_settingsDb) return null;
+  try {
+    const row = _settingsDb.query("SELECT value FROM settings WHERE key = ?").get(key) as { value: string | null } | null;
+    return row ? row.value : null;
+  } catch {
+    return null;
+  }
+}
+
+// ---------- env-backed constants (back-compat; DB may override at runtime) ----------
 export const EMBED_PROVIDER = (env("EMBED_PROVIDER") ?? env("SEM_EMBED_PROVIDER") ?? "cloudflare").trim().toLowerCase();
 export const EMBED_MODEL = (envAny("EMBED_MODEL", "SEM_EMBED_MODEL") ?? "@cf/baai/bge-m3").trim();
 export const EMBED_DIM = num("EMBED_DIM", 1024);
@@ -91,8 +108,80 @@ const EMBED_TIMEOUT_MS = num("EMBED_TIMEOUT_MS", 20000);
 
 /** default: embeddings are on iff a token is configured, so a stray EMBED_ENABLED is not needed */
 export const EMBED_ENABLED = bool("EMBED_ENABLED", !!CF_AI_TOKEN);
-/** true only when we can actually call the provider */
-export const embedReady = (): boolean => EMBED_ENABLED && !!CF_AI_TOKEN && !!CF_ACCOUNT_ID;
+/** true only when we can actually call the provider (resolved) */
+export function embedReady(): boolean {
+  return embedReadyResolved();
+}
+
+// ---------- resolved settings (env -> DB -> defaults) ----------
+export function getEmbedProvider(): string {
+  const v = envAny("EMBED_PROVIDER", "SEM_EMBED_PROVIDER");
+  if (v !== undefined && v.trim() !== "") return v.trim().toLowerCase();
+  const d = dbSetting("embed_provider");
+  if (d && d.trim() !== "") return d.trim().toLowerCase();
+  return "cloudflare";
+}
+export function getEmbedModel(): string {
+  const v = envAny("EMBED_MODEL", "SEM_EMBED_MODEL");
+  if (v !== undefined && v.trim() !== "") return v.trim();
+  const d = dbSetting("embed_model");
+  if (d && d.trim() !== "") return d.trim();
+  return "@cf/baai/bge-m3";
+}
+export function getEmbedDim(): number {
+  const v = envAny("EMBED_DIM", "SEM_EMBED_DIM");
+  if (v !== undefined && v.trim() !== "") {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  const d = dbSetting("embed_dim");
+  if (d && d.trim() !== "") {
+    const n = Number(d);
+    if (Number.isFinite(n)) return n;
+  }
+  return 1024;
+}
+export function getEmbedEndpoint(): string {
+  const v = envAny("EMBED_ENDPOINT", "SEM_EMBED_ENDPOINT");
+  if (v !== undefined) return v.trim();
+  const d = dbSetting("embed_endpoint");
+  return (d ?? "").trim();
+}
+export function getEmbedApiKey(): string {
+  const v = envAny("EMBED_API_KEY", "SEM_EMBED_API_KEY");
+  if (v !== undefined) return v.trim();
+  const d = dbSetting("embed_api_key");
+  return (d ?? "").trim();
+}
+export function getEmbedAccountId(): string {
+  const v = envAny("CF_ACCOUNT_ID", "SEM_CF_ACCOUNT_ID", "EMBED_ACCOUNT_ID");
+  if (v !== undefined) return v.trim();
+  const d = dbSetting("embed_account_id");
+  return (d ?? "").trim();
+}
+export function getEmbedToken(): string {
+  const v = envAny("CF_AI_TOKEN", "CLOUDFLARE_AI_API_TOKEN", "SEM_CF_AI_TOKEN");
+  if (v !== undefined) return v.trim();
+  // DB: api_key doubles as the cloudflare token when no env token is set
+  return getEmbedApiKey();
+}
+export function getEmbedEnabled(): boolean {
+  const v = envAny("EMBED_ENABLED", "SEM_EMBED_ENABLED");
+  if (v !== undefined && v.trim() !== "") {
+    return !["0", "false", "no", "off"].includes(v.trim().toLowerCase());
+  }
+  return !!(getEmbedAccountId() && getEmbedToken()) || !!getEmbedEndpoint();
+}
+export function embedReadyResolved(): boolean {
+  if (!getEmbedEnabled()) return false;
+  const provider = getEmbedProvider();
+  const endpoint = getEmbedEndpoint();
+  const account = getEmbedAccountId();
+  const token = getEmbedToken();
+  if (endpoint) return true;
+  if (provider === "cloudflare") return !!account && !!token;
+  return !!token;
+}
 
 export type Weights = {
   fts: number;
@@ -598,19 +687,69 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
 }
 
 export async function embedBatchSafe(texts: string[]): Promise<EmbedResult> {
-  if (!texts.length) return { vectors: [], model: EMBED_MODEL };
+  const model = getEmbedModel();
+  if (!texts.length) return { vectors: [], model };
   if (!embedReady()) {
-    return { error: `embeddings unavailable (EMBED_ENABLED=${EMBED_ENABLED ? 1 : 0}, token ${CF_AI_TOKEN ? "set" : "missing"}, account ${CF_ACCOUNT_ID ? "set" : "missing"})` };
+    return {
+      error: `embeddings unavailable (EMBED_ENABLED=${getEmbedEnabled() ? 1 : 0}, token ${getEmbedToken() ? "set" : "missing"}, account ${getEmbedAccountId() ? "set" : "missing"}, endpoint ${getEmbedEndpoint() ? "set" : "missing"})`,
+    };
   }
-  if (EMBED_PROVIDER !== "cloudflare") return { error: `unknown EMBED_PROVIDER: ${EMBED_PROVIDER}` };
+  const provider = getEmbedProvider();
+  const endpoint = getEmbedEndpoint();
+  const token = getEmbedToken() || getEmbedApiKey();
+  const account = getEmbedAccountId();
+  const timeout = num("EMBED_TIMEOUT_MS", 20000);
 
-  const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/${EMBED_MODEL}`;
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), EMBED_TIMEOUT_MS);
+  const timer = setTimeout(() => ctl.abort(), timeout);
   try {
+    // OpenAI-compatible path when an endpoint is configured.
+    if (endpoint) {
+      const base = endpoint.replace(/\/+$/, "");
+      const candidates = [`${base}/embeddings`];
+      if (base.endsWith("/v1")) candidates.push(`${base.slice(0, -3).replace(/\/+$/, "")}/embeddings`);
+      if (!base.endsWith("/v1")) candidates.push(`${base}/v1/embeddings`);
+      const urls = [...new Set(candidates)];
+      let lastErr = "provider call failed";
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ model, input: texts }),
+            signal: ctl.signal,
+          });
+          const json = (await res.json()) as { data?: { embedding?: number[] }[]; error?: unknown };
+          if (!res.ok) {
+            lastErr = `provider http ${res.status}: ${JSON.stringify(json.error ?? json).slice(0, 300)}`;
+            continue;
+          }
+          const data = json.data;
+          if (!Array.isArray(data) || data.length !== texts.length) {
+            lastErr = `provider returned ${Array.isArray(data) ? data.length : "no"} vectors for ${texts.length} texts`;
+            continue;
+          }
+          const vectors = data.map((d) => d.embedding as number[]);
+          if (vectors.some((v) => !Array.isArray(v))) {
+            lastErr = "provider returned malformed embeddings";
+            continue;
+          }
+          return { vectors, model };
+        } catch (e) {
+          lastErr = `provider call failed: ${e instanceof Error ? e.message : String(e)}`;
+        }
+      }
+      return { error: lastErr };
+    }
+
+    if (provider !== "cloudflare") {
+      return { error: `unknown EMBED_PROVIDER: ${provider}` };
+    }
+
+    const url = `https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${model}`;
     const res = await fetch(url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${CF_AI_TOKEN}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ text: texts }),
       signal: ctl.signal,
     });
@@ -622,7 +761,7 @@ export async function embedBatchSafe(texts: string[]): Promise<EmbedResult> {
     if (!Array.isArray(data) || data.length !== texts.length) {
       return { error: `provider returned ${Array.isArray(data) ? data.length : "no"} vectors for ${texts.length} texts` };
     }
-    return { vectors: data, model: EMBED_MODEL };
+    return { vectors: data, model };
   } catch (e) {
     return { error: `provider call failed: ${e instanceof Error ? e.message : String(e)}` };
   } finally {
